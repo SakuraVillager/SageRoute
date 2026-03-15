@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme.dart';
+import 'onboarding_screen.dart';
 
 void main() {
   runApp(const SageRouteApp());
@@ -15,7 +16,12 @@ class SageRouteApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      home: const MainScreen(),
+      initialRoute: '/onboarding',
+      routes: {
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/main': (context) => const MainScreen(),
+      },
+      home: const OnboardingScreen(),
     );
   }
 }

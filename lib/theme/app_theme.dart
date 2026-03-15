@@ -10,7 +10,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: buildAppBarTheme(colorScheme),
       cardTheme: buildCardTheme(colorScheme),
       elevatedButtonTheme: buildElevatedButtonTheme(colorScheme),
@@ -27,7 +27,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
       appBarTheme: buildAppBarTheme(colorScheme),
       cardTheme: buildCardTheme(colorScheme),
       elevatedButtonTheme: buildElevatedButtonTheme(colorScheme),

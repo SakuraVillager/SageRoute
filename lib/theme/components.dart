@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'color_schemes.dart';
 
 AppBarTheme buildAppBarTheme(ColorScheme scheme) => AppBarTheme(
   elevation: 0,
