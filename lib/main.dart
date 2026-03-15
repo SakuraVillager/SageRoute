@@ -12,7 +12,9 @@ class SageRouteApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SageRoute',
-      theme: AppTheme.flatTheme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       home: const MainScreen(),
     );
   }

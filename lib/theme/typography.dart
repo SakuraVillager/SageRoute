@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'color_schemes.dart';
 
 /// Text styles used across the app.
-TextTheme buildTextTheme() {
+TextTheme buildTextTheme(ColorScheme scheme) {
   return TextTheme(
     titleLarge: TextStyle(
-      color: AppColors.onSurface,
+      color: scheme.onSurface,
       fontWeight: FontWeight.w600,
       fontSize: 20,
     ),
-    bodyLarge: TextStyle(color: AppColors.onSurface, fontSize: 16),
-    bodyMedium: TextStyle(color: AppColors.onSurface, fontSize: 14),
+    bodyLarge: TextStyle(color: scheme.onSurface, fontSize: 16),
+    bodyMedium: TextStyle(color: scheme.onSurface, fontSize: 14),
   );
 }

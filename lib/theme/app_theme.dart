@@ -5,20 +5,36 @@ import 'typography.dart';
 
 class AppTheme {
   AppTheme._();
-
-  static ThemeData get flatTheme {
-    final colorScheme = AppColors.buildColorScheme();
+  static ThemeData get lightTheme {
+    final colorScheme = AppColors.buildLightScheme();
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.scaffoldBackground,
-      appBarTheme: buildAppBarTheme(),
-      cardTheme: buildCardTheme(),
-      elevatedButtonTheme: buildElevatedButtonTheme(),
-      textButtonTheme: buildTextButtonTheme(),
-      inputDecorationTheme: buildInputDecorationTheme(),
-      dividerTheme: buildDividerTheme(),
-      textTheme: buildTextTheme(),
+      scaffoldBackgroundColor: colorScheme.background,
+      appBarTheme: buildAppBarTheme(colorScheme),
+      cardTheme: buildCardTheme(colorScheme),
+      elevatedButtonTheme: buildElevatedButtonTheme(colorScheme),
+      textButtonTheme: buildTextButtonTheme(colorScheme),
+      inputDecorationTheme: buildInputDecorationTheme(colorScheme),
+      dividerTheme: buildDividerTheme(colorScheme),
+      textTheme: buildTextTheme(colorScheme),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    final colorScheme = AppColors.buildDarkScheme();
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: colorScheme.background,
+      appBarTheme: buildAppBarTheme(colorScheme),
+      cardTheme: buildCardTheme(colorScheme),
+      elevatedButtonTheme: buildElevatedButtonTheme(colorScheme),
+      textButtonTheme: buildTextButtonTheme(colorScheme),
+      inputDecorationTheme: buildInputDecorationTheme(colorScheme),
+      dividerTheme: buildDividerTheme(colorScheme),
+      textTheme: buildTextTheme(colorScheme),
     );
   }
 }
