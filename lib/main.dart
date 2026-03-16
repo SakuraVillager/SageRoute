@@ -1,27 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/database_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await dotenv.load(fileName: '.env');
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
-  final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-
-  await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseKey,
-  );
-
-  // 测试连接
-  try {
-    print('正在尝试连接 Supabase...');
-    final data = await supabase.from('Celebrity').select().limit(1);
-    print('连接成功！查询结果: $data');
-  } catch (e) {
-    print('连接失败: $e');
-  }
+  await DatabaseService.initialize();
 
   runApp(const MyApp());
 }
@@ -39,14 +21,4 @@ class MyApp extends StatelessWidget {
       ),
     );
   }
-}
-
-final supabase = Supabase.instance.client;
-
-Future<List<dynamic>> getUsers() async {
-  final data = await supabase
-      .from('Celebrity')
-      .select();
-
-  return data;
 }
