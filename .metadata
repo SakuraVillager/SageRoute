@@ -13,11 +13,11 @@ project_type: app
 migration:
   platforms:
     - platform: root
-      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
-      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
-    - platform: web
-      create_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
-      base_revision: ff37bef603469fb030f2b72995ab929ccfc227f0
+      create_revision: 6fba2447e95c451518584c35e25f5433f14d888c
+      base_revision: 6fba2447e95c451518584c35e25f5433f14d888c
+    - platform: windows
+      create_revision: 6fba2447e95c451518584c35e25f5433f14d888c
+      base_revision: 6fba2447e95c451518584c35e25f5433f14d888c
 
   # User provided section
 
