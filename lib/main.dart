@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'theme.dart';
 import 'onboarding_screen.dart';
+import 'pages/settings_page.dart';
 
 void main() {
   runApp(const SageRouteApp());
@@ -16,12 +19,52 @@ class SageRouteApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      initialRoute: '/onboarding',
-      routes: {
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/main': (context) => const MainScreen(),
+      routes: {'/main': (context) => const MainScreen()},
+      home: const AppLaunchDecider(),
+    );
+  }
+}
+
+class AppLaunchDecider extends StatefulWidget {
+  const AppLaunchDecider({super.key});
+
+  @override
+  State<AppLaunchDecider> createState() => _AppLaunchDeciderState();
+}
+
+class _AppLaunchDeciderState extends State<AppLaunchDecider> {
+  late final Future<bool> _initializationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializationFuture = _hasSeenOnboarding();
+  }
+
+  Future<bool> _hasSeenOnboarding() async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getBool('hasSeenOnboarding') ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _initializationFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Scaffold(
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final hasSeenOnboarding = snapshot.data ?? false;
+        if (hasSeenOnboarding) {
+          return const MainScreen();
+        }
+
+        return const OnboardingScreen();
       },
-      home: const OnboardingScreen(),
     );
   }
 }
@@ -36,27 +79,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _widgetOptions = <Widget>[
-    Center(
-      child: Text(
-        '首页',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    ),
-    Center(
-      child: Text(
-        '导览',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    ),
-    Center(
-      child: Text(
-        '设置',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    ),
-  ];
-
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -70,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
         title: const Text('SageRoute'),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
-      body: _widgetOptions.elementAt(_selectedIndex),
+      body: _bodyForIndex(_selectedIndex),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
@@ -82,5 +104,26 @@ class _MainScreenState extends State<MainScreen> {
         onTap: _onItemTapped,
       ),
     );
+  }
+
+  Widget _bodyForIndex(int index) {
+    switch (index) {
+      case 1:
+        return const Center(
+          child: Text(
+            '导览',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        );
+      case 2:
+        return const SettingsPage();
+      default:
+        return const Center(
+          child: Text(
+            '首页',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+        );
+    }
   }
 }

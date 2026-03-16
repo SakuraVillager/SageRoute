@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'pages/celebrity_selection_page.dart';
+import 'pages/onboarding_highlight_one_page.dart';
+import 'pages/onboarding_highlight_two_page.dart';
+import 'pages/onboarding_welcome_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -24,21 +30,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  void _onSkipToCharacterSelect() {
+  void _onSkipToCelebritySelect() {
     _pageController.animateToPage(
-      3, // The character selection page index
+      3,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
   }
 
-  void _onFinish() {
-    // Navigation to Main Screen logic will be handled here
+  Future<void> _markOnboardingAsSeen() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool('hasSeenOnboarding', true);
+  }
+
+  Future<void> _onFinish() async {
+    await _markOnboardingAsSeen();
+    if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/main');
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = <Widget>[
+      const OnboardingWelcomePage(),
+      const OnboardingHighlightOnePage(),
+      const OnboardingHighlightTwoPage(),
+      CelebritySelectionPage(onContinue: _onFinish, onSkip: _onFinish),
+    ];
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
@@ -51,33 +70,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   _currentPageIndex = index;
                 });
               },
-              children: [
-                _buildIntroPage(
-                  title: '欢迎来到 SageRoute',
-                  description: '[简介]',
-                  icon: Icons.map_outlined,
-                ),
-                _buildIntroPage(
-                  title: '亮点一',
-                  description: '这里是应用的第一大亮点介绍。',
-                  icon: Icons.star_border,
-                ),
-                _buildIntroPage(
-                  title: '亮点二',
-                  description: '这里是应用的第二大亮点介绍。',
-                  icon: Icons.lightbulb_outline,
-                ),
-                _buildCharacterSelectionPage(),
-              ],
+              children: pages,
             ),
 
-            // Skip button (only shown on pages 0, 1, 2)
             if (_currentPageIndex < 3)
               Positioned(
                 top: 16,
                 right: 16,
                 child: TextButton(
-                  onPressed: _onSkipToCharacterSelect,
+                  onPressed: _onSkipToCelebritySelect,
                   child: Text(
                     '跳过',
                     style: TextStyle(
@@ -88,7 +89,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-            // Continue button (only shown on pages 0, 1, 2)
             if (_currentPageIndex < 3)
               Positioned(
                 bottom: 100,
@@ -106,7 +106,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-            // Dots indicator (only shown on pages 0, 1, 2)
             if (_currentPageIndex < 3)
               Positioned(
                 bottom: 48,
@@ -135,129 +134,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       decoration: BoxDecoration(
         color: isActive
             ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.primary.withOpacity(0.3),
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(4),
-      ),
-    );
-  }
-
-  Widget _buildIntroPage({
-    required String title,
-    required String description,
-    required IconData icon,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.all(40.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 120, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 48),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            description,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCharacterSelectionPage() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '选择您的同行者',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 60),
-          // Avatar Placeholder
-          Container(
-            width: 160,
-            height: 160,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Theme.of(context).colorScheme.primaryContainer,
-              border: Border.all(
-                color: Theme.of(context).colorScheme.primary,
-                width: 4,
-              ),
-            ),
-            child: Icon(
-              Icons.person,
-              size: 80,
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 24),
-          // Character Name
-          Text(
-            '苏东坡',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '一蓑烟雨任平生',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-          const SizedBox(height: 80),
-          // Buttons
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              OutlinedButton(
-                onPressed: _onFinish,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text('跳过'),
-              ),
-              FilledButton(
-                onPressed: _onFinish,
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                ),
-                child: const Text('继续'),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }
