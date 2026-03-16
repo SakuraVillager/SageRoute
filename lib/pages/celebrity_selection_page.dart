@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_celebrity_repository.dart';
-import '../models/celebrity_profile.dart';
+import '../data/celebrity_repository.dart';
 
 class CelebritySelectionPage extends StatefulWidget {
   final VoidCallback onContinue;
@@ -20,8 +19,9 @@ class CelebritySelectionPage extends StatefulWidget {
 }
 
 class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
-  final MockCelebrityRepository _repository = const MockCelebrityRepository();
-  late final Future<List<CelebrityProfile>> _celebritiesFuture;
+  // 该页面通过 CelebrityRepository 从 Supabase 的 Celebrity 表获取人物列表。
+  final CelebrityRepository _repository = const CelebrityRepository();
+  late final Future<List<Map<String, dynamic>>> _celebritiesFuture;
 
   int _currentIndex = 0;
   int _previousIndex = 0;
@@ -97,14 +97,23 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
 
     return ColoredBox(
       color: colorScheme.surface,
-      child: FutureBuilder<List<CelebrityProfile>>(
+      child: FutureBuilder<List<Map<String, dynamic>>>(
         future: _celebritiesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final celebrities = snapshot.data ?? const <CelebrityProfile>[];
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                '人物数据加载失败',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            );
+          }
+
+          final celebrities = snapshot.data ?? const <Map<String, dynamic>>[];
           if (celebrities.isEmpty) {
             return Center(
               child: Text(
@@ -119,6 +128,10 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
             _currentIndex = safeIndex;
           }
           final selected = celebrities[_currentIndex];
+          final selectedId = (selected['id'] as num?)?.toInt() ?? _currentIndex;
+          final selectedName = (selected['name'] ?? '').toString();
+          final selectedDynasty = (selected['dynasty'] ?? '').toString();
+          final selectedBioShort = (selected['bio_short'] ?? '').toString();
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -160,11 +173,11 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
                                   child: child,
                                   animation: animation,
                                   isForward: _isForward,
-                                  selectedId: selected.id,
+                                  selectedId: selectedId,
                                 );
                               },
                               child: Container(
-                                key: ValueKey<int>(selected.id),
+                                key: ValueKey<int>(selectedId),
                                 width: 160,
                                 height: 160,
                                 decoration: BoxDecoration(
@@ -203,14 +216,14 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
                           child: child,
                           animation: animation,
                           isForward: _isForward,
-                          selectedId: selected.id,
+                          selectedId: selectedId,
                         );
                       },
                       child: Column(
-                        key: ValueKey<int>(selected.id),
+                        key: ValueKey<int>(selectedId),
                         children: [
                           Text(
-                            selected.name,
+                            selectedName,
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   fontWeight: FontWeight.bold,
@@ -219,13 +232,13 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            selected.dynasty,
+                            selectedDynasty,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            selected.bioShort,
+                            selectedBioShort,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: colorScheme.onSurfaceVariant),

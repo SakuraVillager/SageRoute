@@ -4,8 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'theme.dart';
 import 'onboarding_screen.dart';
 import 'pages/settings_page.dart';
+import 'services/database_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // 启动时先初始化 Supabase，确保后续页面可以直接请求数据库。
+  await DatabaseService.initialize();
   runApp(const SageRouteApp());
 }
 
@@ -73,6 +77,7 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
+
   State<MainScreen> createState() => _MainScreenState();
 }
 
