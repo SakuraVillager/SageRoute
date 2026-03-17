@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sageroute/data/celebrity_repository.dart';
+import 'package:sageroute/models/celebrity_profile.dart';
 import 'package:sageroute/services/database_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'test_helpers/env_loader.dart';
@@ -14,9 +15,25 @@ void main() {
     final repository = CelebrityRepository(
       fetcher: () async {
         callCount += 1;
-        return <Map<String, dynamic>>[
-          {'id': 1, 'name': '苏东坡'},
-          {'id': 2, 'name': '白居易'},
+        return const <CelebrityProfile>[
+          CelebrityProfile(
+            id: 1,
+            name: '苏东坡',
+            dynasty: '北宋',
+            bioShort: '文学家',
+            bioFul: '苏轼，字子瞻。',
+            avatarUrl: '',
+            topic: <String>[],
+          ),
+          CelebrityProfile(
+            id: 2,
+            name: '白居易',
+            dynasty: '唐',
+            bioShort: '诗人',
+            bioFul: '白居易，字乐天。',
+            avatarUrl: '',
+            topic: <String>[],
+          ),
         ];
       },
     );
@@ -25,7 +42,7 @@ void main() {
 
     expect(callCount, 1);
     expect(rows, hasLength(2));
-    expect(rows.first['name'], '苏东坡');
+    expect(rows.first.name, '苏东坡');
   });
 
   test(
@@ -45,15 +62,17 @@ void main() {
             operationName: 'test.fetchCelebrities(Celebrity)',
           );
           return response
-              .map<Map<String, dynamic>>(
-                (row) => Map<String, dynamic>.from(row as Map),
+              .map<CelebrityProfile>(
+                (row) => CelebrityProfile.fromMap(
+                  Map<String, dynamic>.from(row as Map),
+                ),
               )
               .toList(growable: false);
         },
       );
       final rows = await repository.fetchCelebrities();
 
-      expect(rows, isA<List<Map<String, dynamic>>>());
+      expect(rows, isA<List<CelebrityProfile>>());
     },
     timeout: const Timeout(Duration(minutes: 2)),
   );

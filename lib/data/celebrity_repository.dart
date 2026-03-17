@@ -1,30 +1,29 @@
-import '../services/database_service.dart';
+import '../models/celebrity_profile.dart';
+import 'supabase_table_repository.dart';
 
-typedef _CelebrityFetcher = Future<List<Map<String, dynamic>>> Function();
+typedef _CelebrityFetcher = Future<List<CelebrityProfile>> Function();
 
-/// 该仓库直接使用 Supabase 客户端从 `Celebrity` 表拉取人物数据，供页面层消费。
+/// 人物仓储：
+/// - 对外提供强类型 `CelebrityProfile`
+/// - 底层复用通用 `SupabaseTableRepository`
 class CelebrityRepository {
   const CelebrityRepository({
     _CelebrityFetcher? fetcher,
-  }) : _fetcher = fetcher ?? _defaultFetcher;
+    SupabaseTableRepository? tableRepository,
+  }) : _fetcher = fetcher,
+       _tableRepository =
+           tableRepository ?? const SupabaseTableRepository(tableName: 'Celebrity');
 
-  final _CelebrityFetcher _fetcher;
+  final _CelebrityFetcher? _fetcher;
+  final SupabaseTableRepository _tableRepository;
 
-  static Future<List<Map<String, dynamic>>> _defaultFetcher() async {
-    // 这里直接通过全局 Supabase client 请求 Celebrity 表。
-    final response = await DatabaseService.runQueryWithRetry(
-      () => DatabaseService.client.from('Celebrity').select(),
-      operationName: 'fetchCelebrities(Celebrity)',
+  Future<List<CelebrityProfile>> fetchCelebrities() async {
+    if (_fetcher != null) {
+      return _fetcher();
+    }
+
+    return _tableRepository.fetchAll<CelebrityProfile>(
+      mapper: CelebrityProfile.fromMap,
     );
-
-    return response
-        .map<Map<String, dynamic>>(
-          (row) => Map<String, dynamic>.from(row as Map),
-        )
-        .toList(growable: false);
-  }
-
-  Future<List<Map<String, dynamic>>> fetchCelebrities() async {
-    return _fetcher();
   }
 }

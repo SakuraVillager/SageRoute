@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/celebrity_repository.dart';
+import '../models/celebrity_profile.dart';
 
 class CelebritySelectionPage extends StatefulWidget {
   final VoidCallback onContinue;
@@ -21,7 +22,7 @@ class CelebritySelectionPage extends StatefulWidget {
 class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
   // 该页面通过 CelebrityRepository 从 Supabase 的 Celebrity 表获取人物列表。
   final CelebrityRepository _repository = const CelebrityRepository();
-  late final Future<List<Map<String, dynamic>>> _celebritiesFuture;
+  late final Future<List<CelebrityProfile>> _celebritiesFuture;
 
   int _currentIndex = 0;
   int _previousIndex = 0;
@@ -97,7 +98,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
 
     return ColoredBox(
       color: colorScheme.surface,
-      child: FutureBuilder<List<Map<String, dynamic>>>(
+      child: FutureBuilder<List<CelebrityProfile>>(
         future: _celebritiesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
@@ -113,7 +114,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
             );
           }
 
-          final celebrities = snapshot.data ?? const <Map<String, dynamic>>[];
+          final celebrities = snapshot.data ?? const <CelebrityProfile>[];
           if (celebrities.isEmpty) {
             return Center(
               child: Text(
@@ -128,10 +129,10 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
             _currentIndex = safeIndex;
           }
           final selected = celebrities[_currentIndex];
-          final selectedId = (selected['id'] as num?)?.toInt() ?? _currentIndex;
-          final selectedName = (selected['name'] ?? '').toString();
-          final selectedDynasty = (selected['dynasty'] ?? '').toString();
-          final selectedBioShort = (selected['bio_short'] ?? '').toString();
+          final selectedId = selected.id;
+          final selectedName = selected.name;
+          final selectedDynasty = selected.dynasty;
+          final selectedBioShort = selected.bioShort;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,

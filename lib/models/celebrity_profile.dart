@@ -18,14 +18,18 @@ class CelebrityProfile {
   });
 
   factory CelebrityProfile.fromMap(Map<String, dynamic> map) {
+    final rawTopic = map['topic'];
+
     return CelebrityProfile(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      dynasty: map['dynasty'] as String,
-      bioShort: map['bio_short'] as String,
-      bioFul: map['bio_ful'] as String,
-      avatarUrl: map['avatar_url'] as String,
-      topic: List<String>.from(map['topic'] as List<dynamic>? ?? const []),
+      id: (map['id'] as num?)?.toInt() ?? 0,
+      name: (map['name'] ?? '').toString(),
+      dynasty: (map['dynasty'] ?? '').toString(),
+      bioShort: (map['bio_short'] ?? '').toString(),
+      bioFul: (map['bio_ful'] ?? map['bio_full'] ?? '').toString(),
+      avatarUrl: (map['avatar_url'] ?? '').toString(),
+      topic: rawTopic is List
+          ? rawTopic.map((item) => item.toString()).toList(growable: false)
+          : const <String>[],
     );
   }
 
