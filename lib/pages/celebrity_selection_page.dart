@@ -7,6 +7,8 @@ import '../data/topic_repository.dart';
 import '../models/celebrity_profile.dart';
 import '../models/topic_record.dart';
 
+enum _OverlayPhase { character, reveal }
+
 class CelebritySelectionPage extends StatefulWidget {
   final VoidCallback onContinue;
   final VoidCallback? onSkip;
@@ -24,18 +26,21 @@ class CelebritySelectionPage extends StatefulWidget {
 }
 
 class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
-  // 该页面通过 CelebrityRepository 从 Supabase 的 Celebrity 表获取人物列表。
   final CelebrityRepository _repository = const CelebrityRepository();
   final TopicRepository _topicRepository = const TopicRepository();
+
   late final Future<List<CelebrityProfile>> _celebritiesFuture;
   Future<List<TopicRecord>>? _topicsFuture;
 
   int _currentIndex = 0;
   int _previousIndex = 0;
-  bool _showTopicStage = false;
+  _OverlayPhase _phase = _OverlayPhase.character;
+  bool _overlayVisible = true;
   String? _topicsCelebrityName;
   String? _selectedTopicName;
   bool _databaseDumped = false;
+
+  static const Duration _stageAnimDuration = Duration(milliseconds: 360);
 
   @override
   void initState() {
@@ -44,8 +49,8 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
   }
 
   bool get _isForward => _currentIndex >= _previousIndex;
-
-  static const Duration _stageAnimDuration = Duration(milliseconds: 360);
+  bool get _showTopicStage => _phase != _OverlayPhase.character;
+  bool get _showMapCutout => _phase == _OverlayPhase.reveal;
 
   static double _splitFadeIn(double t) => ((t - 0.5) * 2).clamp(0.0, 1.0);
   static double _splitFadeOut(double t) => (1 - 2 * t).clamp(0.0, 1.0);
@@ -95,11 +100,13 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
         if (kDebugMode && topics.isEmpty) {
           _dumpDatabaseForDebug(celebrityName);
         }
+
         if (!mounted ||
-            !_showTopicStage ||
+            _phase == _OverlayPhase.character ||
             _topicsCelebrityName != celebrityName) {
           return topics;
         }
+
         final topicNames = topics
             .map((topic) => topic.name)
             .where((name) => name.isNotEmpty)
@@ -134,38 +141,6 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
           tableName: table,
         ).fetchAllRaw(limit: 5000);
         debugPrint('DB调试 table=$table, count=${rows.length}');
-
-        if (table == 'Topic') {
-          final topicRows = rows;
-          final topicCelebrities =
-              topicRows
-                  .map((row) => (row['celebrity'] ?? '').toString())
-                  .where((name) => name.trim().isNotEmpty)
-                  .toSet()
-                  .toList(growable: false)
-                ..sort();
-          final matched = topicRows
-              .where(
-                (row) =>
-                    (row['celebrity'] ?? '').toString().contains(celebrityName),
-              )
-              .toList(growable: false);
-
-          debugPrint(
-            'DB调试 Topic.celebrity distinct=${topicCelebrities.length}',
-          );
-          for (final name in topicCelebrities.take(50)) {
-            debugPrint('DB调试 Topic.celebrity -> $name');
-          }
-          debugPrint(
-            'DB调试 Topic contains[$celebrityName] rows=${matched.length}',
-          );
-          for (final row in matched.take(20)) {
-            debugPrint(
-              'DB调试 Topic命中 celebrity=${row['celebrity']} name=${row['name']}',
-            );
-          }
-        }
       } catch (error) {
         debugPrint('DB调试 table=$table error=$error');
       }
@@ -173,23 +148,34 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
   }
 
   void _onContinuePressed(String celebrityName) {
-    if (_showTopicStage) {
-      widget.onContinue();
+    if (_phase == _OverlayPhase.reveal) {
+      if (!_overlayVisible) {
+        return;
+      }
+      setState(() {
+        _overlayVisible = false;
+      });
+      Future<void>.delayed(_stageAnimDuration, () {
+        if (!mounted) {
+          return;
+        }
+        widget.onContinue();
+      });
       return;
     }
 
     setState(() {
-      _showTopicStage = true;
+      _phase = _OverlayPhase.reveal;
       _loadTopicsForCelebrity(celebrityName);
     });
   }
 
   void _onBackStepPressed() {
-    if (!_showTopicStage) {
+    if (_phase == _OverlayPhase.character) {
       return;
     }
     setState(() {
-      _showTopicStage = false;
+      _phase = _OverlayPhase.character;
     });
   }
 
@@ -200,9 +186,9 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
     required int selectedId,
   }) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final bool isEntering = child.key == ValueKey<int>(selectedId);
+    final isEntering = child.key == ValueKey<int>(selectedId);
 
-    double beginOffsetX;
+    late final double beginOffsetX;
     if (isForward) {
       beginOffsetX = isEntering ? screenWidth : -screenWidth;
     } else {
@@ -218,6 +204,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
         final opacity = isEntering
             ? _splitFadeIn(progress)
             : _splitFadeOut(progress);
+
         return Transform.translate(
           offset: Offset(offsetX, 0),
           child: Opacity(opacity: opacity, child: animatedChild),
@@ -234,7 +221,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
     const actionBarHeight = 52.0;
 
     return Material(
-      color: colorScheme.surface,
+      color: Colors.transparent,
       child: FutureBuilder<List<CelebrityProfile>>(
         future: _celebritiesFuture,
         builder: (context, snapshot) {
@@ -265,6 +252,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
           if (safeIndex != _currentIndex) {
             _currentIndex = safeIndex;
           }
+
           final selected = celebrities[_currentIndex];
           final selectedId = selected.id;
           final selectedName = selected.name;
@@ -285,481 +273,627 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
                 final lineHeight =
                     (titleStyle?.fontSize ?? 24) * (titleStyle?.height ?? 1.2);
 
-                return Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 56, 24, 24),
-                      child: Column(
-                        children: [
-                          AnimatedSwitcher(
-                            duration: _stageAnimDuration,
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-                            transitionBuilder: (child, animation) {
-                              final currentTitleKey = ValueKey<bool>(
-                                _showTopicStage,
-                              );
-                              final isIncoming = child.key == currentTitleKey;
+                return TweenAnimationBuilder<double>(
+                  duration: _stageAnimDuration,
+                  curve: Curves.easeInOutCubic,
+                  tween: Tween<double>(begin: 0, end: _showMapCutout ? 1 : 0),
+                  builder: (context, cutoutT, child) {
+                    final reserveT = cutoutT.clamp(0.0, 1.0);
+                    final holeT = ((cutoutT - 0.5) * 2).clamp(0.0, 1.0);
 
-                              return AnimatedBuilder(
-                                animation: animation,
-                                child: child,
-                                builder: (context, animatedChild) {
-                                  final progress = isIncoming
-                                      ? animation.value
-                                      : 1 - animation.value;
-                                  final opacity = isIncoming
-                                      ? _splitFadeIn(progress)
-                                      : _splitFadeOut(progress);
-                                  final dy = isIncoming
-                                      ? lineHeight * (1 - animation.value)
-                                      : -lineHeight * (1 - animation.value);
-                                  return Transform.translate(
-                                    offset: Offset(0, dy),
-                                    child: Opacity(
-                                      opacity: opacity,
-                                      child: animatedChild,
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                            child: Text(
-                              _showTopicStage ? '选择想体验的主题' : '选择您的同行者',
-                              key: ValueKey<bool>(_showTopicStage),
-                              style: titleStyle,
+                    final endHoleWidth =
+                        ((constraints.maxWidth - 52) * (0.58 + 0.32 * 1.0))
+                            .clamp(180.0, constraints.maxWidth - 24);
+                    final endHoleHeight = (96 + 150 * 1.0).clamp(
+                      96.0,
+                      constraints.maxHeight * 0.45,
+                    );
+                    final maxReservedHeight = (endHoleHeight - 160.0)
+                        .clamp(0.0, constraints.maxHeight)
+                        .toDouble();
+
+                    final holeWidth =
+                        ((constraints.maxWidth - 52) * (0.58 + 0.32 * holeT))
+                            .clamp(180.0, constraints.maxWidth - 24);
+                    final holeHeight = (96 + 150 * holeT).clamp(
+                      96.0,
+                      constraints.maxHeight * 0.45,
+                    );
+                    final holeTop =
+                        constraints.maxHeight * (0.36 - 0.08 * holeT);
+                    final holeLeft = (constraints.maxWidth - holeWidth) / 2;
+
+                    final hasHole = holeT > 0.001;
+                    final hole = hasHole
+                        ? RRect.fromRectAndRadius(
+                            Rect.fromLTWH(
+                              holeLeft,
+                              holeTop,
+                              holeWidth,
+                              holeHeight,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            flex: 2,
-                            child: AnimatedSlide(
-                              duration: _stageAnimDuration,
-                              curve: Curves.easeInOutCubic,
-                              offset: _showTopicStage
-                                  ? Offset.zero
-                                  : const Offset(0.8, 0),
-                              child: AnimatedOpacity(
-                                duration: _stageAnimDuration,
-                                curve: _showTopicStage
-                                    ? const Interval(
-                                        0.5,
-                                        1,
-                                        curve: Curves.easeOutCubic,
-                                      )
-                                    : const Interval(
-                                        0,
-                                        0.5,
-                                        curve: Curves.easeInCubic,
-                                      ),
-                                opacity: _showTopicStage ? 1 : 0,
-                                child: IgnorePointer(
-                                  ignoring: !_showTopicStage,
-                                  child: FutureBuilder<List<TopicRecord>>(
-                                    future: _topicsFuture,
-                                    builder: (context, topicSnapshot) {
-                                      if (_topicsFuture == null) {
-                                        return const SizedBox.shrink();
-                                      }
+                            Radius.circular(24 + 12 * holeT),
+                          )
+                        : null;
 
-                                      if (topicSnapshot.connectionState !=
-                                          ConnectionState.done) {
-                                        return const Center(
-                                          child: SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.2,
+                    final reservedWidth = endHoleWidth * reserveT;
+                    final reservedHeight = maxReservedHeight * reserveT;
+
+                    return AnimatedOpacity(
+                      duration: _stageAnimDuration,
+                      curve: Curves.easeInOutCubic,
+                      opacity: _overlayVisible ? 1 : 0,
+                      child: IgnorePointer(
+                        ignoring: !_overlayVisible,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _OverlayMaskPainter(
+                                  overlayColor: colorScheme.surface,
+                                  hole: hole,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                56,
+                                24,
+                                24,
+                              ),
+                              child: Column(
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: _stageAnimDuration,
+                                    switchInCurve: Curves.easeOutCubic,
+                                    switchOutCurve: Curves.easeInCubic,
+                                    transitionBuilder: (child, animation) {
+                                      final currentTitleKey = ValueKey<bool>(
+                                        _showTopicStage,
+                                      );
+                                      final isIncoming =
+                                          child.key == currentTitleKey;
+
+                                      return AnimatedBuilder(
+                                        animation: animation,
+                                        child: child,
+                                        builder: (context, animatedChild) {
+                                          final progress = isIncoming
+                                              ? animation.value
+                                              : 1 - animation.value;
+                                          final opacity = isIncoming
+                                              ? _splitFadeIn(progress)
+                                              : _splitFadeOut(progress);
+                                          final dy = isIncoming
+                                              ? lineHeight *
+                                                    (1 - animation.value)
+                                              : -lineHeight *
+                                                    (1 - animation.value);
+                                          return Transform.translate(
+                                            offset: Offset(0, dy),
+                                            child: Opacity(
+                                              opacity: opacity,
+                                              child: animatedChild,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Text(
+                                      _showTopicStage ? '选择想体验的主题' : '选择您的同行者',
+                                      key: ValueKey<bool>(_showTopicStage),
+                                      style: titleStyle,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Expanded(
+                                    flex: 2,
+                                    child: AnimatedSlide(
+                                      duration: _stageAnimDuration,
+                                      curve: Curves.easeInOutCubic,
+                                      offset: _showTopicStage
+                                          ? Offset.zero
+                                          : const Offset(0.8, 0),
+                                      child: AnimatedOpacity(
+                                        duration: _stageAnimDuration,
+                                        curve: _showTopicStage
+                                            ? const Interval(
+                                                0.5,
+                                                1,
+                                                curve: Curves.easeOutCubic,
+                                              )
+                                            : const Interval(
+                                                0,
+                                                0.5,
+                                                curve: Curves.easeInCubic,
+                                              ),
+                                        opacity: _showTopicStage ? 1 : 0,
+                                        child: IgnorePointer(
+                                          ignoring: !_showTopicStage,
+                                          child: FutureBuilder<List<TopicRecord>>(
+                                            future: _topicsFuture,
+                                            builder: (context, topicSnapshot) {
+                                              if (_topicsFuture == null) {
+                                                return const SizedBox.shrink();
+                                              }
+
+                                              if (topicSnapshot
+                                                      .connectionState !=
+                                                  ConnectionState.done) {
+                                                return const Center(
+                                                  child: SizedBox(
+                                                    width: 24,
+                                                    height: 24,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2.2,
+                                                        ),
+                                                  ),
+                                                );
+                                              }
+
+                                              if (topicSnapshot.hasError) {
+                                                return Center(
+                                                  child: Text(
+                                                    '主题加载失败',
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.bodyMedium,
+                                                  ),
+                                                );
+                                              }
+
+                                              final topics =
+                                                  topicSnapshot.data ??
+                                                  const <TopicRecord>[];
+                                              final topicNames = topics
+                                                  .map((topic) => topic.name)
+                                                  .where(
+                                                    (name) => name.isNotEmpty,
+                                                  )
+                                                  .toSet()
+                                                  .toList(growable: false);
+
+                                              if (topicNames.isEmpty) {
+                                                return Center(
+                                                  child: Text(
+                                                    '暂无可选主题',
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.bodyMedium,
+                                                  ),
+                                                );
+                                              }
+
+                                              final selectedTopic =
+                                                  topicNames.contains(
+                                                    _selectedTopicName,
+                                                  )
+                                                  ? _selectedTopicName
+                                                  : topicNames.first;
+
+                                              return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Wrap(
+                                                  alignment:
+                                                      WrapAlignment.center,
+                                                  spacing: 10,
+                                                  runSpacing: 10,
+                                                  children: topicNames
+                                                      .map(
+                                                        (
+                                                          topicName,
+                                                        ) => ChoiceChip(
+                                                          label: Text(
+                                                            topicName,
+                                                          ),
+                                                          selected:
+                                                              selectedTopic ==
+                                                              topicName,
+                                                          onSelected: (_) {
+                                                            setState(() {
+                                                              _selectedTopicName =
+                                                                  topicName;
+                                                            });
+                                                          },
+                                                        ),
+                                                      )
+                                                      .toList(growable: false),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  Align(
+                                    alignment: Alignment.topCenter,
+                                    child: SizedBox(
+                                      width: reservedWidth,
+                                      height: reservedHeight,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 6,
+                                    child: TweenAnimationBuilder<double>(
+                                      duration: _stageAnimDuration,
+                                      curve: Curves.easeInOutCubic,
+                                      tween: Tween<double>(
+                                        begin: 0,
+                                        end: _showTopicStage ? 1 : 0,
+                                      ),
+                                      builder: (context, t, child) {
+                                        final hasDynasty = selectedDynasty
+                                            .trim()
+                                            .isNotEmpty;
+                                        const nameOffsetY = 0.0;
+                                        final nameStyle = Theme.of(
+                                          context,
+                                        ).textTheme.headlineMedium;
+                                        final nameLineHeight =
+                                            (nameStyle?.fontSize ?? 28) *
+                                            (nameStyle?.height ?? 1.2);
+
+                                        const avatarTop = 8.0;
+                                        const avatarSize = 160.0;
+                                        const avatarNameGap = 20.0;
+                                        final nameTop =
+                                            avatarTop +
+                                            avatarSize +
+                                            avatarNameGap +
+                                            nameOffsetY;
+
+                                        final stageOneArrowCenter =
+                                            (avatarTop +
+                                                (nameTop + nameLineHeight)) /
+                                            2;
+                                        final stageTwoArrowCenter =
+                                            nameTop + nameLineHeight / 2;
+                                        final arrowCenter =
+                                            stageOneArrowCenter +
+                                            (stageTwoArrowCenter -
+                                                    stageOneArrowCenter) *
+                                                t;
+                                        final arrowTop = arrowCenter - 24;
+
+                                        return Stack(
+                                          children: [
+                                            Column(
+                                              children: [
+                                                const SizedBox(height: 8),
+                                                Opacity(
+                                                  opacity: _splitFadeOut(t),
+                                                  child: IgnorePointer(
+                                                    ignoring: _showTopicStage,
+                                                    child: Center(
+                                                      child: AnimatedSwitcher(
+                                                        duration:
+                                                            const Duration(
+                                                              milliseconds: 260,
+                                                            ),
+                                                        transitionBuilder:
+                                                            (child, animation) {
+                                                              return _buildEdgeSlideFadeTransition(
+                                                                child: child,
+                                                                animation:
+                                                                    animation,
+                                                                isForward:
+                                                                    _isForward,
+                                                                selectedId:
+                                                                    selectedId,
+                                                              );
+                                                            },
+                                                        child: Container(
+                                                          key: ValueKey<int>(
+                                                            selectedId,
+                                                          ),
+                                                          width: 160,
+                                                          height: 160,
+                                                          decoration: BoxDecoration(
+                                                            shape:
+                                                                BoxShape.circle,
+                                                            color: colorScheme
+                                                                .primaryContainer,
+                                                            border: Border.all(
+                                                              color: colorScheme
+                                                                  .primary,
+                                                              width: 4,
+                                                            ),
+                                                          ),
+                                                          child: Icon(
+                                                            Icons.person,
+                                                            size: 80,
+                                                            color: colorScheme
+                                                                .onPrimaryContainer,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                Transform.translate(
+                                                  offset: Offset(
+                                                    0,
+                                                    nameOffsetY,
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      const SizedBox(width: 44),
+                                                      Expanded(
+                                                        child: AnimatedSwitcher(
+                                                          duration:
+                                                              const Duration(
+                                                                milliseconds:
+                                                                    260,
+                                                              ),
+                                                          transitionBuilder:
+                                                              (
+                                                                child,
+                                                                animation,
+                                                              ) {
+                                                                return _buildEdgeSlideFadeTransition(
+                                                                  child: child,
+                                                                  animation:
+                                                                      animation,
+                                                                  isForward:
+                                                                      _isForward,
+                                                                  selectedId:
+                                                                      selectedId,
+                                                                );
+                                                              },
+                                                          child: Column(
+                                                            key: ValueKey<int>(
+                                                              selectedId,
+                                                            ),
+                                                            children: [
+                                                              Text(
+                                                                selectedName,
+                                                                textAlign:
+                                                                    TextAlign
+                                                                        .center,
+                                                                style: Theme.of(context)
+                                                                    .textTheme
+                                                                    .headlineMedium
+                                                                    ?.copyWith(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      color: colorScheme
+                                                                          .primary,
+                                                                    ),
+                                                              ),
+                                                              if (hasDynasty) ...[
+                                                                const SizedBox(
+                                                                  height: 8,
+                                                                ),
+                                                                Text(
+                                                                  selectedDynasty,
+                                                                  style: Theme.of(context)
+                                                                      .textTheme
+                                                                      .bodySmall
+                                                                      ?.copyWith(
+                                                                        color: colorScheme
+                                                                            .onSurfaceVariant,
+                                                                      ),
+                                                                ),
+                                                              ],
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 44),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                              ],
+                                            ),
+                                            Positioned(
+                                              left: 0,
+                                              top: arrowTop,
+                                              child: SizedBox(
+                                                width: 44,
+                                                child: _currentIndex > 0
+                                                    ? IconButton(
+                                                        onPressed: () =>
+                                                            _goPrevious(
+                                                              celebrities,
+                                                            ),
+                                                        icon: const Icon(
+                                                          Icons
+                                                              .chevron_left_rounded,
+                                                        ),
+                                                      )
+                                                    : const SizedBox.shrink(),
+                                              ),
+                                            ),
+                                            Positioned(
+                                              right: 0,
+                                              top: arrowTop,
+                                              child: SizedBox(
+                                                width: 44,
+                                                child:
+                                                    _currentIndex <
+                                                        celebrities.length - 1
+                                                    ? IconButton(
+                                                        onPressed: () =>
+                                                            _goNext(
+                                                              celebrities,
+                                                            ),
+                                                        icon: const Icon(
+                                                          Icons
+                                                              .chevron_right_rounded,
+                                                        ),
+                                                      )
+                                                    : const SizedBox.shrink(),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 260),
+                                    transitionBuilder: (child, animation) {
+                                      return _buildEdgeSlideFadeTransition(
+                                        child: child,
+                                        animation: animation,
+                                        isForward: _isForward,
+                                        selectedId: selectedId,
+                                      );
+                                    },
+                                    child: Text(
+                                      key: ValueKey<int>(selectedId),
+                                      selectedBioShort,
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: actionBarHeight + bottomInset + 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (widget.showActionButtons)
+                              Positioned(
+                                left: 24,
+                                right: 24,
+                                bottom: 28 + bottomInset,
+                                child: SizedBox(
+                                  height: actionBarHeight,
+                                  child: LayoutBuilder(
+                                    builder: (context, actionConstraints) {
+                                      final totalWidth =
+                                          actionConstraints.maxWidth;
+                                      final backWidth = _showTopicStage
+                                          ? (totalWidth * 0.34).clamp(
+                                              96.0,
+                                              180.0,
+                                            )
+                                          : 0.0;
+                                      final gapWidth = _showTopicStage
+                                          ? 12.0
+                                          : 0.0;
+                                      final continueWidth =
+                                          totalWidth - backWidth - gapWidth;
+
+                                      return Row(
+                                        children: [
+                                          AnimatedContainer(
+                                            duration: _stageAnimDuration,
+                                            curve: Curves.easeInOutCubic,
+                                            width: backWidth,
+                                            child: AnimatedOpacity(
+                                              duration: _stageAnimDuration,
+                                              curve: _showTopicStage
+                                                  ? const Interval(
+                                                      0.5,
+                                                      1,
+                                                      curve:
+                                                          Curves.easeOutCubic,
+                                                    )
+                                                  : const Interval(
+                                                      0,
+                                                      0.5,
+                                                      curve: Curves.easeInCubic,
+                                                    ),
+                                              opacity: _showTopicStage ? 1 : 0,
+                                              child: IgnorePointer(
+                                                ignoring: !_showTopicStage,
+                                                child: OutlinedButton(
+                                                  onPressed: _onBackStepPressed,
+                                                  style: OutlinedButton.styleFrom(
+                                                    minimumSize: const Size(
+                                                      0,
+                                                      actionBarHeight,
+                                                    ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 20,
+                                                        ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            30,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  child: const Text('上一步'),
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        );
-                                      }
-
-                                      if (topicSnapshot.hasError) {
-                                        return Center(
-                                          child: Text(
-                                            '主题加载失败',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium,
+                                          AnimatedContainer(
+                                            duration: _stageAnimDuration,
+                                            curve: Curves.easeInOutCubic,
+                                            width: gapWidth,
                                           ),
-                                        );
-                                      }
-
-                                      final topics =
-                                          topicSnapshot.data ??
-                                          const <TopicRecord>[];
-                                      final topicNames = topics
-                                          .map((topic) => topic.name)
-                                          .where((name) => name.isNotEmpty)
-                                          .toSet()
-                                          .toList(growable: false);
-
-                                      if (topicNames.isEmpty) {
-                                        return Center(
-                                          child: Text(
-                                            '暂无可选主题',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium,
-                                          ),
-                                        );
-                                      }
-
-                                      final selectedTopic =
-                                          topicNames.contains(
-                                            _selectedTopicName,
-                                          )
-                                          ? _selectedTopicName
-                                          : topicNames.first;
-
-                                      return Align(
-                                        alignment: Alignment.topCenter,
-                                        child: Wrap(
-                                          alignment: WrapAlignment.center,
-                                          spacing: 10,
-                                          runSpacing: 10,
-                                          children: topicNames
-                                              .map(
-                                                (topicName) => ChoiceChip(
-                                                  label: Text(topicName),
-                                                  selected:
-                                                      selectedTopic ==
-                                                      topicName,
-                                                  onSelected: (_) {
-                                                    setState(() {
-                                                      _selectedTopicName =
-                                                          topicName;
-                                                    });
-                                                  },
+                                          AnimatedContainer(
+                                            duration: _stageAnimDuration,
+                                            curve: Curves.easeInOutCubic,
+                                            width: continueWidth,
+                                            child: FilledButton(
+                                              onPressed: () =>
+                                                  _onContinuePressed(
+                                                    selectedName,
+                                                  ),
+                                              style: FilledButton.styleFrom(
+                                                minimumSize: const Size(
+                                                  0,
+                                                  actionBarHeight,
                                                 ),
-                                              )
-                                              .toList(growable: false),
-                                        ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 32,
+                                                    ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(30),
+                                                ),
+                                              ),
+                                              child: Text(
+                                                _phase == _OverlayPhase.reveal
+                                                    ? '完成'
+                                                    : '继续',
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       );
                                     },
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 6,
-                            child: LayoutBuilder(
-                              builder: (context, stageConstraints) {
-                                final stageHeight = stageConstraints.maxHeight;
-                                final hasDynasty = selectedDynasty
-                                    .trim()
-                                    .isNotEmpty;
-                                final nameStyle = Theme.of(
-                                  context,
-                                ).textTheme.headlineMedium;
-                                final nameLineHeight =
-                                    (nameStyle?.fontSize ?? 28) *
-                                    (nameStyle?.height ?? 1.2);
-                                return TweenAnimationBuilder<double>(
-                                  duration: _stageAnimDuration,
-                                  curve: Curves.easeInOutCubic,
-                                  tween: Tween<double>(
-                                    begin: 0,
-                                    end: _showTopicStage ? 1 : 0,
-                                  ),
-                                  builder: (context, t, child) {
-                                    final avatarTop = stageHeight * 0.06;
-                                    final nameTop =
-                                        stageHeight * (0.64 + (-0.46 * t));
-                                    final stageOneArrowTop = stageHeight * 0.30;
-                                    final stageTwoArrowTop =
-                                        stageHeight * 0.18 +
-                                        (nameLineHeight - 48) / 2;
-                                    final arrowTop =
-                                        stageOneArrowTop +
-                                        (stageTwoArrowTop - stageOneArrowTop) *
-                                            t;
-
-                                    return Stack(
-                                      children: [
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          top: avatarTop,
-                                          child: Opacity(
-                                            opacity: _splitFadeOut(t),
-                                            child: IgnorePointer(
-                                              ignoring: _showTopicStage,
-                                              child: Center(
-                                                child: AnimatedSwitcher(
-                                                  duration: const Duration(
-                                                    milliseconds: 260,
-                                                  ),
-                                                  transitionBuilder:
-                                                      (child, animation) {
-                                                        return _buildEdgeSlideFadeTransition(
-                                                          child: child,
-                                                          animation: animation,
-                                                          isForward: _isForward,
-                                                          selectedId:
-                                                              selectedId,
-                                                        );
-                                                      },
-                                                  child: Container(
-                                                    key: ValueKey<int>(
-                                                      selectedId,
-                                                    ),
-                                                    width: 160,
-                                                    height: 160,
-                                                    decoration: BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: colorScheme
-                                                          .primaryContainer,
-                                                      border: Border.all(
-                                                        color:
-                                                            colorScheme.primary,
-                                                        width: 4,
-                                                      ),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.person,
-                                                      size: 80,
-                                                      color: colorScheme
-                                                          .onPrimaryContainer,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          left: 0,
-                                          right: 0,
-                                          top: nameTop,
-                                          child: AnimatedSwitcher(
-                                            duration: const Duration(
-                                              milliseconds: 260,
-                                            ),
-                                            transitionBuilder: (child, animation) {
-                                              return _buildEdgeSlideFadeTransition(
-                                                child: child,
-                                                animation: animation,
-                                                isForward: _isForward,
-                                                selectedId: selectedId,
-                                              );
-                                            },
-                                            child: Column(
-                                              key: ValueKey<int>(selectedId),
-                                              children: [
-                                                Text(
-                                                  selectedName,
-                                                  textAlign: TextAlign.center,
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .headlineMedium
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            colorScheme.primary,
-                                                      ),
-                                                ),
-                                                if (hasDynasty) ...[
-                                                  const SizedBox(height: 8),
-                                                  Text(
-                                                    selectedDynasty,
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .bodySmall
-                                                        ?.copyWith(
-                                                          color: colorScheme
-                                                              .onSurfaceVariant,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          left: 0,
-                                          top: arrowTop,
-                                          child: SizedBox(
-                                            width: 44,
-                                            child: _currentIndex > 0
-                                                ? IconButton(
-                                                    onPressed: () =>
-                                                        _goPrevious(
-                                                          celebrities,
-                                                        ),
-                                                    icon: const Icon(
-                                                      Icons
-                                                          .chevron_left_rounded,
-                                                    ),
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
-                                        ),
-                                        Positioned(
-                                          right: 0,
-                                          top: arrowTop,
-                                          child: SizedBox(
-                                            width: 44,
-                                            child:
-                                                _currentIndex <
-                                                    celebrities.length - 1
-                                                ? IconButton(
-                                                    onPressed: () =>
-                                                        _goNext(celebrities),
-                                                    icon: const Icon(
-                                                      Icons
-                                                          .chevron_right_rounded,
-                                                    ),
-                                                  )
-                                                : const SizedBox.shrink(),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 260),
-                            transitionBuilder: (child, animation) {
-                              return _buildEdgeSlideFadeTransition(
-                                child: child,
-                                animation: animation,
-                                isForward: _isForward,
-                                selectedId: selectedId,
-                              );
-                            },
-                            child: Text(
-                              key: ValueKey<int>(selectedId),
-                              selectedBioShort,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                            ),
-                          ),
-                          SizedBox(height: actionBarHeight + bottomInset + 20),
-                        ],
-                      ),
-                    ),
-                    if (widget.showActionButtons)
-                      Positioned(
-                        left: 24,
-                        right: 24,
-                        bottom: 28 + bottomInset,
-                        child: SizedBox(
-                          height: actionBarHeight,
-                          child: LayoutBuilder(
-                            builder: (context, actionConstraints) {
-                              final totalWidth = actionConstraints.maxWidth;
-                              final backWidth = _showTopicStage
-                                  ? (totalWidth * 0.34).clamp(96.0, 180.0)
-                                  : 0.0;
-                              final gapWidth = _showTopicStage ? 12.0 : 0.0;
-                              final continueWidth =
-                                  totalWidth - backWidth - gapWidth;
-
-                              return Row(
-                                children: [
-                                  AnimatedContainer(
-                                    duration: _stageAnimDuration,
-                                    curve: Curves.easeInOutCubic,
-                                    width: backWidth,
-                                    child: AnimatedOpacity(
-                                      duration: _stageAnimDuration,
-                                      curve: _showTopicStage
-                                          ? const Interval(
-                                              0.5,
-                                              1,
-                                              curve: Curves.easeOutCubic,
-                                            )
-                                          : const Interval(
-                                              0,
-                                              0.5,
-                                              curve: Curves.easeInCubic,
-                                            ),
-                                      opacity: _showTopicStage ? 1 : 0,
-                                      child: IgnorePointer(
-                                        ignoring: !_showTopicStage,
-                                        child: OutlinedButton(
-                                          onPressed: _onBackStepPressed,
-                                          style: OutlinedButton.styleFrom(
-                                            minimumSize: const Size(
-                                              0,
-                                              actionBarHeight,
-                                            ),
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 20,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(30),
-                                            ),
-                                          ),
-                                          child: const Text('上一步'),
-                                        ),
-                                      ),
+                            if (widget.showActionButtons)
+                              Positioned(
+                                top: 22,
+                                right: 10,
+                                child: TextButton(
+                                  onPressed: skipHandler,
+                                  child: Text(
+                                    '跳过',
+                                    style: TextStyle(
+                                      color: colorScheme.primary,
+                                      fontSize: 16,
                                     ),
                                   ),
-                                  AnimatedContainer(
-                                    duration: _stageAnimDuration,
-                                    curve: Curves.easeInOutCubic,
-                                    width: gapWidth,
-                                  ),
-                                  AnimatedContainer(
-                                    duration: _stageAnimDuration,
-                                    curve: Curves.easeInOutCubic,
-                                    width: continueWidth,
-                                    child: FilledButton(
-                                      onPressed: () =>
-                                          _onContinuePressed(selectedName),
-                                      style: FilledButton.styleFrom(
-                                        minimumSize: const Size(
-                                          0,
-                                          actionBarHeight,
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                        ),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            30,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _showTopicStage ? '完成' : '继续',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    if (widget.showActionButtons)
-                      Positioned(
-                        top: 22,
-                        right: 10,
-                        child: TextButton(
-                          onPressed: skipHandler,
-                          child: Text(
-                            '跳过',
-                            style: TextStyle(
-                              color: colorScheme.primary,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+                    );
+                  },
                 );
               },
             ),
@@ -767,5 +901,39 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage> {
         },
       ),
     );
+  }
+}
+
+class _OverlayMaskPainter extends CustomPainter {
+  final Color overlayColor;
+  final RRect? hole;
+
+  const _OverlayMaskPainter({required this.overlayColor, required this.hole});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final overlayPath = Path()..addRect(Offset.zero & size);
+    final paint = Paint()
+      ..color = overlayColor
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+
+    if (hole == null) {
+      canvas.drawPath(overlayPath, paint);
+      return;
+    }
+
+    final holePath = Path()..addRRect(hole!);
+    final maskedPath = Path.combine(
+      PathOperation.difference,
+      overlayPath,
+      holePath,
+    );
+    canvas.drawPath(maskedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _OverlayMaskPainter oldDelegate) {
+    return oldDelegate.overlayColor != overlayColor || oldDelegate.hole != hole;
   }
 }

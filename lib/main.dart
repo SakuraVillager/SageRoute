@@ -5,6 +5,7 @@ import 'package:x_amap_base/x_amap_base.dart';
 
 import 'theme.dart';
 import 'onboarding_screen.dart';
+import 'pages/celebrity_selection_page.dart';
 import 'pages/guide_page.dart';
 import 'pages/settings_page.dart';
 import 'services/database_service.dart';
@@ -104,32 +105,73 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  static const Duration _overlayPrepDuration = Duration(milliseconds: 360);
+
   int _selectedIndex = 0;
+  bool _showCelebrityOverlay = false;
 
   void _onItemTapped(int index) {
+    if (_showCelebrityOverlay) {
+      return;
+    }
     setState(() {
       _selectedIndex = index;
     });
   }
 
+  void _openCelebrityOverlay() {
+    setState(() {
+      _showCelebrityOverlay = true;
+    });
+
+    Future<void>.delayed(_overlayPrepDuration, () {
+      if (!mounted || !_showCelebrityOverlay || _selectedIndex == 1) {
+        return;
+      }
+      setState(() {
+        _selectedIndex = 1;
+      });
+    });
+  }
+
+  void _closeCelebrityOverlay() {
+    if (!_showCelebrityOverlay) {
+      return;
+    }
+    setState(() {
+      _showCelebrityOverlay = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('SageRoute'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-      ),
-      body: _bodyForIndex(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: '导览'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Theme.of(context).colorScheme.primary,
-        onTap: _onItemTapped,
-      ),
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(
+            title: const Text('SageRoute'),
+            backgroundColor: Theme.of(context).colorScheme.primary,
+          ),
+          body: _bodyForIndex(_selectedIndex),
+          bottomNavigationBar: BottomNavigationBar(
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
+              BottomNavigationBarItem(icon: Icon(Icons.explore), label: '导览'),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+            ],
+            currentIndex: _selectedIndex,
+            selectedItemColor: Theme.of(context).colorScheme.primary,
+            onTap: _onItemTapped,
+          ),
+        ),
+        if (_showCelebrityOverlay)
+          Positioned.fill(
+            child: CelebritySelectionPage(
+              onContinue: _closeCelebrityOverlay,
+              onSkip: _closeCelebrityOverlay,
+            ),
+          ),
+      ],
     );
   }
 
@@ -138,7 +180,7 @@ class _MainScreenState extends State<MainScreen> {
       case 1:
         return const GuidePage();
       case 2:
-        return const SettingsPage();
+        return SettingsPage(onSwitchCelebrity: _openCelebrityOverlay);
       default:
         return const Center(
           child: Text(
