@@ -105,7 +105,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static const Duration _overlayPrepDuration = Duration(milliseconds: 360);
+  static const Duration _guideSwitchDelay = Duration(milliseconds: 120);
 
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
@@ -124,12 +124,14 @@ class _MainScreenState extends State<MainScreen> {
       _showCelebrityOverlay = true;
     });
 
-    Future<void>.delayed(_overlayPrepDuration, () {
-      if (!mounted || !_showCelebrityOverlay || _selectedIndex == 1) {
-        return;
-      }
-      setState(() {
-        _selectedIndex = 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(_guideSwitchDelay, () {
+        if (!mounted || !_showCelebrityOverlay || _selectedIndex == 1) {
+          return;
+        }
+        setState(() {
+          _selectedIndex = 1;
+        });
       });
     });
   }
