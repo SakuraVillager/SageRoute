@@ -1,4 +1,5 @@
 import 'package:amap_map/amap_map.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x_amap_base/x_amap_base.dart';
@@ -35,6 +36,12 @@ class SageRouteApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      _amapAndroidKey.isEmpty
+          ? 'AMap Android Key 未注入：请使用 --dart-define 或 --dart-define-from-file 运行。'
+          : 'AMap Android Key 已注入，长度=${_amapAndroidKey.length}',
+    );
+
     AMapInitializer.init(
       context,
       apiKey: _amapAndroidKey.isEmpty

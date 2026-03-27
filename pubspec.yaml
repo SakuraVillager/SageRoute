@@ -39,6 +39,7 @@ dependencies:
   flutter_dotenv: ^5.0.2
   http: ^1.2.2
   amap_map: ^1.0.15
+  permission_handler: ^11.3.1
   x_amap_base: any
 
 dev_dependencies:
