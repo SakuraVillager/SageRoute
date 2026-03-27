@@ -433,18 +433,15 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
 
                                 final holeWidth =
                                     ((constraints.maxWidth - 52) *
-                                            (0.58 + 0.32 * holeT))
-                                        .clamp(
-                                          180.0,
-                                          constraints.maxWidth - 24,
-                                        );
-                                final holeHeight = (96 + 150 * holeT).clamp(
-                                  96.0,
-                                  constraints.maxHeight * 0.45,
+                                            (0.66 + 0.38 * holeT))
+                                        .clamp(220.0, constraints.maxWidth - 8);
+                                final holeHeight = (136 + 200 * holeT).clamp(
+                                  136.0,
+                                  constraints.maxHeight * 0.58,
                                 );
                                 final holeTop =
                                     constraints.maxHeight *
-                                    (0.36 - 0.08 * holeT);
+                                    (0.335 - 0.055 * holeT);
                                 final holeLeft =
                                     (constraints.maxWidth - holeWidth) / 2;
 
@@ -457,7 +454,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                           holeWidth,
                                           holeHeight,
                                         ),
-                                        Radius.circular(24 + 12 * holeT),
+                                        Radius.circular(32 + 16 * holeT),
                                       )
                                     : null;
                                 final holeCenter = Offset(
@@ -804,7 +801,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                   .trim()
                                                                   .isNotEmpty;
                                                           const nameOffsetY =
-                                                              0.0;
+                                                              12.0;
                                                           final nameStyle =
                                                               Theme.of(context)
                                                                   .textTheme
@@ -819,9 +816,9 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
 
                                                           const avatarTop = 8.0;
                                                           const avatarSize =
-                                                              160.0;
+                                                              252.0;
                                                           const avatarNameGap =
-                                                              20.0;
+                                                              24.0;
                                                           final nameTop =
                                                               avatarTop +
                                                               avatarSize +
@@ -878,7 +875,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                                   selectedId: selectedId,
                                                                                 );
                                                                               },
-                                                                          child: Container(
+                                                                          child: SizedBox(
                                                                             key:
                                                                                 ValueKey<
                                                                                   int
@@ -886,21 +883,12 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                                   selectedId,
                                                                                 ),
                                                                             width:
-                                                                                160,
+                                                                                252,
                                                                             height:
-                                                                                160,
-                                                                            decoration: BoxDecoration(
-                                                                              shape: BoxShape.circle,
-                                                                              color: colorScheme.primaryContainer,
-                                                                              border: Border.all(
-                                                                                color: colorScheme.primary,
-                                                                                width: 4,
-                                                                              ),
-                                                                            ),
-                                                                            child: Icon(
-                                                                              Icons.person,
-                                                                              size: 80,
-                                                                              color: colorScheme.onPrimaryContainer,
+                                                                                252,
+                                                                            child: Image.asset(
+                                                                              'assets/images/celebrities/SuDongPo.jpg',
+                                                                              fit: BoxFit.cover,
                                                                             ),
                                                                           ),
                                                                         ),
