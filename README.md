@@ -1,16 +1,17 @@
 # sageroute
 
-A new Flutter project.
+SageRoute Flutter 项目。
 
-## Getting Started
+## 高德地图导览页
 
-This project is a starting point for a Flutter application.
+项目已在导览页接入 `amap_map`，运行前需要注入 Android Key：
 
-A few resources to get you started if this is your first Flutter project:
+1. 复制 `dart_define.example.json` 为你自己的配置文件（例如 `dart_define.json`）。
+2. 将 `AMAP_ANDROID_KEY` 替换为你申请的高德 Android Key。
+3. 运行：
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter run --dart-define-from-file=dart_define.json
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+如果你已在原生侧注入 Key，也可以不传 `--dart-define`。

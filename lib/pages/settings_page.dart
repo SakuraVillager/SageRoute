@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'celebrity_selection_page.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
+  final VoidCallback? onSwitchCelebrity;
+
+  const SettingsPage({super.key, this.onSwitchCelebrity});
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +34,10 @@ class SettingsPage extends StatelessWidget {
             subtitle: const Text('从角色库中挑选新的同行者'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
+              if (onSwitchCelebrity != null) {
+                onSwitchCelebrity!();
+                return;
+              }
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => CelebritySelectionPage(
