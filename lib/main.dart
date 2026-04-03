@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:amap_map/amap_map.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x_amap_base/x_amap_base.dart';
 
@@ -12,7 +16,43 @@ import 'pages/settings_page.dart';
 import 'services/database_service.dart';
 
 /// 高德地图 Android Key，通过 --dart-define 或 --dart-define-from-file 注入。
-const String _amapAndroidKey = String.fromEnvironment('AMAP_ANDROID_KEY');
+const String _amapAndroidKeyFromDefine = String.fromEnvironment(
+  'AMAP_ANDROID_KEY',
+);
+
+class _ResolvedAmapKey {
+  final String key;
+  final String source;
+
+  const _ResolvedAmapKey({required this.key, required this.source});
+}
+
+Future<_ResolvedAmapKey> _resolveAmapKey() async {
+  final defineKey = _amapAndroidKeyFromDefine.trim();
+  if (defineKey.isNotEmpty) {
+    return _ResolvedAmapKey(key: defineKey, source: 'dart-define');
+  }
+
+  final dotenvKey = (dotenv.env['AMAP_ANDROID_KEY'] ?? '').trim();
+  if (dotenvKey.isNotEmpty) {
+    return _ResolvedAmapKey(key: dotenvKey, source: 'assets/env.env');
+  }
+
+  try {
+    final raw = await rootBundle.loadString('dart_define.json');
+    final parsed = jsonDecode(raw);
+    if (parsed is Map<String, dynamic>) {
+      final fileKey = (parsed['AMAP_ANDROID_KEY'] ?? '').toString().trim();
+      if (fileKey.isNotEmpty) {
+        return _ResolvedAmapKey(key: fileKey, source: 'asset:dart_define.json');
+      }
+    }
+  } catch (_) {
+    // ignore: fallback chain continues
+  }
+
+  return const _ResolvedAmapKey(key: '', source: 'missing');
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,25 +68,28 @@ Future<void> main() async {
 
   // 启动时先初始化 Supabase，确保后续页面可以直接请求数据库。
   await DatabaseService.initialize();
-  runApp(const SageRouteApp());
+  final resolvedAmapKey = await _resolveAmapKey();
+  runApp(SageRouteApp(resolvedAmapKey: resolvedAmapKey));
 }
 
 class SageRouteApp extends StatelessWidget {
-  const SageRouteApp({super.key});
+  final _ResolvedAmapKey resolvedAmapKey;
+
+  const SageRouteApp({required this.resolvedAmapKey, super.key});
 
   @override
   Widget build(BuildContext context) {
     debugPrint(
-      _amapAndroidKey.isEmpty
-          ? 'AMap Android Key 未注入：请使用 --dart-define 或 --dart-define-from-file 运行。'
-          : 'AMap Android Key 已注入，长度=${_amapAndroidKey.length}',
+      resolvedAmapKey.key.isEmpty
+          ? 'AMap Android Key 未注入：请使用 --dart-define，或在 assets/env.env / dart_define.json 配置 AMAP_ANDROID_KEY。'
+          : 'AMap Android Key 已注入，来源=${resolvedAmapKey.source}，长度=${resolvedAmapKey.key.length}',
     );
 
     AMapInitializer.init(
       context,
-      apiKey: _amapAndroidKey.isEmpty
+      apiKey: resolvedAmapKey.key.isEmpty
           ? null
-          : const AMapApiKey(androidKey: _amapAndroidKey),
+          : AMapApiKey(androidKey: resolvedAmapKey.key),
     );
 
     return MaterialApp(

@@ -11,6 +11,7 @@ class LocationRecord {
   final String? closeTime;
   final bool isArEnabled;
   final String? topic;
+  final List<String> categories;
   final List<double> coordinates;
 
   const LocationRecord({
@@ -24,6 +25,7 @@ class LocationRecord {
     required this.closeTime,
     required this.isArEnabled,
     required this.topic,
+    required this.categories,
     required this.coordinates,
   });
 
@@ -31,22 +33,45 @@ class LocationRecord {
     final rawCoordinates = map['coordinates'];
     final coordinates = rawCoordinates is List
         ? rawCoordinates
-              .where((value) => value is num || double.tryParse(value.toString()) != null)
-              .map<double>((value) => value is num ? value.toDouble() : double.parse(value.toString()))
+              .where(
+                (value) =>
+                    value is num || double.tryParse(value.toString()) != null,
+              )
+              .map<double>(
+                (value) => value is num
+                    ? value.toDouble()
+                    : double.parse(value.toString()),
+              )
               .toList(growable: false)
         : const <double>[];
+
+    final rawCategories = map['categories'];
+    final categories = rawCategories is List
+        ? rawCategories
+              .map((item) => item.toString().trim())
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false)
+        : rawCategories is String
+        ? rawCategories
+              .split(RegExp(r'[,，、;；]'))
+              .map((item) => item.trim())
+              .where((item) => item.isNotEmpty)
+              .toList(growable: false)
+        : const <String>[];
 
     return LocationRecord(
       id: (map['id'] as num?)?.toInt() ?? 0,
       nameModern: (map['name_modern'] ?? '').toString(),
       nameAncient: map['name_ancient']?.toString(),
       description: map['description']?.toString(),
-      averageVisitDurationMin: (map['average_visit_duration_min'] as num?)?.toInt(),
+      averageVisitDurationMin: (map['average_visit_duration_min'] as num?)
+          ?.toInt(),
       address: map['address']?.toString(),
       openTime: map['open_time']?.toString(),
       closeTime: map['close_time']?.toString(),
       isArEnabled: map['is_ar_enabled'] == true,
       topic: map['Topic']?.toString() ?? map['topic']?.toString(),
+      categories: categories,
       coordinates: coordinates,
     );
   }
@@ -63,6 +88,7 @@ class LocationRecord {
       'close_time': closeTime,
       'is_ar_enabled': isArEnabled,
       'Topic': topic,
+      'categories': categories,
       'coordinates': coordinates,
     };
   }
