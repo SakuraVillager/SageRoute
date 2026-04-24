@@ -717,7 +717,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   Future<BitmapDescriptor> _buildScenicMarkerIcon({
     required Color markerFillColor,
   }) async {
-    const int size = 56;
+    const int size = 84;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     final center = ui.Offset(size / 2, size / 2);
@@ -729,8 +729,8 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       ..style = ui.PaintingStyle.fill
       ..color = markerFillColor;
 
-    canvas.drawCircle(center, 26, borderPaint);
-    canvas.drawCircle(center, 18, fillPaint);
+    canvas.drawCircle(center, 39, borderPaint);
+    canvas.drawCircle(center, 27, fillPaint);
 
     final image = await recorder.endRecording().toImage(size, size);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -748,9 +748,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     required String svgPathData,
     required SvgPathParser svgPathParser,
   }) async {
-    const int size = 56;
-    const double iconAreaRadius = 14.0;
-    const double iconPadding = 1.0;
+    const int size = 84;
+    const double iconAreaRadius = 21.0;
+    const double iconPadding = 1.5;
     const double maxIconDimension = (iconAreaRadius - iconPadding) * 2;
 
     final recorder = ui.PictureRecorder();
@@ -761,13 +761,13 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     final borderPaint = ui.Paint()
       ..style = ui.PaintingStyle.fill
       ..color = const ui.Color(0xFFFFFFFF);
-    canvas.drawCircle(center, 26, borderPaint);
+    canvas.drawCircle(center, 39, borderPaint);
 
     // 绘制主题色内圈
     final fillPaint = ui.Paint()
       ..style = ui.PaintingStyle.fill
       ..color = markerFillColor;
-    canvas.drawCircle(center, 18, fillPaint);
+    canvas.drawCircle(center, 27, fillPaint);
 
     // 解析 SVG 路径并绘制白色图标
     ui.Path? svgPath;
@@ -810,7 +810,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   }
 
   Future<BitmapDescriptor> _buildUserLocationIcon() async {
-    const int size = 56;
+    const int size = 84;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
     final center = ui.Offset(size / 2, size / 2);
@@ -822,8 +822,8 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       ..style = ui.PaintingStyle.fill
       ..color = const ui.Color(0xFF1E88E5);
 
-    canvas.drawCircle(center, 26, borderPaint);
-    canvas.drawCircle(center, 18, fillPaint);
+    canvas.drawCircle(center, 39, borderPaint);
+    canvas.drawCircle(center, 27, fillPaint);
 
     final image = await recorder.endRecording().toImage(size, size);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
