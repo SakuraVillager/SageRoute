@@ -22,8 +22,13 @@ class GuidePage extends StatefulWidget {
 enum _LocationStage { coarse, precise, native }
 
 class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
+  static const double _previewRandomDistanceMeters = 800;
+  static const int _previewDriftMinDurationMs = 1000;
+  static const int _previewDriftMaxDurationMs = 3000;
+
   Future<_GuideMapAssets>? _assetsFuture;
   late final LocationRepository _locationRepository;
+  final math.Random _previewRandom = math.Random();
   late final AnimationController _previewDriftController;
   late final AnimationController _previewSettleController;
   AMapController? _mapController;
@@ -31,6 +36,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   PermissionStatus _locationPermissionStatus = PermissionStatus.denied;
   bool _locationPermissionChecked = false;
   LatLng? _latestUserLatLng;
+  LatLng? _previewCurrentPoint;
+  LatLng? _previewDriftFrom;
+  LatLng? _previewDriftTo;
   LatLng? _previewSettleFrom;
   LatLng? _previewSettleTo;
   bool _hasNativeLocationDot = false;
@@ -44,23 +52,44 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
   bool get _isSettlingPreviewDot => _previewSettleController.isAnimating;
 
+  Duration _nextPreviewDriftDuration() {
+    final span = _previewDriftMaxDurationMs - _previewDriftMinDurationMs;
+    final milliseconds =
+        _previewDriftMinDurationMs + _previewRandom.nextInt(span + 1);
+    return Duration(milliseconds: milliseconds);
+  }
+
   @override
   void initState() {
     super.initState();
     _locationRepository = const LocationRepository();
+    final initialDriftDuration = _nextPreviewDriftDuration();
     _previewDriftController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 1250),
-        )..addListener(() {
-          if (!mounted ||
-              !_shouldShowPreviewLocationDot ||
-              !_isPreviewDriftEnabled ||
-              _isSettlingPreviewDot) {
-            return;
-          }
-          setState(() {});
-        });
+        AnimationController(vsync: this, duration: initialDriftDuration)
+          ..addListener(() {
+            if (!mounted ||
+                !_shouldShowPreviewLocationDot ||
+                !_isPreviewDriftEnabled ||
+                _isSettlingPreviewDot ||
+                _previewDriftFrom == null ||
+                _previewDriftTo == null) {
+              return;
+            }
+            setState(() {});
+          })
+          ..addStatusListener((status) {
+            if (status != AnimationStatus.completed ||
+                !_shouldShowPreviewLocationDot ||
+                !_isPreviewDriftEnabled ||
+                _isSettlingPreviewDot) {
+              return;
+            }
+
+            if (_previewDriftTo != null) {
+              _previewCurrentPoint = _previewDriftTo;
+            }
+            _startNextPreviewDriftStep();
+          });
     _previewSettleController =
         AnimationController(
             vsync: this,
@@ -158,6 +187,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       if (_previewSettleController.isAnimating) {
         _previewSettleController.stop();
       }
+      _previewDriftFrom = null;
+      _previewDriftTo = null;
+      _previewCurrentPoint = null;
       _previewSettleFrom = null;
       _previewSettleTo = null;
       _pendingNativeDotReveal = false;
@@ -170,11 +202,15 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       if (_previewDriftController.isAnimating) {
         _previewDriftController.stop();
       }
+      _previewDriftFrom = null;
+      _previewDriftTo = null;
       return;
     }
 
-    if (!_previewDriftController.isAnimating) {
-      _previewDriftController.repeat();
+    if (!_previewDriftController.isAnimating ||
+        _previewDriftFrom == null ||
+        _previewDriftTo == null) {
+      _startNextPreviewDriftStep();
     }
   }
 
@@ -182,7 +218,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     if (_isSettlingPreviewDot &&
         _previewSettleFrom != null &&
         _previewSettleTo != null) {
-      final t = Curves.easeOutCubic.transform(_previewSettleController.value);
+      final t = _previewSettleController.value;
       return LatLng(
         ui.lerpDouble(
           _previewSettleFrom!.latitude,
@@ -198,23 +234,58 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     }
 
     if (!_shouldShowPreviewLocationDot || !_isPreviewDriftEnabled) {
-      return anchor;
+      return _previewCurrentPoint ?? anchor;
     }
 
-    // 粗定位阶段给更明显且平滑的漂移，表达“位置正在收敛中”。
-    final phase = _previewDriftController.value * 2 * math.pi;
-    final radiusMeters = 14 + (math.sin(phase * 1.35) + 1) * 7;
-    final theta = phase * 2.4;
-    final ellipseFactor = 0.72 + 0.18 * math.cos(phase * 1.1);
-    final latOffset = (radiusMeters * math.sin(theta)) / 111320;
+    if (_previewDriftFrom == null || _previewDriftTo == null) {
+      return _previewCurrentPoint ?? anchor;
+    }
+
+    final t = _previewDriftController.value;
+    return LatLng(
+      ui.lerpDouble(_previewDriftFrom!.latitude, _previewDriftTo!.latitude, t)!,
+      ui.lerpDouble(
+        _previewDriftFrom!.longitude,
+        _previewDriftTo!.longitude,
+        t,
+      )!,
+    );
+  }
+
+  LatLng _randomNearbyPoint(
+    LatLng anchor, {
+    double distanceMeters = _previewRandomDistanceMeters,
+  }) {
+    final angle = _previewRandom.nextDouble() * 2 * math.pi;
+    final radius = distanceMeters;
+    final latOffset = (radius * math.sin(angle)) / 111320;
     final metersPerLng = (111320 * math.cos(anchor.latitude * math.pi / 180))
         .abs();
     final lngOffset = metersPerLng < 1
         ? 0
-        : (radiusMeters * ellipseFactor * math.cos(theta + math.pi / 8)) /
-              metersPerLng;
-
+        : (radius * math.cos(angle)) / metersPerLng;
     return LatLng(anchor.latitude + latOffset, anchor.longitude + lngOffset);
+  }
+
+  void _startNextPreviewDriftStep() {
+    // 下一段始终从“当前游走点”出发，避免回拉到真实定位锚点。
+    final anchor = _previewCurrentPoint ?? _latestUserLatLng;
+    if (anchor == null ||
+        !_shouldShowPreviewLocationDot ||
+        !_isPreviewDriftEnabled) {
+      return;
+    }
+
+    final from = anchor;
+    final to = _randomNearbyPoint(anchor);
+    _previewDriftFrom = from;
+    _previewDriftTo = to;
+
+    _previewDriftController.duration = _nextPreviewDriftDuration();
+    _previewDriftController
+      ..stop()
+      ..value = 0
+      ..forward();
   }
 
   void _startPreviewSettle({
@@ -223,10 +294,13 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     bool revealNativeAfter = false,
     bool freezeDriftAfterSettle = false,
   }) {
+    _previewDriftFrom = null;
+    _previewDriftTo = null;
     _previewSettleFrom = from;
     _previewSettleTo = to;
     _pendingNativeDotReveal = revealNativeAfter;
     _freezePreviewDriftAfterSettle = freezeDriftAfterSettle;
+    _previewCurrentPoint = from;
 
     _previewSettleController
       ..stop()
@@ -366,6 +440,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
     if (stage == _LocationStage.coarse) {
       _isPreviewDriftEnabled = true;
+      _previewCurrentPoint ??= latLng;
     }
 
     if (!mounted) {
@@ -378,21 +453,24 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       return;
     }
 
+    if (stage == _LocationStage.precise) {
+      // 精确定位只更新真实坐标缓存，不打断当前随机位移链路。
+      return;
+    }
+
     if (stage == _LocationStage.native &&
         (_pendingNativeDotReveal || _isSettlingPreviewDot)) {
       return;
     }
 
     final shouldSettle =
-        previousAnchor != null &&
-        (stage == _LocationStage.precise || stage == _LocationStage.native);
+        previousAnchor != null && stage == _LocationStage.native;
 
     if (shouldSettle) {
       _startPreviewSettle(
         from: _previewMarkerPosition(previousAnchor),
         to: latLng,
-        revealNativeAfter: stage == _LocationStage.native,
-        freezeDriftAfterSettle: stage == _LocationStage.precise,
+        revealNativeAfter: true,
       );
       setState(() {});
       return;
@@ -402,6 +480,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       setState(() {
         _hasNativeLocationDot = true;
       });
+      _previewCurrentPoint = latLng;
       _syncPreviewDriftState();
       return;
     }
