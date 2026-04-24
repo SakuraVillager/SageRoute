@@ -8,8 +8,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:x_amap_base/x_amap_base.dart';
 
+import '../data/icon_repository.dart';
 import '../data/location_repository.dart';
 import '../models/location_record.dart';
+import '../utils/svg_path_parser.dart';
 
 /// 导览页：承载高德地图。
 class GuidePage extends StatefulWidget {
@@ -28,6 +30,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
   Future<_GuideMapAssets>? _assetsFuture;
   late final LocationRepository _locationRepository;
+  late final IconRepository _iconRepository;
   final math.Random _previewRandom = math.Random();
   late final AnimationController _previewDriftController;
   late final AnimationController _previewSettleController;
@@ -63,6 +66,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _locationRepository = const LocationRepository();
+    _iconRepository = const IconRepository();
     final initialDriftDuration = _nextPreviewDriftDuration();
     _previewDriftController =
         AnimationController(vsync: this, duration: initialDriftDuration)
@@ -580,10 +584,44 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
   Future<_GuideMapAssets> _loadAssets({required Color markerFillColor}) async {
     final locations = await _locationRepository.fetchLocations();
-    final scenicMarkerIcon = await _buildScenicMarkerIcon(
+    final iconMap = await _iconRepository.fetchIconMap();
+    final defaultMarkerIcon = await _buildScenicMarkerIcon(
       markerFillColor: markerFillColor,
     );
     final userLocationIcon = await _buildUserLocationIcon();
+
+    // 为每个类别 SVG 路径预构建对应的标记图标缓存。
+    final svgPathParser = SvgPathParser();
+    final Map<String, BitmapDescriptor> categoryIconCache = {};
+
+    // 收集所有需要构建图标的类别
+    final categoriesToBuild = <String>{};
+    for (final location in locations) {
+      if (location.categories.isNotEmpty) {
+        final cat = location.categories.first;
+        if (iconMap[cat] != null && iconMap[cat]!.isNotEmpty) {
+          categoriesToBuild.add(cat);
+        }
+      }
+    }
+
+    // 异步构建每个类别的图标
+    for (final category in categoriesToBuild) {
+      categoryIconCache[category] = await _buildCategoryMarkerIcon(
+        markerFillColor: markerFillColor,
+        svgPathData: iconMap[category]!,
+        svgPathParser: svgPathParser,
+      );
+    }
+
+    BitmapDescriptor getIconForLocation(LocationRecord location) {
+      final primaryCategory = location.categories.isNotEmpty
+          ? location.categories.first
+          : null;
+      if (primaryCategory == null) return defaultMarkerIcon;
+      return categoryIconCache[primaryCategory] ?? defaultMarkerIcon;
+    }
+
     double? minLatitude;
     double? maxLatitude;
     double? minLongitude;
@@ -610,7 +648,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
           return Marker(
             position: LatLng(latitude, longitude),
-            icon: scenicMarkerIcon,
+            icon: getIconForLocation(location),
             infoWindowEnable: false,
             anchor: const ui.Offset(0.5, 0.5),
             zIndex: 1,
@@ -693,6 +731,74 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
     canvas.drawCircle(center, 26, borderPaint);
     canvas.drawCircle(center, 18, fillPaint);
+
+    final image = await recorder.endRecording().toImage(size, size);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      return BitmapDescriptor.defaultMarker;
+    }
+
+    return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  }
+
+  /// 构建带类别 SVG 图标的标记圆点。
+  /// 在白色外圈和主题色内圈之上绘制白色 SVG 图标。
+  Future<BitmapDescriptor> _buildCategoryMarkerIcon({
+    required Color markerFillColor,
+    required String svgPathData,
+    required SvgPathParser svgPathParser,
+  }) async {
+    const int size = 56;
+    const double iconAreaRadius = 14.0;
+    const double iconPadding = 1.0;
+    const double maxIconDimension = (iconAreaRadius - iconPadding) * 2;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    final center = ui.Offset(size / 2, size / 2);
+
+    // 绘制白色外圈
+    final borderPaint = ui.Paint()
+      ..style = ui.PaintingStyle.fill
+      ..color = const ui.Color(0xFFFFFFFF);
+    canvas.drawCircle(center, 26, borderPaint);
+
+    // 绘制主题色内圈
+    final fillPaint = ui.Paint()
+      ..style = ui.PaintingStyle.fill
+      ..color = markerFillColor;
+    canvas.drawCircle(center, 18, fillPaint);
+
+    // 解析 SVG 路径并绘制白色图标
+    ui.Path? svgPath;
+    try {
+      svgPath = svgPathParser.parse(svgPathData);
+    } catch (_) {
+      // SVG 解析失败时跳过图标绘制，返回纯圆点。
+    }
+
+    if (svgPath != null) {
+      // 计算 SVG 路径的边界框并缩放居中到圆形内
+      final bounds = svgPath.getBounds();
+      if (bounds.width > 0 && bounds.height > 0) {
+        final scale = maxIconDimension / math.max(bounds.width, bounds.height);
+        final scaledWidth = bounds.width * scale;
+        final scaledHeight = bounds.height * scale;
+        final offsetX = center.dx - scaledWidth / 2 - bounds.left * scale;
+        final offsetY = center.dy - scaledHeight / 2 - bounds.top * scale;
+
+        canvas.save();
+        canvas.translate(offsetX, offsetY);
+        canvas.scale(scale, scale);
+
+        final iconPaint = ui.Paint()
+          ..style = ui.PaintingStyle.fill
+          ..color = const ui.Color(0xFFFFFFFF);
+
+        canvas.drawPath(svgPath, iconPaint);
+        canvas.restore();
+      }
+    }
 
     final image = await recorder.endRecording().toImage(size, size);
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:amap_map/amap_map.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
