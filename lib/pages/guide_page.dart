@@ -199,6 +199,8 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
             if (freezeDrift) {
               _isPreviewDriftEnabled = false;
+              // 精定位到位后，将预览点更新到真实坐标，确保标记停留在正确位置。
+              _previewCurrentPoint = _latestUserLatLng;
             }
 
             if (mounted) {
@@ -537,7 +539,15 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     }
 
     if (stage == _LocationStage.precise) {
-      // 精确定位只更新真实坐标缓存，不打断当前随机位移链路。
+      // 精确定位成功后，立即将标记从当前漂移位置平滑拉回到真实位置，并停止后续漂移。
+      final fromPosition = _previewCurrentPoint ?? previousAnchor ?? latLng;
+      _startPreviewSettle(
+        from: fromPosition,
+        to: latLng,
+        revealNativeAfter: false,
+        freezeDriftAfterSettle: true,
+      );
+      setState(() {});
       return;
     }
 
