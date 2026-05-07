@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:amap_map/amap_map.dart';
@@ -52,6 +53,84 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   bool _pendingNativeDotReveal = false;
   bool _freezePreviewDriftAfterSettle = false;
   Color? _markerFillColor;
+
+  /// 用于隐藏高德地图原生定位点的透明图标（1×1 透明像素）。
+  static BitmapDescriptor? _transparentIconCache;
+
+  static BitmapDescriptor get _transparentIcon {
+    return _transparentIconCache ??= BitmapDescriptor.fromBytes(
+      // 1×1 透明 PNG
+      Uint8List.fromList([
+        0x89,
+        0x50,
+        0x4E,
+        0x47,
+        0x0D,
+        0x0A,
+        0x1A,
+        0x0A,
+        0x00,
+        0x00,
+        0x00,
+        0x0D,
+        0x49,
+        0x48,
+        0x44,
+        0x52,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x08,
+        0x06,
+        0x00,
+        0x00,
+        0x00,
+        0x1F,
+        0x15,
+        0xC4,
+        0x89,
+        0x00,
+        0x00,
+        0x00,
+        0x0A,
+        0x49,
+        0x44,
+        0x41,
+        0x54,
+        0x78,
+        0x9C,
+        0x63,
+        0xF8,
+        0x0F,
+        0x00,
+        0x00,
+        0x01,
+        0x01,
+        0x00,
+        0x05,
+        0x18,
+        0xD8,
+        0x4E,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x49,
+        0x45,
+        0x4E,
+        0x44,
+        0xAE,
+        0x42,
+        0x60,
+        0x82,
+      ]),
+    );
+  }
 
   bool get _isSettlingPreviewDot => _previewSettleController.isAnimating;
 
@@ -838,24 +917,28 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     required Set<Marker> scenicMarkers,
     required BitmapDescriptor? userLocationIcon,
   }) {
-    final previewLatLng = _shouldShowPreviewLocationDot
-        ? _latestUserLatLng
-        : null;
-    if (previewLatLng == null || userLocationIcon == null) {
-      return scenicMarkers;
+    final markers = Set<Marker>.from(scenicMarkers);
+
+    // 始终使用自定义蓝色标记显示用户位置，确保粗定位和精定位使用同一个图标。
+    if (_latestUserLatLng != null && userLocationIcon != null) {
+      // 精确定位后使用真实坐标，粗定位时使用带漂移动画的坐标。
+      final userPosition = _hasNativeLocationDot
+          ? _latestUserLatLng!
+          : _shouldShowPreviewLocationDot
+          ? _previewMarkerPosition(_latestUserLatLng!)
+          : _latestUserLatLng!;
+      markers.add(
+        Marker(
+          position: userPosition,
+          icon: userLocationIcon,
+          infoWindowEnable: false,
+          clickable: false,
+          anchor: const ui.Offset(0.5, 0.5),
+          zIndex: 100,
+        ),
+      );
     }
 
-    final markers = Set<Marker>.from(scenicMarkers);
-    markers.add(
-      Marker(
-        position: _previewMarkerPosition(previewLatLng),
-        icon: userLocationIcon,
-        infoWindowEnable: false,
-        clickable: false,
-        anchor: const ui.Offset(0.5, 0.5),
-        zIndex: 4,
-      ),
-    );
     return markers;
   }
 
@@ -912,8 +995,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
               onLocationChanged: _handleLocationChanged,
               myLocationStyleOptions: MyLocationStyleOptions(
                 _locationPermissionStatus.isGranted,
-                icon:
-                    assets?.userLocationIcon ?? BitmapDescriptor.defaultMarker,
+                icon: _transparentIcon,
                 circleFillColor: const Color(0x00000000),
                 circleStrokeColor: const Color(0x00000000),
                 circleStrokeWidth: 0,
