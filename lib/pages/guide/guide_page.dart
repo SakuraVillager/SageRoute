@@ -55,6 +55,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   bool _pendingNativeDotReveal = false;
   bool _freezePreviewDriftAfterSettle = false;
   Color? _markerFillColor;
+  Set<Marker> _cachedScenicMarkers = const {};
 
   bool get _isSettlingPreviewDot => _previewSettleController.isAnimating;
 
@@ -161,6 +162,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     _assetsFuture = _loadAssets(this, markerFillColor: nextMarkerColor);
     _assetsFuture?.then((loadedAssets) {
       if (mounted) {
+        _cachedScenicMarkers = loadedAssets.markers;
         _fitAllLocationsOnMap(this, loadedAssets);
       }
     });
@@ -177,10 +179,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   }
 
   Set<Marker> _buildMapMarkers({
-    required Set<Marker> scenicMarkers,
     required BitmapDescriptor? userLocationIcon,
   }) {
-    final markers = Set<Marker>.from(scenicMarkers);
+    final markers = Set<Marker>.from(_cachedScenicMarkers);
 
     // 始终使用自定义蓝色标记显示用户位置，确保粗定位和精定位使用同一个图标。
     if (_latestUserLatLng != null && userLocationIcon != null) {
@@ -212,7 +213,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       builder: (context, snapshot) {
         final assets = snapshot.data;
         final markers = _buildMapMarkers(
-          scenicMarkers: assets?.markers ?? const <Marker>{},
           userLocationIcon: assets?.userLocationIcon,
         );
         // Viewport adjustment is handled in onMapCreated

@@ -1,16 +1,25 @@
 import '../models/icon_record.dart';
 import 'supabase_table_repository.dart';
 
+typedef IconFetcher = Future<List<IconRecord>> Function();
+
 /// `Icons` 表仓储。
 class IconRepository {
-  const IconRepository({SupabaseTableRepository? tableRepository})
-    : _tableRepository =
+  const IconRepository({
+    IconFetcher? fetcher,
+    SupabaseTableRepository? tableRepository,
+  }) : _fetcher = fetcher,
+       _tableRepository =
           tableRepository ?? const SupabaseTableRepository(tableName: 'Icons');
 
+  final IconFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
 
   /// 获取全部图标记录。
   Future<List<IconRecord>> fetchIcons() {
+    if (_fetcher != null) {
+      return _fetcher();
+    }
     return _tableRepository.fetchAll<IconRecord>(mapper: IconRecord.fromMap);
   }
 

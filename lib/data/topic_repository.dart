@@ -1,16 +1,29 @@
 import '../models/topic_record.dart';
 import 'supabase_table_repository.dart';
 
+typedef TopicFetcher = Future<List<TopicRecord>> Function();
+
 /// `Topic` 表仓储。
 class TopicRepository {
-  const TopicRepository({SupabaseTableRepository? tableRepository})
-    : _tableRepository =
+  const TopicRepository({
+    TopicFetcher? fetcher,
+    SupabaseTableRepository? tableRepository,
+  }) : _fetcher = fetcher,
+       _tableRepository =
           tableRepository ?? const SupabaseTableRepository(tableName: 'Topic');
 
+  final TopicFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
 
   /// 获取全部主题。
-  Future<List<TopicRecord>> fetchTopics({int? limit}) {
+  Future<List<TopicRecord>> fetchTopics({int? limit}) async {
+    if (_fetcher != null) {
+      final all = await _fetcher();
+      if (limit != null && limit < all.length) {
+        return all.sublist(0, limit);
+      }
+      return all;
+    }
     return _tableRepository.fetchAll<TopicRecord>(
       mapper: TopicRecord.fromMap,
       limit: limit,
@@ -22,6 +35,13 @@ class TopicRepository {
     final normalizedName = _normalizeName(celebrityName);
     if (normalizedName.isEmpty) {
       return const <TopicRecord>[];
+    }
+
+    if (_fetcher != null) {
+      final all = await _fetcher();
+      return all
+          .where((t) => t.celebrity == celebrityName)
+          .toList(growable: false);
     }
 
     final exactMatched = await _tableRepository.fetchAll<TopicRecord>(
