@@ -29,7 +29,7 @@ class AppColors {
   static const Color onSurfaceDark = Color(0xFFEDEBE9);
 
   static ColorScheme buildLightScheme() {
-    return ColorScheme(
+    return const ColorScheme(
       brightness: Brightness.light,
       primary: primaryLight,
       onPrimary: onPrimaryLight,
@@ -49,7 +49,7 @@ class AppColors {
   }
 
   static ColorScheme buildDarkScheme() {
-    return ColorScheme(
+    return const ColorScheme(
       brightness: Brightness.dark,
       primary: primaryDark,
       onPrimary: onPrimaryDark,

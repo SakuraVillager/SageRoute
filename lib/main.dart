@@ -19,22 +19,22 @@ const String _amapAndroidKeyFromDefine = String.fromEnvironment(
   'AMAP_ANDROID_KEY',
 );
 
-class _ResolvedAmapKey {
+class ResolvedAmapKey {
   final String key;
   final String source;
 
-  const _ResolvedAmapKey({required this.key, required this.source});
+  const ResolvedAmapKey({required this.key, required this.source});
 }
 
-Future<_ResolvedAmapKey> _resolveAmapKey() async {
+Future<ResolvedAmapKey> _resolveAmapKey() async {
   final defineKey = _amapAndroidKeyFromDefine.trim();
   if (defineKey.isNotEmpty) {
-    return _ResolvedAmapKey(key: defineKey, source: 'dart-define');
+    return ResolvedAmapKey(key: defineKey, source: 'dart-define');
   }
 
   final dotenvKey = (dotenv.env['AMAP_ANDROID_KEY'] ?? '').trim();
   if (dotenvKey.isNotEmpty) {
-    return _ResolvedAmapKey(key: dotenvKey, source: 'assets/env.env');
+    return ResolvedAmapKey(key: dotenvKey, source: 'assets/env.env');
   }
 
   try {
@@ -43,14 +43,14 @@ Future<_ResolvedAmapKey> _resolveAmapKey() async {
     if (parsed is Map<String, dynamic>) {
       final fileKey = (parsed['AMAP_ANDROID_KEY'] ?? '').toString().trim();
       if (fileKey.isNotEmpty) {
-        return _ResolvedAmapKey(key: fileKey, source: 'asset:dart_define.json');
+        return ResolvedAmapKey(key: fileKey, source: 'asset:dart_define.json');
       }
     }
   } catch (_) {
     // ignore: fallback chain continues
   }
 
-  return const _ResolvedAmapKey(key: '', source: 'missing');
+  return const ResolvedAmapKey(key: '', source: 'missing');
 }
 
 Future<void> main() async {
@@ -72,7 +72,7 @@ Future<void> main() async {
 }
 
 class SageRouteApp extends StatelessWidget {
-  final _ResolvedAmapKey resolvedAmapKey;
+  final ResolvedAmapKey resolvedAmapKey;
 
   const SageRouteApp({required this.resolvedAmapKey, super.key});
 
@@ -95,7 +95,6 @@ class SageRouteApp extends StatelessWidget {
       title: 'SageRoute',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
       routes: {'/main': (context) => const MainScreen()},
       home: const AppLaunchDecider(),
     );

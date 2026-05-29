@@ -44,7 +44,6 @@ void main() {
       String? calledTable;
 
       await DatabaseService.testConnection(
-        table: 'Celebrity',
         query: (table) async {
           calledTable = table;
           return <dynamic>[{'id': 1}];
@@ -83,7 +82,6 @@ void main() {
       final client = SupabaseClient(url, anonKey);
 
       await DatabaseService.testConnection(
-        table: 'Celebrity',
         query: (table) => client.from(table).select().limit(1),
       );
 

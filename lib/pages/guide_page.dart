@@ -135,7 +135,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   bool get _isSettlingPreviewDot => _previewSettleController.isAnimating;
 
   Duration _nextPreviewDriftDuration() {
-    final span = _previewDriftMaxDurationMs - _previewDriftMinDurationMs;
+    const span = _previewDriftMaxDurationMs - _previewDriftMinDurationMs;
     final milliseconds =
         _previewDriftMinDurationMs + _previewRandom.nextInt(span + 1);
     return Duration(milliseconds: milliseconds);
@@ -492,7 +492,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
       await _mapController!.moveCamera(
         CameraUpdate.newLatLngZoom(preciseLatLng, 16),
-        animated: true,
         duration: 420,
       );
     } catch (_) {
@@ -544,7 +543,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       _startPreviewSettle(
         from: fromPosition,
         to: latLng,
-        revealNativeAfter: false,
         freezeDriftAfterSettle: true,
       );
       setState(() {});
@@ -639,7 +637,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       await _mapController!
           .moveCamera(
             CameraUpdate.newLatLngZoom(target, 15),
-            animated: true,
             duration: 300,
           )
           .timeout(
@@ -809,7 +806,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     const int size = 84;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
-    final center = ui.Offset(size / 2, size / 2);
+    const center = ui.Offset(size / 2, size / 2);
 
     final borderPaint = ui.Paint()
       ..style = ui.PaintingStyle.fill
@@ -844,7 +841,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
-    final center = ui.Offset(size / 2, size / 2);
+    const center = ui.Offset(size / 2, size / 2);
 
     // 绘制白色外圈
     final borderPaint = ui.Paint()
@@ -902,7 +899,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     const int size = 84;
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
-    final center = ui.Offset(size / 2, size / 2);
+    const center = ui.Offset(size / 2, size / 2);
 
     final borderPaint = ui.Paint()
       ..style = ui.PaintingStyle.fill
@@ -994,8 +991,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                 target: LatLng(34.259462, 108.947151),
                 zoom: 14,
               ),
-              trafficEnabled: false,
-              touchPoiEnabled: true,
               markers: markers,
               onMapCreated: (controller) {
                 _mapController = controller;

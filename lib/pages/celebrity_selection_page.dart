@@ -819,11 +819,11 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                               252.0;
                                                           const avatarNameGap =
                                                               24.0;
-                                                          final nameTop =
-                                                              avatarTop +
-                                                              avatarSize +
-                                                              avatarNameGap +
-                                                              nameOffsetY;
+                                                           const nameTop =
+                                                               avatarTop +
+                                                               avatarSize +
+                                                               avatarNameGap +
+                                                               nameOffsetY;
 
                                                           final stageOneArrowCenter =
                                                               (avatarTop +
@@ -898,11 +898,11 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                   const SizedBox(
                                                                     height: 20,
                                                                   ),
-                                                                  Transform.translate(
-                                                                    offset: Offset(
-                                                                      0,
-                                                                      nameOffsetY,
-                                                                    ),
+                                                                   Transform.translate(
+                                                                     offset: const Offset(
+                                                                       0,
+                                                                       nameOffsetY,
+                                                                     ),
                                                                     child: Row(
                                                                       children: [
                                                                         const SizedBox(

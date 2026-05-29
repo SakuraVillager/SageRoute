@@ -16,7 +16,6 @@ CardThemeData buildCardTheme(ColorScheme scheme) => CardThemeData(
     borderRadius: BorderRadius.circular(12),
     side: BorderSide(
       color: scheme.primary.withAlpha((0.2 * 255).round()),
-      width: 1,
     ),
   ),
 );
