@@ -8,10 +8,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:x_amap_base/x_amap_base.dart';
 
 import 'theme.dart';
-import 'onboarding_screen.dart';
+import 'components/bottom_nav.dart';
 import 'pages/celebrity_selection/celebrity_selection_page.dart';
-import 'pages/guide/guide_page.dart';
-import 'pages/settings_page.dart';
+import 'views/landing_page.dart';
+import 'views/home_page.dart';
+import 'views/figures_list_page.dart';
+import 'views/create_route_wizard/create_route_wizard.dart';
+import 'views/saved_routes_page.dart';
+import 'views/profile_page.dart';
 import 'services/database_service.dart';
 
 /// 高德地图 Android Key，通过 --dart-define 或 --dart-define-from-file 注入。
@@ -139,7 +143,16 @@ class _AppLaunchDeciderState extends State<AppLaunchDecider> {
           return const MainScreen();
         }
 
-        return const OnboardingScreen();
+        return LandingPage(
+          onStartJourney: () async {
+            final preferences = await SharedPreferences.getInstance();
+            await preferences.setBool('hasSeenOnboarding', true);
+            if (!context.mounted) return;
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const MainScreen()),
+            );
+          },
+        );
       },
     );
   }
@@ -153,44 +166,22 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static const Duration _guideSwitchDelay = Duration(milliseconds: 120);
-
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
 
   void _onItemTapped(int index) {
-    if (_showCelebrityOverlay) {
-      return;
-    }
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_showCelebrityOverlay) return;
+    setState(() => _selectedIndex = index);
   }
 
+  // ignore: unused_element — kept for future CelebritySelection overlay access.
   void _openCelebrityOverlay() {
-    setState(() {
-      _showCelebrityOverlay = true;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future<void>.delayed(_guideSwitchDelay, () {
-        if (!mounted || !_showCelebrityOverlay || _selectedIndex == 1) {
-          return;
-        }
-        setState(() {
-          _selectedIndex = 1;
-        });
-      });
-    });
+    setState(() => _showCelebrityOverlay = true);
   }
 
   void _closeCelebrityOverlay() {
-    if (!_showCelebrityOverlay) {
-      return;
-    }
-    setState(() {
-      _showCelebrityOverlay = false;
-    });
+    if (!_showCelebrityOverlay) return;
+    setState(() => _showCelebrityOverlay = false);
   }
 
   @override
@@ -198,19 +189,20 @@ class _MainScreenState extends State<MainScreen> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(
-            title: const Text('SageRoute'),
-            backgroundColor: Theme.of(context).colorScheme.primary,
-          ),
-          body: _bodyForIndex(_selectedIndex),
-          bottomNavigationBar: BottomNavigationBar(
-            items: const <BottomNavigationBarItem>[
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: '首页'),
-              BottomNavigationBarItem(icon: Icon(Icons.explore), label: '导览'),
-              BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+          extendBody: true, // 允许内容滚动到底部导航栏靠下的透明区域
+          // No AppBar — each page handles its own header.
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: const [
+              HomePage(),
+              FiguresListPage(),
+              CreateRouteWizard(),
+              SavedRoutesPage(),
+              ProfilePage(),
             ],
+          ),
+          bottomNavigationBar: SageRouteBottomNav(
             currentIndex: _selectedIndex,
-            selectedItemColor: Theme.of(context).colorScheme.primary,
             onTap: _onItemTapped,
           ),
         ),
@@ -223,21 +215,5 @@ class _MainScreenState extends State<MainScreen> {
           ),
       ],
     );
-  }
-
-  Widget _bodyForIndex(int index) {
-    switch (index) {
-      case 1:
-        return const GuidePage();
-      case 2:
-        return SettingsPage(onSwitchCelebrity: _openCelebrityOverlay);
-      default:
-        return const Center(
-          child: Text(
-            '首页',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        );
-    }
   }
 }

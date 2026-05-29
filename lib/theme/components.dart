@@ -10,12 +10,12 @@ AppBarTheme buildAppBarTheme(ColorScheme scheme) => AppBarTheme(
 
 CardThemeData buildCardTheme(ColorScheme scheme) => CardThemeData(
   elevation: 0,
-  color: scheme.surface,
+  color: scheme.surfaceContainerLow,
   margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
   shape: RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(20),
     side: BorderSide(
-      color: scheme.primary.withAlpha((0.2 * 255).round()),
+      color: scheme.outline,
     ),
   ),
 );
@@ -27,7 +27,7 @@ ElevatedButtonThemeData buildElevatedButtonTheme(ColorScheme scheme) =>
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
 
@@ -35,7 +35,7 @@ TextButtonThemeData buildTextButtonTheme(ColorScheme scheme) =>
     TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: scheme.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
 
@@ -45,11 +45,11 @@ InputDecorationTheme buildInputDecorationTheme(ColorScheme scheme) =>
       fillColor: scheme.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
       hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),

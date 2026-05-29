@@ -246,33 +246,48 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                     pageBody = Container(
                       color: colorScheme.surface,
                       child: Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 14,
-                          ),
+                        child: DecoratedBox(
                           decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.88),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                '加载人物中...',
-                                style: Theme.of(context).textTheme.bodyMedium,
+                            color: colorScheme.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: colorScheme.outlineVariant,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x14000000),
+                                blurRadius: 18,
+                                offset: Offset(0, 8),
                               ),
                             ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  '加载人物中...',
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: colorScheme.onSurface,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -281,7 +296,10 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                     pageBody = Center(
                       child: Text(
                         '人物数据加载失败',
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.error,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     );
                   } else {
@@ -291,7 +309,8 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                       pageBody = Center(
                         child: Text(
                           '暂无人物数据',
-                          style: Theme.of(context).textTheme.bodyLarge,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       );
                     } else {
@@ -314,8 +333,9 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                             _onHorizontalDragEnd(details, celebrities),
                         onContinue: _onContinuePressed,
                         onBackStep: _onBackStepPressed,
-                        onTopicSelected: (name) =>
-                            setState(() { _selectedTopicName = name; }),
+                        onTopicSelected: (name) => setState(() {
+                          _selectedTopicName = name;
+                        }),
                       );
                     }
                   }
@@ -360,8 +380,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                   height: revealStartRadius * 2,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color:
-                                        colorScheme.surfaceContainerHighest,
+                                    color: colorScheme.surfaceContainerHighest,
                                   ),
                                   child: Center(
                                     child: SizedBox(

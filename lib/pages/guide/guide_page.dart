@@ -178,9 +178,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     );
   }
 
-  Set<Marker> _buildMapMarkers({
-    required BitmapDescriptor? userLocationIcon,
-  }) {
+  Set<Marker> _buildMapMarkers({required BitmapDescriptor? userLocationIcon}) {
     final markers = Set<Marker>.from(_cachedScenicMarkers);
 
     // 始终使用自定义蓝色标记显示用户位置，确保粗定位和精定位使用同一个图标。
@@ -211,6 +209,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     return FutureBuilder<_GuideMapAssets>(
       future: _assetsFuture,
       builder: (context, snapshot) {
+        final colorScheme = Theme.of(context).colorScheme;
         final assets = snapshot.data;
         final markers = _buildMapMarkers(
           userLocationIcon: assets?.userLocationIcon,
@@ -263,13 +262,16 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
               right: 16,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  borderRadius: BorderRadius.circular(12),
+                  color: colorScheme.surfaceContainerLowest.withValues(
+                    alpha: 0.96,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colorScheme.outlineVariant),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x26000000),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
+                      color: Color(0x1A000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
                     ),
                   ],
                 ),
@@ -303,6 +305,18 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                         ? '打开设置'
                         : '允许定位',
                   ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 14,
+                    ),
+                  ),
                 ),
               ),
             Positioned(
@@ -313,6 +327,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                 onPressed: _isCenteringToMyLocation
                     ? null
                     : () => _focusOnMyLocation(this),
+                backgroundColor: colorScheme.surfaceContainerLowest,
+                foregroundColor: colorScheme.primary,
+                elevation: 2,
                 child: const Icon(Icons.my_location_rounded),
               ),
             ),

@@ -29,5 +29,10 @@ TextTheme buildTextTheme(ColorScheme scheme) {
       fontWeight: FontWeight.w600,
       fontSize: 14,
     ),
+    labelSmall: TextStyle(
+      color: scheme.onSurfaceVariant,
+      fontWeight: FontWeight.w500,
+      fontSize: 10,
+    ),
   );
 }

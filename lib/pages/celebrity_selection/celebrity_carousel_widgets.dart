@@ -39,18 +39,13 @@ class _CelebrityInfoSection extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       duration: stageAnimDuration,
       curve: Curves.easeInOutCubic,
-      tween: Tween<double>(
-        begin: 0,
-        end: showTopicStage ? 1 : 0,
-      ),
+      tween: Tween<double>(begin: 0, end: showTopicStage ? 1 : 0),
       builder: (context, t, child) {
-        const nameTop =
-            avatarTop + avatarSize + avatarNameGap + nameOffsetY;
+        const nameTop = avatarTop + avatarSize + avatarNameGap + nameOffsetY;
 
         final stageOneArrowCenter =
             (avatarTop + (nameTop + nameLineHeight)) / 2;
-        final stageTwoArrowCenter =
-            nameTop + nameLineHeight / 2;
+        final stageTwoArrowCenter = nameTop + nameLineHeight / 2;
         final arrowCenter =
             stageOneArrowCenter +
             (stageTwoArrowCenter - stageOneArrowCenter) * t;
@@ -123,9 +118,7 @@ class _CelebrityInfoSection extends StatelessWidget {
                                 const SizedBox(height: 8),
                                 Text(
                                   selectedDynasty,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
+                                  style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
                                       ),
@@ -182,6 +175,7 @@ class _ActionBar extends StatelessWidget {
     required this.showTopicStage,
     required this.stageAnimDuration,
     required this.phase,
+    required this.colorScheme,
     required this.onBackStep,
     required this.onContinue,
   });
@@ -190,6 +184,7 @@ class _ActionBar extends StatelessWidget {
   final bool showTopicStage;
   final Duration stageAnimDuration;
   final _OverlayPhase phase;
+  final ColorScheme colorScheme;
   final VoidCallback onBackStep;
   final ValueChanged<String> onContinue;
 
@@ -222,16 +217,8 @@ class _ActionBar extends StatelessWidget {
                   child: AnimatedOpacity(
                     duration: stageAnimDuration,
                     curve: showTopicStage
-                        ? const Interval(
-                            0.5,
-                            1,
-                            curve: Curves.easeOutCubic,
-                          )
-                        : const Interval(
-                            0,
-                            0.5,
-                            curve: Curves.easeInCubic,
-                          ),
+                        ? const Interval(0.5, 1, curve: Curves.easeOutCubic)
+                        : const Interval(0, 0.5, curve: Curves.easeInCubic),
                     opacity: showTopicStage ? 1 : 0,
                     child: IgnorePointer(
                       ignoring: !showTopicStage,
@@ -239,8 +226,13 @@ class _ActionBar extends StatelessWidget {
                         onPressed: onBackStep,
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(0, actionBarHeight),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          foregroundColor: colorScheme.primary,
+                          backgroundColor: colorScheme.surface.withValues(
+                            alpha: 0.92,
+                          ),
+                          side: BorderSide(
+                            color: colorScheme.primary.withValues(alpha: 0.24),
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
@@ -265,13 +257,14 @@ class _ActionBar extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(0, actionBarHeight),
                       padding: const EdgeInsets.symmetric(horizontal: 32),
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      shadowColor: Colors.transparent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Text(
-                      phase == _OverlayPhase.reveal ? '完成' : '继续',
-                    ),
+                    child: Text(phase == _OverlayPhase.reveal ? '完成' : '继续'),
                   ),
                 ),
               ],

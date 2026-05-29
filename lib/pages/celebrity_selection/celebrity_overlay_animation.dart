@@ -137,27 +137,30 @@ class _CelebrityCarouselContent extends StatelessWidget {
           return TweenAnimationBuilder<double>(
             duration: stageAnimDuration,
             curve: Curves.easeInOutCubic,
-            tween: Tween<double>(
-              begin: 0,
-              end: showMapCutout ? 1 : 0,
-            ),
+            tween: Tween<double>(begin: 0, end: showMapCutout ? 1 : 0),
             builder: (context, cutoutT, child) {
               final reserveT = cutoutT.clamp(0.0, 1.0);
               final holeT = ((cutoutT - 0.5) * 2).clamp(0.0, 1.0);
 
               final endHoleWidth =
-                  ((constraints.maxWidth - 52) * (0.58 + 0.32 * 1.0))
-                      .clamp(180.0, constraints.maxWidth - 24);
+                  ((constraints.maxWidth - 52) * (0.58 + 0.32 * 1.0)).clamp(
+                    180.0,
+                    constraints.maxWidth - 24,
+                  );
               final endHoleHeight = (96 + 150 * 1.0).clamp(
                 96.0,
                 constraints.maxHeight * 0.45,
               );
-              final maxReservedHeight =
-                  (endHoleHeight - 160.0).clamp(0.0, constraints.maxHeight);
+              final maxReservedHeight = (endHoleHeight - 160.0).clamp(
+                0.0,
+                constraints.maxHeight,
+              );
 
               final holeWidth =
-                  ((constraints.maxWidth - 52) * (0.66 + 0.38 * holeT))
-                      .clamp(220.0, constraints.maxWidth - 8);
+                  ((constraints.maxWidth - 52) * (0.66 + 0.38 * holeT)).clamp(
+                    220.0,
+                    constraints.maxWidth - 8,
+                  );
               final holeHeight = (136 + 200 * holeT).clamp(
                 136.0,
                 constraints.maxHeight * 0.58,
@@ -168,12 +171,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
               final hasHole = holeT > 0.001;
               final hole = hasHole
                   ? RRect.fromRectAndRadius(
-                      Rect.fromLTWH(
-                        holeLeft,
-                        holeTop,
-                        holeWidth,
-                        holeHeight,
-                      ),
+                      Rect.fromLTWH(holeLeft, holeTop, holeWidth, holeHeight),
                       Radius.circular(32 + 16 * holeT),
                     )
                   : null;
@@ -182,7 +180,8 @@ class _CelebrityCarouselContent extends StatelessWidget {
                 holeTop + holeHeight / 2,
               );
               final startCircleRadius =
-                  0.5 * math.sqrt(holeWidth * holeWidth + holeHeight * holeHeight);
+                  0.5 *
+                  math.sqrt(holeWidth * holeWidth + holeHeight * holeHeight);
               final endCircleRadius = <double>[
                 (holeCenter - const Offset(0, 0)).distance,
                 (holeCenter - Offset(constraints.maxWidth, 0)).distance,
@@ -191,19 +190,17 @@ class _CelebrityCarouselContent extends StatelessWidget {
                         Offset(constraints.maxWidth, constraints.maxHeight))
                     .distance,
               ].reduce((a, b) => a > b ? a : b);
-              final finishCircleRadius = startCircleRadius +
+              final finishCircleRadius =
+                  startCircleRadius +
                   (endCircleRadius - startCircleRadius) * finishExitT;
               final holePath = isFinishing && hasHole
-                  ? (Path()
-                    ..addOval(
+                  ? (Path()..addOval(
                       Rect.fromCircle(
                         center: holeCenter,
                         radius: finishCircleRadius,
                       ),
                     ))
-                  : (hole == null
-                      ? null
-                      : (Path()..addRRect(hole)));
+                  : (hole == null ? null : (Path()..addRRect(hole)));
 
               final reservedWidth = endHoleWidth * reserveT;
               final reservedHeight = maxReservedHeight * reserveT;
@@ -228,7 +225,12 @@ class _CelebrityCarouselContent extends StatelessWidget {
                         child: Stack(
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(24, 112, 24, 24),
+                              padding: const EdgeInsets.fromLTRB(
+                                24,
+                                112,
+                                24,
+                                24,
+                              ),
                               child: Column(
                                 children: [
                                   // Title
@@ -236,10 +238,10 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                     duration: stageAnimDuration,
                                     switchInCurve: Curves.easeOutCubic,
                                     switchOutCurve: Curves.easeInCubic,
-                                    transitionBuilder:
-                                        (child, animation) {
-                                      final currentTitleKey =
-                                          ValueKey<bool>(showTopicStage);
+                                    transitionBuilder: (child, animation) {
+                                      final currentTitleKey = ValueKey<bool>(
+                                        showTopicStage,
+                                      );
                                       final isIncoming =
                                           child.key == currentTitleKey;
 
@@ -255,9 +257,9 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                               : _splitFadeOut(progress);
                                           final dy = isIncoming
                                               ? lineHeight *
-                                                  (1 - animation.value)
+                                                    (1 - animation.value)
                                               : -lineHeight *
-                                                  (1 - animation.value);
+                                                    (1 - animation.value);
                                           return Transform.translate(
                                             offset: Offset(0, dy),
                                             child: Opacity(
@@ -269,9 +271,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                       );
                                     },
                                     child: Text(
-                                      showTopicStage
-                                          ? '选择想体验的主题'
-                                          : '选择您的同行者',
+                                      showTopicStage ? '选择想体验的主题' : '选择您的同行者',
                                       key: ValueKey<bool>(showTopicStage),
                                       style: titleStyle,
                                     ),
@@ -335,9 +335,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                   ),
                                   // Bio
                                   AnimatedSwitcher(
-                                    duration: const Duration(
-                                      milliseconds: 260,
-                                    ),
+                                    duration: const Duration(milliseconds: 260),
                                     transitionBuilder: (child, animation) {
                                       return _buildEdgeSlideFadeTransition(
                                         context: context,
@@ -355,8 +353,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                           .textTheme
                                           .bodyMedium
                                           ?.copyWith(
-                                            color: colorScheme
-                                                .onSurfaceVariant,
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                     ),
                                   ),
@@ -373,6 +370,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                 showTopicStage: showTopicStage,
                                 stageAnimDuration: stageAnimDuration,
                                 phase: phase,
+                                colorScheme: colorScheme,
                                 onBackStep: onBackStep,
                                 onContinue: onContinue,
                               ),
@@ -382,7 +380,9 @@ class _CelebrityCarouselContent extends StatelessWidget {
                                 top: 22,
                                 right: 10,
                                 child: TextButton(
-                                  onPressed: onSkip ?? (() => Navigator.of(context).pop()),
+                                  onPressed:
+                                      onSkip ??
+                                      (() => Navigator.of(context).pop()),
                                   child: Text(
                                     '跳过',
                                     style: TextStyle(
@@ -433,8 +433,7 @@ class _CelebrityCarouselContent extends StatelessWidget {
           );
         }
 
-        final topics =
-            topicSnapshot.data ?? const <TopicRecord>[];
+        final topics = topicSnapshot.data ?? const <TopicRecord>[];
         final topicNames = topics
             .map((topic) => topic.name)
             .where((name) => name.isNotEmpty)
@@ -476,6 +475,4 @@ class _CelebrityCarouselContent extends StatelessWidget {
       },
     );
   }
-
-
 }

@@ -36,15 +36,14 @@ class _LocationDetailSheet extends StatelessWidget {
       builder: (context, scrollController) {
         return DecoratedBox(
           decoration: BoxDecoration(
-            color: colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(24),
-            ),
+            color: colorScheme.surfaceContainerLowest,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: colorScheme.outlineVariant),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x33000000),
-                blurRadius: 14,
-                offset: Offset(0, -4),
+                color: Color(0x1F000000),
+                blurRadius: 20,
+                offset: Offset(0, -6),
               ),
             ],
           ),
@@ -60,9 +59,7 @@ class _LocationDetailSheet extends StatelessWidget {
                       width: 42,
                       height: 5,
                       decoration: BoxDecoration(
-                        color: colorScheme.outline.withValues(
-                          alpha: 0.45,
-                        ),
+                        color: colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
@@ -131,9 +128,7 @@ class _LocationDetailSheet extends StatelessWidget {
                     Text(
                       '未分类',
                       style: TextStyle(
-                        color: colorScheme.onSurface.withValues(
-                          alpha: 0.68,
-                        ),
+                        color: colorScheme.onSurface.withValues(alpha: 0.68),
                         fontSize: 14,
                       ),
                     )
@@ -149,8 +144,13 @@ class _LocationDetailSheet extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(
-                                  alpha: 0.12,
+                                color: colorScheme.surface.withValues(
+                                  alpha: 0.96,
+                                ),
+                                border: Border.all(
+                                  color: colorScheme.primary.withValues(
+                                    alpha: 0.18,
+                                  ),
                                 ),
                                 borderRadius: BorderRadius.circular(999),
                               ),
@@ -189,8 +189,11 @@ class _InfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: colorScheme.secondary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        color: colorScheme.secondary.withValues(alpha: 0.1),
+        border: Border.all(
+          color: colorScheme.secondary.withValues(alpha: 0.16),
+        ),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
