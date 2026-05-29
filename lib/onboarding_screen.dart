@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'pages/celebrity_selection_page.dart';
+import 'pages/celebrity_selection/celebrity_selection_page.dart';
 import 'pages/onboarding_highlight_one_page.dart';
 import 'pages/onboarding_highlight_two_page.dart';
 import 'pages/onboarding_welcome_page.dart';

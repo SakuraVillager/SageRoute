@@ -40,6 +40,11 @@
   - `fetchRelations({int? limit})`：读取所有人物-地点关系。
   - `fetchRelationsByCelebrity(String celebrityName)`：按人物名过滤。
   - `fetchRelationsByLocation(String locationName)`：按地点名过滤。
+- `IconRepository`
+  - `fetchIcons()`：获取全部图标记录并返回 `IconRecord`。
+  - `fetchIconMap()`：获取类别名 → SVG 路径数据的映射，返回 `Map<String, String>`。
+
+  > **注意**：`poi_celebrity_relatian` 表名在数据库中拼写有误，正确拼写应为 `poi_celebrity_relation`。模型、仓储及文档均沿用该拼写以保持与数据库一致。
 
 这些方法都自动处理查询、重试、等值过滤，返回强类型模型，业务仅需关注字段含义。
 
@@ -53,14 +58,14 @@ final firstTopicName = topics.first.name;
 
 调用方只需关心业务参数（人物名），仓储封装了“查询哪个表”“过滤哪个字段”“转换为模型”的全部细节。
 
-## 4. 新增表的步骤（复用通用逻辑）
+## 5. 新增表的步骤（复用通用逻辑）
 
 1. 在 `lib/models/` 新增一个类（字段 + `fromMap` + `toMap`）。
 2. 在 `lib/data/` 新增一个仓储类，内部持有 `const SupabaseTableRepository(tableName: '表名')`。
 3. 提供业务友好的方法（如 `fetchByXxx`），必要时传入 `equals` 让查询支持过滤。
 4. 页面/业务层直接依赖模型类，保持整洁。
 
-## 5. 为什么仓储不多余？
+## 6. 为什么仓储不多余？
 
 离开仓储意味着：
 - 每个页面都得直接写 Supabase 查询语句，改动同样字段要同步更新很多地方。
@@ -69,7 +74,7 @@ final firstTopicName = topics.first.name;
 
 仓储层把这些重复逻辑抽成一个地方，即便表很多也只要写一次，业务层可集中在“需要哪些数据”上。
 
-## 6. 常见术语
+## 7. 常见术语
 
 - **模型（Model）**：字段定义 + 数据转换，位于 `lib/models/`。
 - **仓储（Repository）**：调用 Supabase、处理重试、返回模型，位于 `lib/data/`。

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'celebrity_selection_page.dart';
+import 'celebrity_selection/celebrity_selection_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final VoidCallback? onSwitchCelebrity;

@@ -78,6 +78,60 @@ BitmapDescriptor get _transparentIcon {
   );
 }
 
+Future<BitmapDescriptor> _buildCircleMarkerIcon({
+  required Color fillColor,
+  ui.Path? iconPath,
+  double iconAreaRadius = 21.0,
+  double iconPadding = 1.5,
+}) async {
+  const int size = 84;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  const center = ui.Offset(size / 2, size / 2);
+
+  // White outer circle
+  final borderPaint = ui.Paint()
+    ..style = ui.PaintingStyle.fill
+    ..color = const ui.Color(0xFFFFFFFF);
+  canvas.drawCircle(center, 39, borderPaint);
+
+  // Themed inner circle
+  final fillPaint = ui.Paint()
+    ..style = ui.PaintingStyle.fill
+    ..color = fillColor;
+  canvas.drawCircle(center, 27, fillPaint);
+
+  // Optional SVG icon overlay
+  if (iconPath != null) {
+    final bounds = iconPath.getBounds();
+    if (bounds.width > 0 && bounds.height > 0) {
+      final maxIconDimension = (iconAreaRadius - iconPadding) * 2;
+      final scale = maxIconDimension / math.max(bounds.width, bounds.height);
+      final scaledWidth = bounds.width * scale;
+      final scaledHeight = bounds.height * scale;
+      final offsetX = center.dx - scaledWidth / 2 - bounds.left * scale;
+      final offsetY = center.dy - scaledHeight / 2 - bounds.top * scale;
+
+      canvas.save();
+      canvas.translate(offsetX, offsetY);
+      canvas.scale(scale, scale);
+
+      final iconPaint = ui.Paint()
+        ..style = ui.PaintingStyle.fill
+        ..color = const ui.Color(0xFFFFFFFF);
+      canvas.drawPath(iconPath, iconPaint);
+      canvas.restore();
+    }
+  }
+
+  final image = await recorder.endRecording().toImage(size, size);
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  if (byteData == null) {
+    return BitmapDescriptor.defaultMarker;
+  }
+  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+}
+
 /// ---------- top-level functions (marker building) ----------
 
 Future<_GuideMapAssets> _loadAssets(
@@ -107,15 +161,19 @@ Future<_GuideMapAssets> _loadAssets(
     }
   }
 
-  // 异步构建每个类别的图标
-  for (final category in categoriesToBuild) {
-    categoryIconCache[category] = await _buildCategoryMarkerIcon(
-      state,
-      markerFillColor: markerFillColor,
-      svgPathData: iconMap[category]!,
-      svgPathParser: svgPathParser,
-    );
-  }
+  // 并行构建每个类别的图标
+  final entries = await Future.wait(
+    categoriesToBuild.map((category) async {
+      final icon = await _buildCategoryMarkerIcon(
+        state,
+        markerFillColor: markerFillColor,
+        svgPathData: iconMap[category]!,
+        svgPathParser: svgPathParser,
+      );
+      return MapEntry(category, icon);
+    }),
+  );
+  categoryIconCache.addEntries(entries);
 
   BitmapDescriptor getIconForLocation(LocationRecord location) {
     final primaryCategory = location.categories.isNotEmpty
@@ -192,28 +250,7 @@ Future<BitmapDescriptor> _buildScenicMarkerIcon(
   _GuidePageState state, {
   required Color markerFillColor,
 }) async {
-  const int size = 84;
-  final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
-  const center = ui.Offset(size / 2, size / 2);
-
-  final borderPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = const ui.Color(0xFFFFFFFF);
-  final fillPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = markerFillColor;
-
-  canvas.drawCircle(center, 39, borderPaint);
-  canvas.drawCircle(center, 27, fillPaint);
-
-  final image = await recorder.endRecording().toImage(size, size);
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) {
-    return BitmapDescriptor.defaultMarker;
-  }
-
-  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  return _buildCircleMarkerIcon(fillColor: markerFillColor);
 }
 
 /// 构建带类别 SVG 图标的标记圆点。
@@ -224,88 +261,15 @@ Future<BitmapDescriptor> _buildCategoryMarkerIcon(
   required String svgPathData,
   required SvgPathParser svgPathParser,
 }) async {
-  const int size = 84;
-  const double iconAreaRadius = 21.0;
-  const double iconPadding = 1.5;
-  const double maxIconDimension = (iconAreaRadius - iconPadding) * 2;
-
-  final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
-  const center = ui.Offset(size / 2, size / 2);
-
-  // 绘制白色外圈
-  final borderPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = const ui.Color(0xFFFFFFFF);
-  canvas.drawCircle(center, 39, borderPaint);
-
-  // 绘制主题色内圈
-  final fillPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = markerFillColor;
-  canvas.drawCircle(center, 27, fillPaint);
-
-  // 解析 SVG 路径并绘制白色图标
   ui.Path? svgPath;
   try {
     svgPath = svgPathParser.parse(svgPathData);
   } catch (_) {
-    // SVG 解析失败时跳过图标绘制，返回纯圆点。
+    // SVG parse failure: return plain circle marker
   }
-
-  if (svgPath != null) {
-    // 计算 SVG 路径的边界框并缩放居中到圆形内
-    final bounds = svgPath.getBounds();
-    if (bounds.width > 0 && bounds.height > 0) {
-      final scale = maxIconDimension / math.max(bounds.width, bounds.height);
-      final scaledWidth = bounds.width * scale;
-      final scaledHeight = bounds.height * scale;
-      final offsetX = center.dx - scaledWidth / 2 - bounds.left * scale;
-      final offsetY = center.dy - scaledHeight / 2 - bounds.top * scale;
-
-      canvas.save();
-      canvas.translate(offsetX, offsetY);
-      canvas.scale(scale, scale);
-
-      final iconPaint = ui.Paint()
-        ..style = ui.PaintingStyle.fill
-        ..color = const ui.Color(0xFFFFFFFF);
-
-      canvas.drawPath(svgPath, iconPaint);
-      canvas.restore();
-    }
-  }
-
-  final image = await recorder.endRecording().toImage(size, size);
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) {
-    return BitmapDescriptor.defaultMarker;
-  }
-
-  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  return _buildCircleMarkerIcon(fillColor: markerFillColor, iconPath: svgPath);
 }
 
 Future<BitmapDescriptor> _buildUserLocationIcon(_GuidePageState state) async {
-  const int size = 84;
-  final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
-  const center = ui.Offset(size / 2, size / 2);
-
-  final borderPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = const ui.Color(0xFFFFFFFF);
-  final fillPaint = ui.Paint()
-    ..style = ui.PaintingStyle.fill
-    ..color = const ui.Color(0xFF1E88E5);
-
-  canvas.drawCircle(center, 39, borderPaint);
-  canvas.drawCircle(center, 27, fillPaint);
-
-  final image = await recorder.endRecording().toImage(size, size);
-  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-  if (byteData == null) {
-    return BitmapDescriptor.defaultMarker;
-  }
-
-  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  return _buildCircleMarkerIcon(fillColor: const ui.Color(0xFF1E88E5));
 }
