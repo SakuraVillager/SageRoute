@@ -68,11 +68,12 @@ class DatabaseService {
       () => executeQuery(table).timeout(_queryTimeout),
       operationName: 'testConnection($table)',
     );
-    final data = _normalizeRows(response);
+    final data = normalizeRows(response);
     developer.log('连接成功！查询结果: $data', name: 'DatabaseService');
   }
 
-  static Future<List<dynamic>> getFieldList({
+  @Deprecated('Use Repository pattern instead of direct getFieldList calls')
+  static Future<List<Object>> getFieldList({
     required String table,
     required String field,
     QueryFieldFn? query,
@@ -86,10 +87,10 @@ class DatabaseService {
       () => executeQuery(table, field).timeout(_queryTimeout),
       operationName: 'getFieldList($table.$field)',
     );
-    final rows = _normalizeRows(response);
+    final rows = normalizeRows(response);
     return rows
-        .map<dynamic>((row) => row[field])
-        .where((value) => value != null)
+        .map<Object?>((row) => row[field])
+        .whereType<Object>()
         .toList();
   }
 
@@ -120,7 +121,8 @@ class DatabaseService {
     throw Exception('数据库请求失败：$operationName，重试后仍超时/网络异常。原始错误: $lastError');
   }
 
-  static List<Map<String, dynamic>> _normalizeRows(dynamic response) {
+  @visibleForTesting
+  static List<Map<String, dynamic>> normalizeRows(dynamic response) {
     if (response is! List) {
       throw Exception('数据库返回格式错误：期望 List，实际 ${response.runtimeType}');
     }

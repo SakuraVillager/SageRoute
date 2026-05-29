@@ -1,10 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../data/celebrity_repository.dart';
-import '../data/supabase_table_repository.dart';
 import '../data/topic_repository.dart';
 import '../models/celebrity_profile.dart';
 import '../models/topic_record.dart';
@@ -41,7 +39,6 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
   bool _isFinishing = false;
   String? _topicsCelebrityName;
   String? _selectedTopicName;
-  bool _databaseDumped = false;
   late final AnimationController _backgroundEntryController;
   late final AnimationController _pageEntryController;
   late final AnimationController _finishExitController;
@@ -140,11 +137,6 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
     _selectedTopicName = null;
     _topicsFuture = _topicRepository.fetchTopicsByCelebrity(celebrityName).then(
       (topics) {
-        debugPrint('Topic匹配: celebrity=$celebrityName, count=${topics.length}');
-        if (kDebugMode && topics.isEmpty) {
-          _dumpDatabaseForDebug(celebrityName);
-        }
-
         if (!mounted ||
             _phase == _OverlayPhase.character ||
             _topicsCelebrityName != celebrityName) {
@@ -164,31 +156,6 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
         return topics;
       },
     );
-  }
-
-  Future<void> _dumpDatabaseForDebug(String celebrityName) async {
-    if (_databaseDumped) {
-      return;
-    }
-    _databaseDumped = true;
-
-    const tables = <String>[
-      'Celebrity',
-      'Topic',
-      'Location',
-      'poi_celebrity_relatian',
-    ];
-
-    for (final table in tables) {
-      try {
-        final rows = await SupabaseTableRepository(
-          tableName: table,
-        ).fetchAllRaw(limit: 5000);
-        debugPrint('DB调试 table=$table, count=${rows.length}');
-      } catch (error) {
-        debugPrint('DB调试 table=$table error=$error');
-      }
-    }
   }
 
   void _onContinuePressed(String celebrityName) {

@@ -29,23 +29,7 @@ class TopicRepository {
       equals: {'celebrity': celebrityName},
     );
 
-    if (exactMatched.isNotEmpty) {
-      return exactMatched;
-    }
-
-    // 兜底：部分历史数据可能含前后空格、全角空格或别名，改为本地宽松匹配。
-    final allTopics = await fetchTopics();
-    return allTopics
-        .where((topic) {
-          final candidate = _normalizeName(topic.celebrity ?? '');
-          if (candidate.isEmpty) {
-            return false;
-          }
-          return candidate == normalizedName ||
-              candidate.contains(normalizedName) ||
-              normalizedName.contains(candidate);
-        })
-        .toList(growable: false);
+    return exactMatched;
   }
 
   String _normalizeName(String value) {

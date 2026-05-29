@@ -40,16 +40,7 @@ class SupabaseTableRepository {
       operationName: 'fetchAllRaw($tableName)',
     );
 
-    if (response is! List) {
-      throw Exception('表 $tableName 返回格式错误：期望 List，实际 ${response.runtimeType}');
-    }
-
-    return response
-        .whereType<Map>()
-        .map<Map<String, dynamic>>(
-          (row) => Map<String, dynamic>.from(row),
-        )
-        .toList(growable: false);
+    return DatabaseService.normalizeRows(response);
   }
 
   /// 读取当前表并直接映射为模型对象列表。
