@@ -52,3 +52,5 @@ assets/env.env
 # Temporary files
 tmp*.dart
 broken.txt
+
+.sisyphus/
