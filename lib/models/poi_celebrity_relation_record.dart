@@ -38,4 +38,53 @@ class PoiCelebrityRelationRecord {
       'weight': weight,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PoiCelebrityRelationRecord &&
+          other.id == id &&
+          other.createdAt == createdAt &&
+          other.locationName == locationName &&
+          other.celebrityName == celebrityName &&
+          other.relationType == relationType &&
+          other.weight == weight;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        createdAt,
+        locationName,
+        celebrityName,
+        relationType,
+        weight,
+      );
+
+  PoiCelebrityRelationRecord copyWith({
+    int? id,
+    DateTime? createdAt,
+    String? locationName,
+    String? celebrityName,
+    String? relationType,
+    int? weight,
+  }) =>
+      PoiCelebrityRelationRecord(
+        id: id ?? this.id,
+        createdAt: createdAt ?? this.createdAt,
+        locationName: locationName ?? this.locationName,
+        celebrityName: celebrityName ?? this.celebrityName,
+        relationType: relationType ?? this.relationType,
+        weight: weight ?? this.weight,
+      );
+
+  @override
+  String toString() =>
+      'PoiCelebrityRelationRecord('
+      'id: $id, '
+      'createdAt: $createdAt, '
+      'locationName: $locationName, '
+      'celebrityName: $celebrityName, '
+      'relationType: $relationType, '
+      'weight: $weight'
+      ')';
 }

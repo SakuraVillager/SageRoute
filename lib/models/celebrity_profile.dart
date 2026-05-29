@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
+
 class CelebrityProfile {
   final int id;
   final String name;
   final String dynasty;
   final String bioShort;
-  final String bioFul;
+  final String bioFull;
   final String avatarUrl;
   final List<String> topic;
 
@@ -12,7 +14,7 @@ class CelebrityProfile {
     required this.name,
     required this.dynasty,
     required this.bioShort,
-    required this.bioFul,
+    required this.bioFull,
     required this.avatarUrl,
     required this.topic,
   });
@@ -25,7 +27,7 @@ class CelebrityProfile {
       name: (map['name'] ?? '').toString(),
       dynasty: (map['dynasty'] ?? '').toString(),
       bioShort: (map['bio_short'] ?? '').toString(),
-      bioFul: (map['bio_ful'] ?? map['bio_full'] ?? '').toString(),
+      bioFull: (map['bio_ful'] ?? map['bio_full'] ?? '').toString(),
       avatarUrl: (map['avatar_url'] ?? '').toString(),
       topic: rawTopic is List
           ? rawTopic.map((item) => item.toString()).toList(growable: false)
@@ -39,9 +41,55 @@ class CelebrityProfile {
       'name': name,
       'dynasty': dynasty,
       'bio_short': bioShort,
-      'bio_ful': bioFul,
+      'bio_full': bioFull,
       'avatar_url': avatarUrl,
       'topic': topic,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CelebrityProfile &&
+          other.id == id &&
+          other.name == name &&
+          other.dynasty == dynasty &&
+          other.bioShort == bioShort &&
+          other.bioFull == bioFull &&
+          other.avatarUrl == avatarUrl &&
+          listEquals(other.topic, topic);
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        dynasty,
+        bioShort,
+        bioFull,
+        avatarUrl,
+        Object.hashAll(topic),
+      );
+
+  CelebrityProfile copyWith({
+    int? id,
+    String? name,
+    String? dynasty,
+    String? bioShort,
+    String? bioFull,
+    String? avatarUrl,
+    List<String>? topic,
+  }) =>
+      CelebrityProfile(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        dynasty: dynasty ?? this.dynasty,
+        bioShort: bioShort ?? this.bioShort,
+        bioFull: bioFull ?? this.bioFull,
+        avatarUrl: avatarUrl ?? this.avatarUrl,
+        topic: topic ?? this.topic,
+      );
+
+  @override
+  String toString() =>
+      'CelebrityProfile(id: $id, name: $name, dynasty: $dynasty, bioShort: $bioShort, bioFull: $bioFull, avatarUrl: $avatarUrl, topic: $topic)';
 }

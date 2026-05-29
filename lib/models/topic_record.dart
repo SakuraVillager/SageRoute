@@ -34,4 +34,48 @@ class TopicRecord {
       'description': description,
     };
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TopicRecord &&
+          other.id == id &&
+          other.createdAt == createdAt &&
+          other.celebrity == celebrity &&
+          other.name == name &&
+          other.description == description;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        createdAt,
+        celebrity,
+        name,
+        description,
+      );
+
+  TopicRecord copyWith({
+    int? id,
+    DateTime? createdAt,
+    String? celebrity,
+    String? name,
+    String? description,
+  }) =>
+      TopicRecord(
+        id: id ?? this.id,
+        createdAt: createdAt ?? this.createdAt,
+        celebrity: celebrity ?? this.celebrity,
+        name: name ?? this.name,
+        description: description ?? this.description,
+      );
+
+  @override
+  String toString() =>
+      'TopicRecord('
+      'id: $id, '
+      'createdAt: $createdAt, '
+      'celebrity: $celebrity, '
+      'name: $name, '
+      'description: $description'
+      ')';
 }
