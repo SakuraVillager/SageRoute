@@ -45,6 +45,12 @@ class AppColors {
       shadow: Colors.black,
       outline: neutralVariantLight,
       surfaceTint: primaryLight,
+      surfaceContainerHighest: Color(0xFFE8E2DC),
+      surfaceContainerHigh: Color(0xFFF0EAE4),
+      surfaceContainer: Color(0xFFF5F0EA),
+      surfaceContainerLow: Color(0xFFFAF5EF),
+      surfaceContainerLowest: Colors.white,
+      outlineVariant: Color(0xFFD4CEC8),
     );
   }
 
@@ -65,6 +71,12 @@ class AppColors {
       shadow: Colors.black,
       outline: neutralVariantDark,
       surfaceTint: primaryDark,
+      surfaceContainerHighest: Color(0xFF4A4642),
+      surfaceContainerHigh: Color(0xFF3D3A36),
+      surfaceContainer: Color(0xFF33302C),
+      surfaceContainerLow: Color(0xFF2A2725),
+      surfaceContainerLowest: Color(0xFF1D1B19),
+      outlineVariant: Color(0xFF5C5955),
     );
   }
 }

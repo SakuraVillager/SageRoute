@@ -10,7 +10,7 @@ import 'package:x_amap_base/x_amap_base.dart';
 import 'theme.dart';
 import 'onboarding_screen.dart';
 import 'pages/celebrity_selection_page.dart';
-import 'pages/guide_page.dart';
+import 'pages/guide/guide_page.dart';
 import 'pages/settings_page.dart';
 import 'services/database_service.dart';
 

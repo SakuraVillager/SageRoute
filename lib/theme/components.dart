@@ -52,7 +52,7 @@ InputDecorationTheme buildInputDecorationTheme(ColorScheme scheme) =>
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide(color: scheme.primary, width: 1.5),
       ),
-      hintStyle: TextStyle(color: Colors.grey.shade400),
+      hintStyle: TextStyle(color: scheme.onSurface.withValues(alpha: 0.5)),
     );
 
 DividerThemeData buildDividerTheme(ColorScheme scheme) => DividerThemeData(
