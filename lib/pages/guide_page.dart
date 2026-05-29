@@ -235,6 +235,11 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
     _markerFillColor = nextMarkerColor;
     _assetsFuture = _loadAssets(markerFillColor: nextMarkerColor);
+    _assetsFuture?.then((loadedAssets) {
+      if (mounted) {
+        _fitAllLocationsOnMap(loadedAssets);
+      }
+    });
   }
 
   Future<void> _requestLocationPermission() async {
@@ -959,14 +964,8 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
           scenicMarkers: assets?.markers ?? const <Marker>{},
           userLocationIcon: assets?.userLocationIcon,
         );
-        if (assets != null &&
-            _mapController != null &&
-            !_hasAdjustedInitialViewport &&
-            !_isCenteringToMyLocation) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _fitAllLocationsOnMap(assets);
-          });
-        }
+        // Viewport adjustment is handled in onMapCreated
+        // and via the then() callback in didChangeDependencies.
         final mapMessage = snapshot.hasError
             ? '地点加载失败：${snapshot.error}'
             : snapshot.connectionState != ConnectionState.done

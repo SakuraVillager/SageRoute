@@ -8,7 +8,7 @@ class OnboardingHighlightOnePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const OnboardingInfoLayout(
-      title: '亮点一',
+      title: '智能导览',
       description: '智能路径伴侣，随时为你规划最优路线并贴心提醒沿途风景。',
       icon: Icons.star_border,
     );

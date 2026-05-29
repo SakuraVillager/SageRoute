@@ -121,7 +121,8 @@ class DatabaseService {
     throw Exception('数据库请求失败：$operationName，重试后仍超时/网络异常。原始错误: $lastError');
   }
 
-  @visibleForTesting
+  /// 将 Supabase 返回的原始数据归一化为 `List<Map<String, dynamic>>`。
+  /// 供 [SupabaseTableRepository] 和测试代码复用。
   static List<Map<String, dynamic>> normalizeRows(dynamic response) {
     if (response is! List) {
       throw Exception('数据库返回格式错误：期望 List，实际 ${response.runtimeType}');

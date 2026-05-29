@@ -190,6 +190,23 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
     });
   }
 
+  Widget _buildAvatar(CelebrityProfile profile) {
+    final url = profile.avatarUrl;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return Image.network(url, fit: BoxFit.cover);
+    } else if (url.startsWith('assets/')) {
+      return Image.asset(url, fit: BoxFit.cover);
+    } else {
+      final initial = profile.name.isNotEmpty
+          ? profile.name.substring(0, 1)
+          : '?';
+      return CircleAvatar(
+        radius: 126,
+        child: Text(initial, style: const TextStyle(fontSize: 64)),
+      );
+    }
+  }
+
   Widget _buildEdgeSlideFadeTransition({
     required Widget child,
     required Animation<double> animation,
@@ -337,15 +354,12 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                         ),
                       );
                     } else {
-                      final safeIndex = _currentIndex.clamp(
+                      final displayIndex = _currentIndex.clamp(
                         0,
                         celebrities.length - 1,
                       );
-                      if (safeIndex != _currentIndex) {
-                        _currentIndex = safeIndex;
-                      }
 
-                      final selected = celebrities[_currentIndex];
+                      final selected = celebrities[displayIndex];
                       final selectedId = selected.id;
                       final selectedName = selected.name;
                       final selectedDynasty = selected.dynasty;
@@ -853,10 +867,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                                 252,
                                                                             height:
                                                                                 252,
-                                                                            child: Image.asset(
-                                                                              'assets/images/celebrities/SuDongPo.jpg',
-                                                                              fit: BoxFit.cover,
-                                                                            ),
+                                                                            child: _buildAvatar(selected),
                                                                           ),
                                                                         ),
                                                                       ),
@@ -946,7 +957,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                 child: SizedBox(
                                                                   width: 44,
                                                                   child:
-                                                                      _currentIndex >
+                                                                      displayIndex >
                                                                           0
                                                                       ? IconButton(
                                                                           onPressed: () => _goPrevious(
@@ -965,7 +976,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                                                                 child: SizedBox(
                                                                   width: 44,
                                                                   child:
-                                                                      _currentIndex <
+                                                                      displayIndex <
                                                                           celebrities.length -
                                                                               1
                                                                       ? IconButton(
@@ -1304,7 +1315,7 @@ class _HoleClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant _HoleClipper oldClipper) {
-    return true;
+    return holePath != oldClipper.holePath;
   }
 }
 

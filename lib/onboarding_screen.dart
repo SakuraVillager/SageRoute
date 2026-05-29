@@ -14,6 +14,11 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
+  static const int _pageCount = 3;
+  static const double _dotInactiveSize = 8.0;
+  static const double _dotActiveSize = 24.0;
+  static const double _dotMargin = 4.0;
+
   final PageController _pageController = PageController();
   int _currentPageIndex = 0;
 
@@ -32,7 +37,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _onSkipToCelebritySelect() {
     _pageController.animateToPage(
-      3,
+      _pageCount,
       duration: const Duration(milliseconds: 400),
       curve: Curves.easeInOut,
     );
@@ -73,7 +78,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: pages,
             ),
 
-            if (_currentPageIndex < 3)
+            if (_currentPageIndex < _pageCount)
               Positioned(
                 top: 16,
                 right: 16,
@@ -89,7 +94,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-            if (_currentPageIndex < 3)
+            if (_currentPageIndex < _pageCount)
               Positioned(
                 bottom: 100,
                 left: 40,
@@ -106,15 +111,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
               ),
 
-            if (_currentPageIndex < 3)
+            if (_currentPageIndex < _pageCount)
               Positioned(
                 bottom: 48,
                 left: 0,
                 right: 0,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    3,
+                  children:                   List.generate(
+                    _pageCount,
                     (index) => _buildDotIndicator(index == _currentPageIndex),
                   ),
                 ),
@@ -128,9 +133,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Widget _buildDotIndicator(bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      height: 8,
-      width: isActive ? 24 : 8,
+      margin: const EdgeInsets.symmetric(horizontal: _dotMargin),
+      height: _dotInactiveSize,
+      width: isActive ? _dotActiveSize : _dotInactiveSize,
       decoration: BoxDecoration(
         color: isActive
             ? Theme.of(context).colorScheme.primary
