@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../theme/color_schemes.dart';
 import '../data/mock_figures.dart';
+import '../models/figure.dart';
+import 'figure_detail_page.dart';
 
 /// Historical figures list page matching the Web version's FiguresList.tsx.
 ///
@@ -17,7 +19,13 @@ import '../data/mock_figures.dart';
 ///
 /// All filters are static UI — no real filtering logic.
 class FiguresListPage extends StatelessWidget {
-  const FiguresListPage({super.key});
+  const FiguresListPage({super.key, this.onNavigateAway, this.onNavigateBack});
+
+  /// Called before navigating away from this page (e.g. to detail page).
+  final VoidCallback? onNavigateAway;
+
+  /// Called when returning to this page from a detail page.
+  final VoidCallback? onNavigateBack;
 
   static const List<String> _dynasties = ['全部', '唐朝', '宋朝', '汉朝', '周朝', '明朝'];
 
@@ -51,14 +59,14 @@ class FiguresListPage extends StatelessWidget {
               const SizedBox(height: 28),
               _buildFeaturedCardHeader(),
               const SizedBox(height: 12),
-              _buildFeaturedCard(mockFigures[0]),
+              _buildFeaturedCard(context, mockFigures[0]),
               const SizedBox(height: 24),
               // Optional: 3 horizontal route recommendations (skip if mock not available, screenshot shows route chips below featured card)
               _buildFeaturedRoutes(),
               const SizedBox(height: 32),
               _buildAllFiguresHeader(),
               const SizedBox(height: 16),
-              _buildFigureGrid(),
+              _buildFigureGrid(context),
               const SizedBox(height: 24),
               _buildLoadMoreButton(),
               // Bottom padding for BottomNav bar
@@ -385,13 +393,41 @@ class FiguresListPage extends StatelessWidget {
     );
   }
 
+  // ── Navigate to figure detail page ──
+  void _openFigure(BuildContext context, MockFigure mf) {
+    onNavigateAway?.call();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FigureDetailPage(
+          figure: Figure(
+            id: mf.id,
+            name: mf.name,
+            pinyinName: mf.pinyinName,
+            dynasty: mf.dynasty,
+            role: mf.role,
+            years: mf.years,
+            shortDesc: mf.shortDesc,
+            description: mf.description,
+            imageUrl: mf.imageUrl,
+            locationsCount: mf.locationsCount,
+            routesCount: mf.routesCount,
+            poemsCount: mf.poemsCount,
+            rating: mf.rating,
+          ),
+        ),
+      ),
+    ).then((_) => onNavigateBack?.call());
+  }
+
   // ── Featured figure card (full-width, 24px radius, image + gradient + info) ──
   // Web: aspect-[4/3], dynasty tag bg-[#C37153], role tag bg-black/30 backdrop-blur,
   //      bookmark button bottom-right, stats with MapPin + Route icons
-  Widget _buildFeaturedCard(MockFigure figure) {
+  Widget _buildFeaturedCard(BuildContext context, MockFigure figure) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
+      child: GestureDetector(
+        onTap: () => _openFigure(context, figure),
+        child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
@@ -565,11 +601,10 @@ class FiguresListPage extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
-
-  // ── "全部人物" section header with "查看全部" link ──
 
   Widget _buildAllFiguresHeader() {
     return Padding(
@@ -647,7 +682,7 @@ class FiguresListPage extends StatelessWidget {
 
   // ── 2-column figure grid ──
 
-  Widget _buildFigureGrid() {
+  Widget _buildFigureGrid(BuildContext context) {
     // Use all 3 mock figures + repeats for visual fill (6 cards = 3 rows)
     final gridFigures = <MockFigure>[
       mockFigures[1], // 苏东坡
@@ -667,11 +702,11 @@ class FiguresListPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(
                 children: [
-                  Expanded(child: _FigureCard(figure: gridFigures[i])),
+                  Expanded(child: _FigureCard(figure: gridFigures[i], onTap: () => _openFigure(context, gridFigures[i]))),
                   const SizedBox(width: 16),
                   Expanded(
                     child: i + 1 < gridFigures.length
-                        ? _FigureCard(figure: gridFigures[i + 1])
+                        ? _FigureCard(figure: gridFigures[i + 1], onTap: () => _openFigure(context, gridFigures[i + 1]))
                         : const SizedBox.shrink(),
                   ),
                 ],
@@ -838,13 +873,16 @@ class _ThemeFilterChip extends StatelessWidget {
 /// Web: dynasty tag bg-[#84A98C] rounded-full, bookmark text-[#C37153],
 ///      role tags bg-[#FAF7F2], bottom stats with MapPin + "查看" button.
 class _FigureCard extends StatelessWidget {
-  const _FigureCard({required this.figure});
+  const _FigureCard({required this.figure, this.onTap});
 
   final MockFigure figure;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1056,6 +1094,7 @@ class _FigureCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

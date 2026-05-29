@@ -8,22 +8,14 @@ import 'steps/step2_theme.dart';
 import 'steps/step3_map.dart';
 import 'steps/step4_plan.dart';
 import 'steps/step5_preview.dart';
-
-/// 5-step wizard shell for creating smart routes.
-///
-/// Manages step navigation, progress bar, state, and bottom action button.
-/// Each step renders the actual step widget via IndexedStack.
-///
-/// State tracked:
-/// - [currentStep]: 1-5
-/// - [selectedFigureId]: person selected in step 1
-/// - [selectedThemeId]: theme selected in step 2
-/// - [selectedLocations]: locations selected in step 3
 class CreateRouteWizard extends StatefulWidget {
-  const CreateRouteWizard({super.key, this.onComplete});
+  const CreateRouteWizard({super.key, this.onComplete, this.onExit});
 
   /// Called when the user taps "保存行程" on step 5.
   final VoidCallback? onComplete;
+
+  /// Called when the user taps back on step 1.
+  final VoidCallback? onExit;
 
   @override
   State<CreateRouteWizard> createState() => _CreateRouteWizardState();
@@ -33,12 +25,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   static const List<String> _stepTitles = [
     '选择人物',
     '选择主题',
-    '探索地图',
     '行程规划',
+    '探索地图',
     '路线预览',
   ];
 
   int _currentStep = 1;
+  int _previousStep = 1;
   String? _selectedFigureId;
   String? _selectedThemeId;
   List<String> _selectedLocations = [];
@@ -69,7 +62,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   bool get _isNextDisabled {
     if (_currentStep == 1 && _selectedFigureId == null) return true;
     if (_currentStep == 2 && _selectedThemeId == null) return true;
-    if (_currentStep == 3 && _selectedLocations.isEmpty) return true;
+    if (_currentStep == 4 && _selectedLocations.isEmpty) return true;
     return false;
   }
 
@@ -87,13 +80,21 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   void _handleNext() {
     if (_currentStep < 5) {
-      setState(() => _currentStep++);
+      setState(() {
+        _previousStep = _currentStep;
+        _currentStep++;
+      });
     }
   }
 
   void _handleBack() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      setState(() {
+        _previousStep = _currentStep;
+        _currentStep--;
+      });
+    } else {
+      widget.onExit?.call();
     }
   }
 
@@ -183,7 +184,9 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         children: List.generate(5, (index) {
           final step = index + 1;
           return Expanded(
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
               height: 4,
               margin: const EdgeInsets.symmetric(horizontal: 2),
               decoration: BoxDecoration(
@@ -202,28 +205,52 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Step content: actual step widgets via IndexedStack ──
 
   Widget _buildStepContent() {
-    return IndexedStack(
-      index: _currentStep - 1,
-      children: [
-        Step1Figure(
-          selectedFigureId: _selectedFigureId,
-          onSelect: _selectFigure,
-        ),
-        Step2Theme(
-          selectedThemeId: _selectedThemeId,
-          onSelect: _selectTheme,
-          figureName: _selectedFigure?.name ?? '',
-        ),
-        Step3Map(
-          selectedLocations: _selectedLocations,
-          onLocationsChanged: _updateLocations,
-        ),
-        Step4Plan(figure: _selectedModelFigure),
-        Step5Preview(
-          figure: _selectedFigure,
-          onSave: _handleComplete,
-        ),
-      ],
+    final goingForward = _currentStep > _previousStep;
+
+    final steps = [
+      Step1Figure(
+        selectedFigureId: _selectedFigureId,
+        onSelect: _selectFigure,
+      ),
+      Step2Theme(
+        selectedThemeId: _selectedThemeId,
+        onSelect: _selectTheme,
+        figureName: _selectedFigure?.name ?? '',
+      ),
+      Step4Plan(figure: _selectedModelFigure),
+      Step3Map(
+        selectedLocations: _selectedLocations,
+        onLocationsChanged: _updateLocations,
+      ),
+      Step5Preview(
+        figure: _selectedFigure,
+        onSave: _handleComplete,
+      ),
+    ];
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      switchInCurve: Curves.easeInOut,
+      switchOutCurve: Curves.easeInOut,
+      transitionBuilder: (child, animation) {
+        final isOld = child.key != ValueKey(_currentStep);
+        final Offset begin;
+        if (isOld) {
+          // Old page exits toward the opposite of the incoming direction
+          begin = goingForward ? const Offset(-1, 0) : const Offset(1, 0);
+        } else {
+          // New page enters from the direction of travel
+          begin = goingForward ? const Offset(1, 0) : const Offset(-1, 0);
+        }
+        return SlideTransition(
+          position: Tween(begin: begin, end: Offset.zero).animate(animation),
+          child: child,
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(_currentStep),
+        child: steps[_currentStep - 1],
+      ),
     );
   }
 

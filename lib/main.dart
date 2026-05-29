@@ -167,11 +167,15 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  bool _hideBottomNav = false;
   bool _showCelebrityOverlay = false;
 
   void _onItemTapped(int index) {
     if (_showCelebrityOverlay) return;
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      _hideBottomNav = index == 2;
+    });
   }
 
   // ignore: unused_element — kept for future CelebritySelection overlay access.
@@ -184,26 +188,49 @@ class _MainScreenState extends State<MainScreen> {
     setState(() => _showCelebrityOverlay = false);
   }
 
+  void _setBottomNavVisible(bool visible) {
+    setState(() => _hideBottomNav = !visible);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // Body — always full-screen; nav bar is an overlay, not inside Scaffold.
         Scaffold(
-          extendBody: true, // 允许内容滚动到底部导航栏靠下的透明区域
-          // No AppBar — each page handles its own header.
+          extendBody: true,
           body: IndexedStack(
             index: _selectedIndex,
-            children: const [
-              HomePage(),
-              FiguresListPage(),
-              CreateRouteWizard(),
-              SavedRoutesPage(),
-              ProfilePage(),
+            children: [
+              const HomePage(),
+              FiguresListPage(
+                onNavigateAway: () => _setBottomNavVisible(false),
+                onNavigateBack: () => _setBottomNavVisible(true),
+              ),
+              CreateRouteWizard(
+                onExit: () => setState(() {
+                  _selectedIndex = 0;
+                  _hideBottomNav = false;
+                }),
+              ),
+              const SavedRoutesPage(),
+              const ProfilePage(),
             ],
           ),
-          bottomNavigationBar: SageRouteBottomNav(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
+        ),
+        // Bottom nav — overlaid on top so it can slide away without reserving layout space.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnimatedSlide(
+            offset: _hideBottomNav ? const Offset(0, 1) : Offset.zero,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOutCubic,
+            child: SageRouteBottomNav(
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+            ),
           ),
         ),
         if (_showCelebrityOverlay)

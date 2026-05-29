@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../data/mock_figures.dart';
 import '../models/figure.dart';
 
-/// 人物详情页，精确匹配 Web 版 FigureDetail.tsx 视觉风格。
+/// 名人详情页，匹配 HTML mockup 设计。
 ///
-/// 沉浸式头部图片 + 渐变遮罩、人物信息、统计卡片、Tab 导航、操作按钮。
-/// 接受 [Figure] 对象作为参数。
+/// 沉浸式渐变头部 + 朝代标签、个人信息区（左名右标签）、
+/// 统计卡片（带图标）、操作按钮、Tab 导航、内容区。
 class FigureDetailPage extends StatefulWidget {
-  const FigureDetailPage({super.key, required this.figure, this.onBack});
+  const FigureDetailPage({super.key, required this.figure});
 
   final Figure figure;
-
-  /// 返回按钮回调，不传则隐藏返回按钮。
-  final VoidCallback? onBack;
 
   @override
   State<FigureDetailPage> createState() => _FigureDetailPageState();
@@ -23,25 +21,39 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
 
   static const List<String> _tabs = ['生平', '遗址', '名言', '地图', '作品'];
 
-  // Page-specific colors (from Web FigureDetail.tsx)
-  static const Color _pageBg = Color(0xFFFDFBF7);
-  static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFE8E2D9);
-  static const Color _textPrimary = Color(0xFF2D2825);
-  static const Color _textSecondary = Color(0xFF857F75);
-  static const Color _roleBg = Color(0xFFF0EBE4);
-  static const Color _roleText = Color(0xFF6B655A);
-  static const Color _primaryBtnBg = Color(0xFF1C1A1A);
-  static const Color _primaryBtnText = Color(0xFFF3EFE9);
-  static const Color _dividerColor = Color(0xFFE8E2D9);
-  static const Color _tabActive = Color(0xFFC37153);
-  static const Color _tabInactive = Color(0xFF857F75);
-  static const Color _navBtnBg = Color(0x33FFFFFF);
-  static const Color _starColor = Color(0xFFD4AF37);
+  // ── Colors ──
+  static const Color _pageBg = Color(0xFFFAF7F2);
+  static const Color _cardBg = Colors.white;
+  static const Color _cardBorder = Color(0xFFEFEBE4);
+  static const Color _textPrimary = Color(0xFF222222);
+  static const Color _textSecondary = Color(0xFF8E8A82);
+  static const Color _accent = Color(0xFFCD6642);
+  static const Color _green = Color(0xFF629A7A);
+  static const Color _gold = Color(0xFFC09A67);
+  static const Color _star = Color(0xFFD4AF37);
+  static const Color _tagPoet = Color(0xFFE2EFE7);
+  static const Color _tagPoetText = Color(0xFF629A7A);
+  static const Color _tagOfficial = Color(0xFFF7EFE2);
+  static const Color _tagOfficialText = Color(0xFFC09A67);
+  static const Color _tagPhilosopher = Color(0xFFF7EAE6);
+  static const Color _tagPhilosopherText = Color(0xFFC28274);
+  static const Color _navBtnBg = Color(0x40000000);
+  static const Color _tabInactive = Color(0xFF8E8A82);
+  static const Color _divider = Color(0xFFEFEBE4);
+
+  static const List<Color> _tagColors = [
+    _tagPoet,
+    _tagOfficial,
+    _tagPhilosopher,
+  ];
+  static const List<Color> _tagTextColors = [
+    _tagPoetText,
+    _tagOfficialText,
+    _tagPhilosopherText,
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final figure = widget.figure;
 
     return Scaffold(
@@ -51,221 +63,59 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
           // ── Scrollable content ──
           SingleChildScrollView(
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Hero image + gradient + figure info ──
-                SizedBox(
-                  height: screenHeight * 0.48,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Background image
-                      Image.network(
-                        figure.imageUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: _cardBorder,
-                          child: const Center(
-                            child: Icon(
-                              Icons.person,
-                              size: 64,
-                              color: Color(0xFFB0A89A),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Gradient overlay:
-                      // top: black/40 (nav readability)
-                      // middle: transparent (image visible)
-                      // bottom: #FDFBF7 (blend into page bg)
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.black54,
-                                  Colors.transparent,
-                                  _pageBg,
-                                ],
-                                stops: [0.0, 0.35, 1.0],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Figure info overlaid at bottom of hero
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Name
-                              Text(
-                                figure.name,
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  color: _textPrimary,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              // Pinyin name
-                              Text(
-                                figure.pinyinName,
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontStyle: FontStyle.italic,
-                                  fontWeight: FontWeight.w300,
-                                  color: _textPrimary,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              // Dynasty + short description
-                              Text(
-                                '${figure.dynasty} · ${figure.shortDesc}',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: _textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              // Role tags (small capsules)
-                              if (figure.role.isNotEmpty)
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 6,
-                                  children: figure.role.map((r) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _roleBg,
-                                        borderRadius: BorderRadius.circular(
-                                          100,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        r,
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: _roleText,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // ── Content area below hero ──
-                const SizedBox(height: 8),
-
-                // Stats grid
-                _buildStatsGrid(figure),
-                const SizedBox(height: 24),
-
+                // Gradient header (mimics ink-wash mountain fog)
+                _buildHeader(),
+                // Profile section
+                _buildProfile(figure),
+                const SizedBox(height: 20),
+                // Stats card
+                _buildStatsCard(figure),
                 // Action buttons
                 _buildActionButtons(),
-                const SizedBox(height: 32),
-
+                const SizedBox(height: 24),
                 // Tab bar
                 _buildTabBar(),
-                const SizedBox(height: 4),
-                // Tab underline
-                Container(
-                  height: 2,
-                  color: _dividerColor,
-                  width: double.infinity,
-                ),
+                // Divider
+                Container(height: 1, color: _divider),
                 const SizedBox(height: 24),
-
                 // Tab content
                 _buildTabContent(figure),
                 const SizedBox(height: 40),
               ],
             ),
           ),
-
-          // ── Top navigation bar (Positioned) ──
-          // Web: 三段布局 — 左侧返回 / 中间 "Sage _ Route" 品牌字 / 右侧收藏+分享
+          // ── Top nav ──
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Stack(
-                alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Left: Back button
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: widget.onBack != null
-                        ? _buildNavButton(Icons.arrow_back, widget.onBack!)
-                        : const SizedBox.shrink(),
-                  ),
-                  // Center: Brand title "Sage _ Route"
-                  const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Sage',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 3,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        '_',
-                        style: TextStyle(
-                          color: Color(0x80FFFFFF), // text-white/50
-                          fontSize: 16,
-                          fontWeight: FontWeight.w300,
-                        ),
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Route',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 3,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Right: Bookmark + Share buttons
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildNavButton(Icons.bookmark_border, () {}),
-                        const SizedBox(width: 8),
-                        _buildNavButton(Icons.ios_share, () {}),
+                  // Back button
+                  _buildNavBtn(Icons.arrow_back, () => Navigator.of(context).pop()),
+                  // Brand title
+                  const Text(
+                    'Sage _ Route',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontFamily: 'Georgia',
+                      letterSpacing: 1,
+                      shadows: [
+                        Shadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
                       ],
                     ),
+                  ),
+                  // Right buttons
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildNavBtn(Icons.bookmark_border, () {}),
+                      const SizedBox(width: 10),
+                      _buildNavBtn(Icons.ios_share, () {}),
+                    ],
                   ),
                 ],
               ),
@@ -276,150 +126,338 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
     );
   }
 
-  // ── Top navigation icon button ──
-  Widget _buildNavButton(IconData icon, VoidCallback onTap) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(color: _navBtnBg, shape: BoxShape.circle),
-      child: IconButton(
-        onPressed: onTap,
-        icon: Icon(icon, color: Colors.white, size: 20),
-        padding: EdgeInsets.zero,
-        splashRadius: 20,
+  Widget _buildNavBtn(IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(
+          color: _navBtnBg,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: Colors.white, size: 18),
       ),
     );
   }
 
-  // ── Stats grid (4 columns: locations, routes, poems, rating) ──
-  Widget _buildStatsGrid(Figure figure) {
-    final stats = [
-      _StatItem(figure.locationsCount.toString(), '遗址'),
-      _StatItem(figure.routesCount.toString(), '旅程'),
-      _StatItem(figure.poemsCount.toString(), '诗篇'),
-      _StatItem(figure.rating.toStringAsFixed(1), '评分', isRating: true),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-        decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _cardBorder),
+  // ── Gradient header ──
+  Widget _buildHeader() {
+    return Container(
+      height: 320,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFdcd5c7),
+            Color(0xFFe8e2d5),
+            _pageBg,
+          ],
+          stops: [0.0, 0.4, 1.0],
         ),
-        child: Row(
-          children: stats.map((stat) {
-            return Expanded(
+      ),
+      child: Stack(
+        children: [
+          // Subtle fog decoration
+          Positioned(
+            right: 0,
+            bottom: 20,
+            child: Container(
+              width: 240,
+              height: 180,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.bottomRight,
+                  radius: 1.0,
+                  colors: [
+                    const Color(0xFF5A5446).withValues(alpha: 0.15),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Dynasty badge
+          Positioned(
+            left: 20,
+            top: 80,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: _accent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                widget.figure.dynasty,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Profile section: name + pinyin + lifespan + role tags ──
+  Widget _buildProfile(Figure figure) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  figure.name,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    color: _textPrimary,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  figure.pinyinName.isNotEmpty ? figure.pinyinName : '',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontFamily: 'Georgia',
+                    fontStyle: FontStyle.italic,
+                    color: _textPrimary,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${figure.years} · ${figure.shortDesc}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: _textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Tags on the right
+          if (figure.role.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        stat.label,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w700,
-                          color: _textPrimary,
-                        ),
-                      ),
-                      if (stat.isRating)
-                        const Padding(
-                          padding: EdgeInsets.only(left: 4),
-                          child: Icon(Icons.star, size: 18, color: _starColor),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    stat.value,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: _textSecondary,
-                      fontWeight: FontWeight.w500,
+                  if (figure.role.length >= 2)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildRoleTag(figure.role[0], 0),
+                        const SizedBox(width: 6),
+                        _buildRoleTag(figure.role[1], 1),
+                      ],
                     ),
-                  ),
+                  if (figure.role.length >= 2) const SizedBox(height: 6),
+                  if (figure.role.length >= 3)
+                    _buildRoleTag(figure.role[2], 2),
                 ],
               ),
-            );
-          }).toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleTag(String label, int colorIndex) {
+    final bg = colorIndex < _tagColors.length ? _tagColors[colorIndex] : _tagPoet;
+    final fg = colorIndex < _tagTextColors.length ? _tagTextColors[colorIndex] : _tagPoetText;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: fg,
         ),
       ),
     );
   }
 
-  // ── Action buttons row ──
-  Widget _buildActionButtons() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+  // ── Stats card ──
+  Widget _buildStatsCard(Figure figure) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8C826E).withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Row(
         children: [
-          // Primary: "规划路线"
+          _buildStat(
+            icon: Icons.location_on_outlined,
+            iconColor: _accent,
+            value: figure.locationsCount.toString(),
+            label: '遗址',
+          ),
+          _buildStatDivider(),
+          _buildStat(
+            icon: Icons.directions_walk,
+            iconColor: _green,
+            value: figure.routesCount.toString(),
+            label: '旅程',
+          ),
+          _buildStatDivider(),
+          _buildStat(
+            icon: Icons.auto_stories_outlined,
+            iconColor: _gold,
+            value: figure.poemsCount > 1000
+                ? '${(figure.poemsCount / 1000).toStringAsFixed(0)}000+'
+                : figure.poemsCount.toString(),
+            label: '诗编',
+          ),
+          _buildStatDivider(),
+          _buildStat(
+            icon: Icons.star,
+            iconColor: _star,
+            value: figure.rating.toStringAsFixed(1),
+            label: '评分',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStat({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    required String label,
+  }) {
+    return Expanded(
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: iconColor),
+              const SizedBox(width: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: _textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, color: _textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatDivider() {
+    return Container(
+      width: 1,
+      height: 30,
+      color: const Color(0xFFECE7DF),
+    );
+  }
+
+  // ── Action buttons ──
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      child: Row(
+        children: [
           Expanded(
+            flex: 2,
             child: SizedBox(
-              height: 52,
+              height: 50,
               child: ElevatedButton(
                 onPressed: () {},
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryBtnBg,
-                  foregroundColor: _primaryBtnText,
+                  backgroundColor: const Color(0xFF171717),
+                  foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                ),
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.auto_fix_high, size: 18),
+                      SizedBox(width: 8),
+                      Text(
+                        '规划路线',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 50,
+              child: OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _textPrimary,
+                  side: const BorderSide(color: _cardBorder),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
                   ),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.route, size: 18),
-                    SizedBox(width: 8),
+                    Icon(Icons.map_outlined, size: 18, color: _green),
+                    SizedBox(width: 6),
                     Text(
-                      '规划路线',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1,
-                      ),
+                      '地图',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          // Secondary: "地图"
-          SizedBox(
-            height: 52,
-            child: OutlinedButton(
-              onPressed: () {},
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _textPrimary,
-                side: const BorderSide(color: _cardBorder),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.map_outlined, size: 18),
-                  SizedBox(width: 6),
-                  Text(
-                    '地图',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  // ── Tab bar (horizontally scrollable) ──
+  // ── Tab bar ──
   Widget _buildTabBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -434,30 +472,16 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
               child: GestureDetector(
                 onTap: () => setState(() => _selectedTab = index),
                 behavior: HitTestBehavior.opaque,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _tabs[index],
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: isActive
-                            ? FontWeight.w600
-                            : FontWeight.w500,
-                        color: isActive ? _tabActive : _tabInactive,
-                      ),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _tabs[index],
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                      color: isActive ? _textPrimary : _tabInactive,
                     ),
-                    const SizedBox(height: 8),
-                    // Active indicator underline
-                    Container(
-                      height: 3,
-                      width: 20,
-                      decoration: BoxDecoration(
-                        color: isActive ? _tabActive : Colors.transparent,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -471,24 +495,26 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
   Widget _buildTabContent(Figure figure) {
     switch (_selectedTab) {
       case 0:
-        return _buildBiographyContent(figure);
+        return _buildBiography(figure);
       case 1:
-        return _buildPlaceholderTab('遗址', Icons.place);
+        return _buildPlaceholder('遗址', Icons.place);
       case 2:
-        return _buildPlaceholderTab('名言', Icons.format_quote);
+        return _buildPlaceholder('名言', Icons.format_quote);
       case 3:
-        return _buildPlaceholderTab('地图', Icons.map);
+        return _buildPlaceholder('地图', Icons.map);
       case 4:
-        return _buildPlaceholderTab('作品', Icons.menu_book);
+        return _buildPlaceholder('作品', Icons.menu_book);
       default:
         return const SizedBox.shrink();
     }
   }
 
-  // ── Biography tab: show description in paragraphs ──
-  Widget _buildBiographyContent(Figure figure) {
-    // Split description by double newlines to form paragraphs
-    final paragraphs = figure.description
+  Widget _buildBiography(Figure figure) {
+    // Try to get richer description from mock data
+    final mock = _findMockFigure(figure.id);
+    final description = mock?.description ?? figure.description;
+
+    final paragraphs = description
         .split(RegExp(r'\n\s*\n'))
         .where((p) => p.trim().isNotEmpty)
         .toList();
@@ -496,10 +522,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
     if (paragraphs.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(horizontal: 24),
-        child: Text(
-          '暂无详细资料',
-          style: TextStyle(color: _textSecondary, fontSize: 14),
-        ),
+        child: Text('暂无详细资料', style: TextStyle(color: _textSecondary, fontSize: 14)),
       );
     }
 
@@ -507,26 +530,43 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: paragraphs.map((paragraph) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: Text(
-              paragraph.trim(),
-              style: const TextStyle(
-                fontSize: 15,
-                color: _textPrimary,
-                height: 1.7,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          );
-        }).toList(),
+        children: [
+          // Section header
+          const Row(
+            children: [
+              Text('生平', style: TextStyle(fontSize: 14, color: _accent)),
+              SizedBox(width: 6),
+              Text('—', style: TextStyle(fontSize: 14, color: _divider)),
+              SizedBox(width: 6),
+              Text('人物简介', style: TextStyle(fontSize: 14, color: _textSecondary)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...paragraphs.map((p) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  p.trim(),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Color(0xFF4A4A4A),
+                    height: 1.75,
+                  ),
+                ),
+              )),
+        ],
       ),
     );
   }
 
-  // ── Placeholder tab for non-biography tabs ──
-  Widget _buildPlaceholderTab(String label, IconData icon) {
+  MockFigure? _findMockFigure(String id) {
+    try {
+      return mockFigures.firstWhere((f) => f.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildPlaceholder(String label, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: SizedBox(
@@ -535,33 +575,14 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 48,
-                color: _textSecondary.withValues(alpha: 0.4),
-              ),
+              Icon(icon, size: 48, color: _textSecondary.withValues(alpha: 0.4)),
               const SizedBox(height: 16),
-              Text(
-                '$label内容即将上线',
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: _textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text('$label内容即将上线',
+                  style: const TextStyle(fontSize: 15, color: _textSecondary)),
             ],
           ),
         ),
       ),
     );
   }
-}
-
-/// Internal data class for stats items.
-class _StatItem {
-  final String label;
-  final String value;
-  final bool isRating;
-
-  const _StatItem(this.label, this.value, {this.isRating = false});
 }
