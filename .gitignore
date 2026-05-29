@@ -44,3 +44,11 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Sensitive configuration
+dart_define.json
+assets/env.env
+
+# Temporary files
+tmp*.dart
+broken.txt
