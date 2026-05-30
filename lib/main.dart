@@ -69,38 +69,77 @@ Future<void> main() async {
     ),
   );
 
-  // 启动时先初始化 Supabase，确保后续页面可以直接请求数据库。
-  await DatabaseService.initialize();
-  final resolvedAmapKey = await _resolveAmapKey();
-  runApp(SageRouteApp(resolvedAmapKey: resolvedAmapKey));
+  // 不要在此处 await 任何耗时操作——先渲染 UI，再异步初始化。
+  // 调试模式下 JIT + 网络初始化若阻塞 runApp，会触发 Android ANR。
+  runApp(const SageRouteApp());
 }
 
-class SageRouteApp extends StatelessWidget {
-  final ResolvedAmapKey resolvedAmapKey;
+class SageRouteApp extends StatefulWidget {
+  const SageRouteApp({super.key});
 
-  const SageRouteApp({required this.resolvedAmapKey, super.key});
+  @override
+  State<SageRouteApp> createState() => _SageRouteAppState();
+}
+
+class _SageRouteAppState extends State<SageRouteApp> {
+  late final Future<ResolvedAmapKey> _initFuture;
+  bool _amapInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture = _initialize();
+  }
+
+  Future<ResolvedAmapKey> _initialize() async {
+    await DatabaseService.initialize();
+    return _resolveAmapKey();
+  }
+
+  void _onInitDone(ResolvedAmapKey key) {
+    if (_amapInitialized) return;
+    _amapInitialized = true;
+    debugPrint(
+      key.key.isEmpty
+          ? 'AMap Android Key 未注入：请使用 --dart-define，或在 assets/env.env / dart_define.json 配置 AMAP_ANDROID_KEY。'
+          : 'AMap Android Key 已注入，来源=${key.source}，长度=${key.key.length}',
+    );
+    // 延迟到首帧之后再初始化 AMap，避免在 build 阶段做原生调用。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      AMapInitializer.init(
+        context,
+        apiKey: key.key.isEmpty
+            ? null
+            : AMapApiKey(androidKey: key.key),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint(
-      resolvedAmapKey.key.isEmpty
-          ? 'AMap Android Key 未注入：请使用 --dart-define，或在 assets/env.env / dart_define.json 配置 AMAP_ANDROID_KEY。'
-          : 'AMap Android Key 已注入，来源=${resolvedAmapKey.source}，长度=${resolvedAmapKey.key.length}',
-    );
-
-    AMapInitializer.init(
-      context,
-      apiKey: resolvedAmapKey.key.isEmpty
-          ? null
-          : AMapApiKey(androidKey: resolvedAmapKey.key),
-    );
-
     return MaterialApp(
       title: 'SageRoute',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       routes: {'/main': (context) => const MainScreen()},
-      home: const AppLaunchDecider(),
+      home: FutureBuilder<ResolvedAmapKey>(
+        future: _initFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              body: const Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (snapshot.hasData) {
+            _onInitDone(snapshot.data!);
+          }
+
+          return const AppLaunchDecider();
+        },
+      ),
     );
   }
 }
@@ -170,11 +209,37 @@ class _MainScreenState extends State<MainScreen> {
   bool _hideBottomNav = false;
   bool _showCelebrityOverlay = false;
 
+  // 惰性 tab 构建：只有访问过的 tab 才会被构建，避免首次进入时
+  // IndexedStack 同时构建全部 5 个页面导致主线程过载 (ANR)。
+  late final List<Widget> _tabs;
+  final Set<int> _builtTabs = {0}; // 首页立即构建
+
+  @override
+  void initState() {
+    super.initState();
+    _tabs = [
+      const HomePage(),
+      FiguresListPage(
+        onNavigateAway: () => _setBottomNavVisible(false),
+        onNavigateBack: () => _setBottomNavVisible(true),
+      ),
+      CreateRouteWizard(
+        onExit: () => setState(() {
+          _selectedIndex = 0;
+          _hideBottomNav = false;
+        }),
+      ),
+      const SavedRoutesPage(),
+      const ProfilePage(),
+    ];
+  }
+
   void _onItemTapped(int index) {
     if (_showCelebrityOverlay) return;
     setState(() {
       _selectedIndex = index;
       _hideBottomNav = index == 2;
+      _builtTabs.add(index);
     });
   }
 
@@ -199,23 +264,18 @@ class _MainScreenState extends State<MainScreen> {
         // Body — always full-screen; nav bar is an overlay, not inside Scaffold.
         Scaffold(
           extendBody: true,
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: [
-              const HomePage(),
-              FiguresListPage(
-                onNavigateAway: () => _setBottomNavVisible(false),
-                onNavigateBack: () => _setBottomNavVisible(true),
-              ),
-              CreateRouteWizard(
-                onExit: () => setState(() {
-                  _selectedIndex = 0;
-                  _hideBottomNav = false;
-                }),
-              ),
-              const SavedRoutesPage(),
-              const ProfilePage(),
-            ],
+          body: Stack(
+            fit: StackFit.expand,
+            children: List.generate(_tabs.length, (index) {
+              // 只有访问过的 tab 才构建，其余用空 Container 占位。
+              if (!_builtTabs.contains(index)) {
+                return const SizedBox.shrink();
+              }
+              return Offstage(
+                offstage: _selectedIndex != index,
+                child: _tabs[index],
+              );
+            }),
           ),
         ),
         // Bottom nav — overlaid on top so it can slide away without reserving layout space.

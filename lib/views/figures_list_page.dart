@@ -29,6 +29,16 @@ class FiguresListPage extends StatelessWidget {
 
   static const List<String> _dynasties = ['全部', '唐朝', '宋朝', '汉朝', '周朝', '明朝'];
 
+  // Pre-computed grid figures (avoids list creation on every build).
+  static final List<MockFigure> _gridFigures = [
+    mockFigures[1], // 苏东坡
+    mockFigures[2], // 李白
+    mockFigures[0], // 白居易
+    mockFigures[1], // 苏东坡 (repeat)
+    mockFigures[2], // 李白 (repeat)
+    mockFigures[0], // 白居易 (repeat)
+  ];
+
   // Web 版主题: 全部主题 / 诗词 / 哲学 / 帝王 / 军事
   static const List<Map<String, String>> _themes = [
     {'emoji': '', 'label': '全部主题'},
@@ -447,6 +457,7 @@ class FiguresListPage extends StatelessWidget {
                 child: Image.network(
                   figure.imageUrl,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
                   errorBuilder: (_, __, ___) => Container(
                     color: AppColors.primaryLight.withValues(alpha: 0.2),
                   ),
@@ -683,15 +694,7 @@ class FiguresListPage extends StatelessWidget {
   // ── 2-column figure grid ──
 
   Widget _buildFigureGrid(BuildContext context) {
-    // Use all 3 mock figures + repeats for visual fill (6 cards = 3 rows)
-    final gridFigures = <MockFigure>[
-      mockFigures[1], // 苏东坡
-      mockFigures[2], // 李白
-      mockFigures[0], // 白居易
-      mockFigures[1], // 苏东坡 (repeat)
-      mockFigures[2], // 李白 (repeat)
-      mockFigures[0], // 白居易 (repeat)
-    ];
+    final gridFigures = _gridFigures;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -914,6 +917,7 @@ class _FigureCard extends StatelessWidget {
                     child: Image.network(
                       figure.imageUrl,
                       fit: BoxFit.cover,
+                      cacheWidth: 320,
                       errorBuilder: (_, __, ___) => Container(
                         color: AppColors.sageBorder.withValues(alpha: 0.3),
                       ),

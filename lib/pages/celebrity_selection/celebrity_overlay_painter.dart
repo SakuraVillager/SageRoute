@@ -44,7 +44,7 @@ class _OverlayMaskPainter extends CustomPainter {
   final Color overlayColor;
   final Path? holePath;
 
-  const _OverlayMaskPainter({
+  _OverlayMaskPainter({
     required this.overlayColor,
     required this.holePath,
   });
@@ -73,6 +73,6 @@ class _OverlayMaskPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _OverlayMaskPainter oldDelegate) {
     return oldDelegate.overlayColor != overlayColor ||
-        oldDelegate.holePath != holePath;
+        !identical(oldDelegate.holePath, holePath);
   }
 }

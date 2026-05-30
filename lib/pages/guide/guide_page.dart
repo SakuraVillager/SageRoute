@@ -74,78 +74,76 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     final initialDriftDuration = _nextPreviewDriftDuration();
     _previewDriftController =
         AnimationController(vsync: this, duration: initialDriftDuration)
-          ..addListener(() {
-            if (!mounted ||
-                !_shouldShowPreviewLocationDot(this) ||
-                !_isPreviewDriftEnabled ||
-                _isSettlingPreviewDot ||
-                _previewDriftFrom == null ||
-                _previewDriftTo == null) {
-              return;
-            }
-            setState(() {});
-          })
-          ..addStatusListener((status) {
-            if (status != AnimationStatus.completed ||
-                !_shouldShowPreviewLocationDot(this) ||
-                !_isPreviewDriftEnabled ||
-                _isSettlingPreviewDot) {
-              return;
-            }
-
-            if (_previewDriftTo != null) {
-              _previewCurrentPoint = _previewDriftTo;
-            }
-            _startNextPreviewDriftStep(this);
-          });
+          ..addListener(_onPreviewDriftTick)
+          ..addStatusListener(_onPreviewDriftStatus);
     _previewSettleController =
         AnimationController(
             vsync: this,
             duration: const Duration(milliseconds: 680),
           )
-          ..addListener(() {
-            if (!mounted || !_isSettlingPreviewDot) {
-              return;
-            }
-            setState(() {});
-          })
-          ..addStatusListener((status) {
-            if (status != AnimationStatus.completed) {
-              return;
-            }
-
-            final revealNative = _pendingNativeDotReveal;
-            final freezeDrift = _freezePreviewDriftAfterSettle;
-
-            _pendingNativeDotReveal = false;
-            _freezePreviewDriftAfterSettle = false;
-            _previewSettleFrom = null;
-            _previewSettleTo = null;
-
-            if (freezeDrift) {
-              _isPreviewDriftEnabled = false;
-              // 精定位到位后，将预览点更新到真实坐标，确保标记停留在正确位置。
-              _previewCurrentPoint = _latestUserLatLng;
-            }
-
-            if (mounted) {
-              setState(() {
-                if (revealNative) {
-                  _hasNativeLocationDot = true;
-                }
-              });
-            }
-
-            _syncPreviewDriftState(this);
-          });
+          ..addListener(_onPreviewSettleTick)
+          ..addStatusListener(_onPreviewSettleStatus);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestLocationPermission(this);
     });
   }
 
+  void _onPreviewDriftTick() {
+    // No setState — the AnimatedBuilder wrapping AMapWidget handles repaints.
+  }
+
+  void _onPreviewDriftStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed ||
+        !_shouldShowPreviewLocationDot(this) ||
+        !_isPreviewDriftEnabled ||
+        _isSettlingPreviewDot) {
+      return;
+    }
+
+    if (_previewDriftTo != null) {
+      _previewCurrentPoint = _previewDriftTo;
+    }
+    _startNextPreviewDriftStep(this);
+  }
+
+  void _onPreviewSettleTick() {
+    // No setState — the AnimatedBuilder wrapping AMapWidget handles repaints.
+  }
+
+  void _onPreviewSettleStatus(AnimationStatus status) {
+    if (status != AnimationStatus.completed) {
+      return;
+    }
+
+    final revealNative = _pendingNativeDotReveal;
+    final freezeDrift = _freezePreviewDriftAfterSettle;
+
+    _pendingNativeDotReveal = false;
+    _freezePreviewDriftAfterSettle = false;
+    _previewSettleFrom = null;
+    _previewSettleTo = null;
+
+    if (freezeDrift) {
+      _isPreviewDriftEnabled = false;
+      _previewCurrentPoint = _latestUserLatLng;
+    }
+
+    if (mounted) {
+      setState(() {
+        if (revealNative) {
+          _hasNativeLocationDot = true;
+        }
+      });
+    }
+
+    _syncPreviewDriftState(this);
+  }
+
   @override
   void dispose() {
+    _previewDriftController.removeListener(_onPreviewDriftTick);
     _previewDriftController.dispose();
+    _previewSettleController.removeListener(_onPreviewSettleTick);
     _previewSettleController.dispose();
     super.dispose();
   }
@@ -211,16 +209,13 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       builder: (context, snapshot) {
         final colorScheme = Theme.of(context).colorScheme;
         final assets = snapshot.data;
-        final markers = _buildMapMarkers(
-          userLocationIcon: assets?.userLocationIcon,
-        );
         // Viewport adjustment is handled in onMapCreated
         // and via the then() callback in didChangeDependencies.
         final mapMessage = snapshot.hasError
             ? '地点加载失败：${snapshot.error}'
             : snapshot.connectionState != ConnectionState.done
             ? '正在加载地点...'
-            : markers.isEmpty
+            : _cachedScenicMarkers.isEmpty
             ? '当前没有可显示的地点数据。'
             : '导览地图已接入高德地图，可在此继续叠加景点、路线和讲解能力。';
         final permissionMessage = !_locationPermissionChecked
@@ -234,26 +229,39 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
 
         return Stack(
           children: [
-            AMapWidget(
-              initialCameraPosition: const CameraPosition(
-                // 西安钟楼附近，作为导览初始中心点。
-                target: LatLng(34.259462, 108.947151),
-                zoom: 14,
-              ),
-              markers: markers,
-              onMapCreated: (controller) {
-                _mapController = controller;
-                _fitAllLocationsOnMap(this, assets);
-                unawaited(_primeUserLocation(this));
-              },
-              onLocationChanged: (location) =>
-                  _handleLocationChanged(this, location),
-              myLocationStyleOptions: MyLocationStyleOptions(
-                _locationPermissionStatus.isGranted,
-                icon: _transparentIcon,
-                circleFillColor: const Color(0x00000000),
-                circleStrokeColor: const Color(0x00000000),
-                circleStrokeWidth: 0,
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([
+                  _previewDriftController,
+                  _previewSettleController,
+                ]),
+                builder: (context, _) {
+                  final animatedMarkers = _buildMapMarkers(
+                    userLocationIcon: assets?.userLocationIcon,
+                  );
+                  return AMapWidget(
+                    initialCameraPosition: const CameraPosition(
+                      // 西安钟楼附近，作为导览初始中心点。
+                      target: LatLng(34.259462, 108.947151),
+                      zoom: 14,
+                    ),
+                    markers: animatedMarkers,
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      _fitAllLocationsOnMap(this, assets);
+                      unawaited(_primeUserLocation(this));
+                    },
+                    onLocationChanged: (location) =>
+                        _handleLocationChanged(this, location),
+                    myLocationStyleOptions: MyLocationStyleOptions(
+                      _locationPermissionStatus.isGranted,
+                      icon: _transparentIcon,
+                      circleFillColor: const Color(0x00000000),
+                      circleStrokeColor: const Color(0x00000000),
+                      circleStrokeWidth: 0,
+                    ),
+                  );
+                },
               ),
             ),
             Positioned(

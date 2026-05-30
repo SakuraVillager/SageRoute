@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/mock_figures.dart';
+import '../../../models/figure.dart';
 import '../../../theme/color_schemes.dart';
+import '../../figure_detail_page.dart';
 
 /// Step 1 of CreateRouteWizard — historical figure selection.
 ///
@@ -137,6 +139,39 @@ class _FigureListTile extends StatelessWidget {
                 ),
                 child: const Icon(Icons.check, size: 14, color: Colors.white),
               ),
+            ),
+            const SizedBox(width: 4),
+            // View detail button
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => FigureDetailPage(
+                      figure: Figure(
+                        id: figure.id,
+                        name: figure.name,
+                        pinyinName: figure.pinyinName,
+                        dynasty: figure.dynasty,
+                        role: figure.role,
+                        years: figure.years,
+                        shortDesc: figure.shortDesc,
+                        description: figure.description,
+                        imageUrl: figure.imageUrl,
+                        locationsCount: figure.locationsCount,
+                        routesCount: figure.routesCount,
+                        poemsCount: figure.poemsCount,
+                        rating: figure.rating,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(
+                Icons.info_outline,
+                size: 20,
+                color: AppColors.sageMuted,
+              ),
+              tooltip: '查看详情',
             ),
           ],
         ),

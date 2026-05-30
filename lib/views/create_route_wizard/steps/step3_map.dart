@@ -89,12 +89,14 @@ class _Step3MapState extends State<Step3Map> {
 
     return Stack(
       children: [
-        // Full-screen map
+        // Full-screen map — RepaintBoundary prevents rebuilds during panel drag.
         Positioned.fill(
-          child: AMapWidget(
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(30.259462, 120.147151),
-              zoom: 13,
+          child: RepaintBoundary(
+            child: AMapWidget(
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(30.259462, 120.147151),
+                zoom: 13,
+              ),
             ),
           ),
         ),

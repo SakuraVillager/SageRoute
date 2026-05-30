@@ -12,7 +12,7 @@ double _splitFadeOut(double t) => (1 - 2 * t).clamp(0.0, 1.0);
 Widget _buildAvatar(CelebrityProfile profile) {
   final url = profile.avatarUrl;
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    return Image.network(url, fit: BoxFit.cover);
+    return Image.network(url, fit: BoxFit.cover, cacheWidth: 504);
   } else if (url.startsWith('assets/')) {
     return Image.asset(url, fit: BoxFit.cover);
   } else {

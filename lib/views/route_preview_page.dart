@@ -32,7 +32,6 @@ class RoutePreviewPage extends StatefulWidget {
 }
 
 class _RoutePreviewPageState extends State<RoutePreviewPage> {
-  int _selectedDay = 0;
 
   // ── Page-specific colors (from Web RoutePreview.tsx) ──
   static const Color _pageBg = Color(0xFFF5EFEB);
@@ -55,9 +54,6 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
 
   static const String _heroImageUrl =
       'https://images.unsplash.com/photo-1543335759-33eb91f5a5e3?auto=format&fit=crop&q=80&w=800';
-
-  static const String _locationImageUrl =
-      'https://images.unsplash.com/photo-1590577976322-3d2d6b2136b7?auto=format&fit=crop&q=80&w=300';
 
   // ── Static placeholder display data for locations ──
   static const Map<String, _LocationDisplay> _displayMap = {
@@ -94,45 +90,6 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
     ),
   };
 
-  // ── Static day subtitles and durations ──
-  static const List<_DayMeta> _dayMetas = [
-    _DayMeta(subtitle: '西湖北线游览', duration: '约5.5小时'),
-    _DayMeta(subtitle: '湖心岛探访', duration: '约4.0小时'),
-    _DayMeta(subtitle: '南山路漫步', duration: '约3.5小时'),
-    _DayMeta(subtitle: '灵隐寺祈福', duration: '约4.5小时'),
-  ];
-
-  _LocationDisplay _getDisplay(String name) {
-    return _displayMap[name] ?? const _LocationDisplay(
-      pinyin: '',
-      tags: <String>[],
-      time: '9:00',
-    );
-  }
-
-  _DayMeta get _dayMeta {
-    if (_selectedDay < _dayMetas.length) return _dayMetas[_selectedDay];
-    return const _DayMeta(subtitle: '', duration: '约5小时');
-  }
-
-  String _formatDayDate(int dayIndex) {
-    final startDate = widget.route.startDate;
-    if (startDate != null && startDate.isNotEmpty) {
-      try {
-        final parts = startDate.split('-');
-        if (parts.length >= 3) {
-          final month = int.parse(parts[1]);
-          final day = int.parse(parts[2]) + dayIndex;
-          return '$month月$day日';
-        }
-      } catch (_) {}
-    }
-    // Fallback static dates
-    const dates = ['10月12日', '10月13日', '10月14日', '10月15日'];
-    if (dayIndex < dates.length) return dates[dayIndex];
-    return '第${dayIndex + 1}天';
-  }
-
   @override
   Widget build(BuildContext context) {
     final route = widget.route;
@@ -166,12 +123,8 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
                 _buildDailyHeader(),
                 const SizedBox(height: 16),
 
-                // ── Day Tabs ──
-                _buildDayTabs(route),
-                const SizedBox(height: 20),
-
-                // ── Timeline for selected day ──
-                _buildDayTimeline(route),
+                // ── Day Tabs + Timeline (self-contained state) ──
+                _DayItinerarySection(route: route),
                 const SizedBox(height: 24),
 
                 // ── Bottom Actions ──
@@ -406,6 +359,7 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
               Image.network(
                 _heroImageUrl,
                 fit: BoxFit.cover,
+                cacheWidth: 800,
                 errorBuilder: (_, __, ___) => Container(
                   color: _cardBorder,
                   child: const Center(
@@ -797,461 +751,6 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // Day Tabs (horizontal scroll)
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildDayTabs(MockRoute route) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(),
-        child: Row(
-          children: List.generate(route.days, (index) {
-            final isActive = index == _selectedDay;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedDay = index),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive ? _deepBg : Colors.transparent,
-                    borderRadius: BorderRadius.circular(100),
-                    border: Border.all(
-                      color: isActive ? _deepBg : _cardBorder,
-                    ),
-                  ),
-                  child: Text(
-                    '第${index + 1}天',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: isActive ? Colors.white : _textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-            );
-          }),
-        ),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // Day Timeline
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildDayTimeline(MockRoute route) {
-    final itinerary = route.itineraryByDay;
-    final dayLocations = itinerary[_selectedDay + 1];
-
-    if (dayLocations == null || dayLocations.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24),
-        child: Center(
-          child: Text(
-            '暂无行程数据',
-            style: TextStyle(color: _textSecondary),
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: _cardBg,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _cardBorder),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Day header
-            _buildDayHeader(dayLocations),
-            const SizedBox(height: 24),
-
-            // Timeline content
-            Stack(
-              children: [
-                // Vertical gradient line
-                Positioned(
-                  left: 34,
-                  top: 24,
-                  bottom: 0,
-                  child: Container(
-                    width: 2,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          _accentColor,
-                          Colors.transparent,
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Timeline items
-                Column(
-                  children: List.generate(dayLocations.length, (index) {
-                    final loc = dayLocations[index];
-                    final display = _getDisplay(loc.name);
-                    return Column(
-                      children: [
-                        // Transit info (between locations, not before first)
-                        if (index > 0) ...[
-                          _buildTransitRow(display),
-                          const SizedBox(height: 16),
-                        ],
-                        // Location card
-                        _buildLocationCard(index, loc.name, display),
-                        if (index < dayLocations.length - 1)
-                          const SizedBox(height: 20),
-                      ],
-                    );
-                  }),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDayHeader(List<MockRouteLocation> dayLocations) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(
-            color: _accentColor,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          '第${_selectedDay + 1}天 · ${_formatDayDate(_selectedDay)}',
-          style: const TextStyle(
-            
-            fontSize: 20,
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.w600,
-            color: _textPrimary,
-          ),
-        ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _warmBg,
-            borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: _warmBorder),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.access_time,
-                size: 12,
-                color: _textSecondary,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                _dayMeta.duration,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: _textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // Transit Row
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildTransitRow(_LocationDisplay display) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 24),
-      child: Row(
-        children: [
-          // Transit icon node on the timeline
-          Container(
-            width: 28,
-            height: 28,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: _cardBg2,
-              shape: BoxShape.circle,
-              border: Border.all(color: _cardBorder),
-            ),
-            child: const Icon(
-              Icons.directions_walk,
-              size: 14,
-              color: _accentColor,
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Transit info card
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _cardBg2,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _cardBorder),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '步行: ${display.transitDistance}公里 · 约${display.transitMinutes}分钟交通',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: _mutedText,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _greenColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                    child: Text(
-                      '↓ ${display.savedMinutes}',
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: _greenColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // Location Card
-  // ═══════════════════════════════════════════════════════════
-
-  Widget _buildLocationCard(
-    int index,
-    String name,
-    _LocationDisplay display,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 24),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main card
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _cardBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: _cardBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Image
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 96,
-                    height: 96,
-                    child: Image.network(
-                      _locationImageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: _cardBorder,
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            size: 24,
-                            color: Color(0xFFB0A89A),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Info
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Name + time badge
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                name,
-                                style: const TextStyle(
-                                  
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: _textPrimary,
-                                  height: 1.2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _tagBg,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.access_time,
-                                    size: 10,
-                                    color: _accentColor,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    display.time,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                      color: _accentColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        // Pinyin name
-                        Text(
-                          display.pinyin,
-                          style: const TextStyle(
-                            
-                            fontSize: 11,
-                            color: _mutedText,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Tags
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: display.tags.map((tag) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _warmBg,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                              child: Text(
-                                tag,
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  color: _textSecondary,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Number badge (positioned to overlap the left edge)
-          Positioned(
-            left: -22,
-            top: 20,
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: const BoxDecoration(
-                color: _accentColor,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════
   // Bottom Actions
   // ═══════════════════════════════════════════════════════════
 
@@ -1378,4 +877,355 @@ class _DayMeta {
     required this.subtitle,
     required this.duration,
   });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Day Itinerary Section (self-contained state for day selection)
+// ═══════════════════════════════════════════════════════════
+
+class _DayItinerarySection extends StatefulWidget {
+  const _DayItinerarySection({required this.route});
+  final MockRoute route;
+
+  @override
+  State<_DayItinerarySection> createState() => _DayItinerarySectionState();
+}
+
+class _DayItinerarySectionState extends State<_DayItinerarySection> {
+  int _selectedDay = 0;
+
+  // Colors duplicated from parent (same file private access doesn't work for static const).
+  static const _deepBg = Color(0xFF1C1A1A);
+  static const _cardBg = Color(0xFFF9F5F0);
+  static const _cardBg2 = Color(0xFFF0ECE6);
+  static const _cardBorder = Color(0xFFE6E0D6);
+  static const _textPrimary = Color(0xFF1A1A1A);
+  static const _textSecondary = Color(0xFF7A7368);
+  static const _accentColor = Color(0xFFCD6642);
+  static const _warmBg = Color(0xFFF6EFE0);
+  static const _warmBorder = Color(0xFFE0D5C0);
+  static const _mutedText = Color(0xFF8A8376);
+  static const _greenColor = Color(0xFF5A8B6E);
+
+  static const _dayMetas = [
+    _DayMeta(subtitle: '西湖北线游览', duration: '约5.5小时'),
+    _DayMeta(subtitle: '湖心岛探访', duration: '约4.0小时'),
+    _DayMeta(subtitle: '南山路漫步', duration: '约3.5小时'),
+    _DayMeta(subtitle: '灵隐寺祈福', duration: '约4.5小时'),
+  ];
+
+  static const _locationImageUrl =
+      'https://images.unsplash.com/photo-1547981609-4b6bfe67ca0b?auto=format&fit=crop&w=400&q=80';
+
+  static const _displayMap = _RoutePreviewPageState._displayMap;
+
+  _DayMeta _getDayMeta(int day) {
+    if (day < _dayMetas.length) return _dayMetas[day];
+    return const _DayMeta(subtitle: '', duration: '约5小时');
+  }
+
+  String _formatDayDate(int dayIndex) {
+    final startDate = widget.route.startDate;
+    if (startDate != null && startDate.isNotEmpty) {
+      try {
+        final parts = startDate.split('-');
+        if (parts.length >= 3) {
+          final month = int.parse(parts[1]);
+          final day = int.parse(parts[2]);
+          return '$month月${day + dayIndex}日';
+        }
+      } catch (_) {}
+    }
+    final dates = ['10月12日', '10月13日', '10月14日', '10月15日'];
+    if (dayIndex < dates.length) return dates[dayIndex];
+    return '第${dayIndex + 1}天';
+  }
+
+  _LocationDisplay _getDisplay(String name) {
+    return _displayMap[name] ?? const _LocationDisplay(
+      pinyin: '',
+      tags: <String>[],
+      time: '',
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final route = widget.route;
+    return Column(
+      children: [
+        _buildDayTabs(route),
+        const SizedBox(height: 20),
+        _buildDayTimeline(route),
+      ],
+    );
+  }
+
+  Widget _buildDayTabs(MockRoute route) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: List.generate(route.days, (index) {
+            final isActive = index == _selectedDay;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedDay = index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isActive ? _deepBg : Colors.transparent,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: isActive ? _deepBg : _cardBorder,
+                    ),
+                  ),
+                  child: Text(
+                    '第${index + 1}天',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: isActive ? Colors.white : _textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayTimeline(MockRoute route) {
+    final itinerary = route.itineraryByDay;
+    final dayLocations = itinerary[_selectedDay + 1];
+
+    if (dayLocations == null || dayLocations.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24),
+        child: Center(
+          child: Text('暂无行程数据', style: TextStyle(color: _textSecondary)),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _cardBg,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _cardBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDayHeader(dayLocations),
+            const SizedBox(height: 24),
+            Stack(
+              children: [
+                Positioned(
+                  left: 34, top: 24, bottom: 0,
+                  child: Container(
+                    width: 2,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [_accentColor, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                ),
+                Column(
+                  children: List.generate(dayLocations.length, (index) {
+                    final loc = dayLocations[index];
+                    final display = _getDisplay(loc.name);
+                    return Column(
+                      children: [
+                        if (index > 0) ...[
+                          _buildTransitRow(display),
+                          const SizedBox(height: 16),
+                        ],
+                        _buildLocationCard(index, loc.name, display),
+                        if (index < dayLocations.length - 1)
+                          const SizedBox(height: 20),
+                      ],
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayHeader(List<MockRouteLocation> dayLocations) {
+    return Row(
+      children: [
+        Container(
+          width: 8, height: 8,
+          decoration: const BoxDecoration(color: _accentColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          '第${_selectedDay + 1}天 · ${_formatDayDate(_selectedDay)}',
+          style: const TextStyle(fontSize: 20, fontStyle: FontStyle.italic, fontWeight: FontWeight.w600, color: _textPrimary),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: _warmBg,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: _warmBorder),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.access_time, size: 12, color: _textSecondary),
+              const SizedBox(width: 4),
+              Text(
+                _getDayMeta(_selectedDay).duration,
+                style: const TextStyle(fontSize: 11, color: _textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransitRow(_LocationDisplay display) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 24),
+      child: Row(
+        children: [
+          Container(
+            width: 28, height: 28,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: _cardBg2,
+              shape: BoxShape.circle,
+              border: Border.all(color: _cardBorder),
+            ),
+            child: const Icon(Icons.directions_walk, size: 14, color: _accentColor),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: _cardBg2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '步行: ${display.transitDistance}公里 · 约${display.transitMinutes}分钟交通',
+                      style: const TextStyle(fontSize: 11, color: _mutedText),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _greenColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: Text(
+                      '↓ ${display.savedMinutes}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _greenColor),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(int index, String name, _LocationDisplay display) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 24),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: _cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _cardBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SizedBox(
+                    width: 96, height: 96,
+                    child: Image.network(
+                      _locationImageUrl,
+                      fit: BoxFit.cover,
+                      cacheWidth: 192,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: _cardBorder,
+                        child: const Center(child: Icon(Icons.image, size: 24, color: Color(0xFFB0A89A))),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _textPrimary, height: 1.2),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

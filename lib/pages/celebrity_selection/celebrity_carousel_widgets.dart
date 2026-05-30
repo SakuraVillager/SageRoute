@@ -61,22 +61,24 @@ class _CelebrityInfoSection extends StatelessWidget {
                   child: IgnorePointer(
                     ignoring: showTopicStage,
                     child: Center(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        transitionBuilder: (child, animation) {
-                          return _buildEdgeSlideFadeTransition(
-                            context: context,
-                            child: child,
-                            animation: animation,
-                            isForward: isForward,
-                            selectedId: selectedId,
-                          );
-                        },
-                        child: SizedBox(
-                          key: ValueKey<int>(selectedId),
-                          width: 252,
-                          height: 252,
-                          child: _buildAvatar(selected),
+                      child: RepaintBoundary(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          transitionBuilder: (child, animation) {
+                            return _buildEdgeSlideFadeTransition(
+                              context: context,
+                              child: child,
+                              animation: animation,
+                              isForward: isForward,
+                              selectedId: selectedId,
+                            );
+                          },
+                          child: SizedBox(
+                            key: ValueKey<int>(selectedId),
+                            width: 252,
+                            height: 252,
+                            child: _buildAvatar(selected),
+                          ),
                         ),
                       ),
                     ),
@@ -126,6 +128,13 @@ class _CelebrityInfoSection extends StatelessWidget {
                               ],
                             ],
                           ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _ViewDetailButton(
+                          selected: selected,
+                          colorScheme: colorScheme,
                         ),
                       ),
                       const SizedBox(width: 44),
@@ -271,6 +280,69 @@ class _ActionBar extends StatelessWidget {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// "查看详情" button that navigates to FigureDetailPage.
+class _ViewDetailButton extends StatelessWidget {
+  const _ViewDetailButton({
+    required this.selected,
+    required this.colorScheme,
+  });
+
+  final CelebrityProfile selected;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: () {
+        final mockFigure = mock.mockFigures.cast<mock.MockFigure?>().firstWhere(
+              (f) => f!.name == selected.name,
+              orElse: () => null,
+            );
+        final figure = mockFigure != null
+            ? Figure(
+                id: mockFigure.id,
+                name: mockFigure.name,
+                pinyinName: mockFigure.pinyinName,
+                dynasty: mockFigure.dynasty,
+                role: mockFigure.role,
+                years: mockFigure.years,
+                shortDesc: mockFigure.shortDesc,
+                description: mockFigure.description,
+                imageUrl: mockFigure.imageUrl,
+                locationsCount: mockFigure.locationsCount,
+                routesCount: mockFigure.routesCount,
+                poemsCount: mockFigure.poemsCount,
+                rating: mockFigure.rating,
+              )
+            : Figure(
+                id: selected.id.toString(),
+                name: selected.name,
+                dynasty: selected.dynasty,
+                description: selected.bioFull,
+                imageUrl: selected.avatarUrl,
+              );
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FigureDetailPage(figure: figure),
+          ),
+        );
+      },
+      icon: Icon(Icons.visibility_outlined, size: 16, color: colorScheme.primary),
+      label: Text(
+        '查看详情',
+        style: TextStyle(fontSize: 13, color: colorScheme.primary),
+      ),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        side: BorderSide(color: colorScheme.primary.withValues(alpha: 0.3)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }

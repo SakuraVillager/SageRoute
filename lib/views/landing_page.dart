@@ -56,6 +56,7 @@ class LandingPage extends StatelessWidget {
                 Image.network(
                   _bgImageUrl,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
                   width: double.infinity,
                   height: double.infinity,
                 ),

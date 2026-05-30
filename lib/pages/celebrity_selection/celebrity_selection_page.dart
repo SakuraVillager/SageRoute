@@ -3,9 +3,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../data/celebrity_repository.dart';
+import '../../data/mock_figures.dart' as mock;
 import '../../data/topic_repository.dart';
 import '../../models/celebrity_profile.dart';
+import '../../models/figure.dart';
 import '../../models/topic_record.dart';
+import '../../views/figure_detail_page.dart';
 
 part 'celebrity_overlay_animation.dart';
 part 'celebrity_overlay_painter.dart';
@@ -66,25 +69,25 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
       duration: _stageAnimDuration,
     );
 
-    _backgroundEntryController.addListener(() {
-      if (!_showPageReveal && _backgroundEntryController.value >= 0.8) {
-        setState(() {
-          _showPageReveal = true;
-        });
-        _pageEntryController.forward(from: 0);
-      }
-    });
+    _backgroundEntryController.addListener(_onBackgroundEntryTick);
 
     _backgroundEntryController.forward();
 
-    _celebritiesFuture = Future<List<CelebrityProfile>>.delayed(
-      Duration.zero,
-      _repository.fetchCelebrities,
-    );
+    _celebritiesFuture = _repository.fetchCelebrities();
+  }
+
+  void _onBackgroundEntryTick() {
+    if (!_showPageReveal && _backgroundEntryController.value >= 0.8) {
+      setState(() {
+        _showPageReveal = true;
+      });
+      _pageEntryController.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
+    _backgroundEntryController.removeListener(_onBackgroundEntryTick);
     _backgroundEntryController.dispose();
     _pageEntryController.dispose();
     _finishExitController.dispose();
@@ -212,196 +215,287 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
                 .distance,
           ].reduce((a, b) => a > b ? a : b);
 
-          return AnimatedBuilder(
-            animation: Listenable.merge([
-              _backgroundEntryController,
-              _pageEntryController,
-              _finishExitController,
-            ]),
-            builder: (context, _) {
-              final backgroundRevealT = Curves.easeOutCubic.transform(
-                _backgroundEntryController.value,
-              );
-              final pageRevealT = Curves.easeOutCubic.transform(
-                _pageEntryController.value,
-              );
-              final finishExitT = Curves.easeOutCubic.transform(
-                _finishExitController.value,
-              );
-              final backgroundRevealRadius =
-                  revealStartRadius +
-                  (farthestCornerDistance * backgroundRevealT);
-              final pageRevealRadius =
-                  revealStartRadius + (farthestCornerDistance * pageRevealT);
+          return RepaintBoundary(
+            child: AnimatedBuilder(
+              animation: _backgroundEntryController,
+              builder: (context, _) {
+                final backgroundRevealT = Curves.easeOutCubic.transform(
+                  _backgroundEntryController.value,
+                );
+                final backgroundRevealRadius =
+                    revealStartRadius +
+                    (farthestCornerDistance * backgroundRevealT);
 
-              return FutureBuilder<List<CelebrityProfile>>(
-                future: _celebritiesFuture,
-                builder: (context, snapshot) {
-                  final isLoading =
-                      snapshot.connectionState != ConnectionState.done;
-                  final loadingOpacity = (1 - pageRevealT).clamp(0.0, 1.0);
-
-                  Widget pageBody;
-                  if (isLoading) {
-                    pageBody = Container(
-                      color: colorScheme.surface,
-                      child: Center(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: colorScheme.outlineVariant,
-                            ),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0x14000000),
-                                blurRadius: 18,
-                                offset: Offset(0, 8),
-                              ),
-                            ],
+                return Stack(
+                  children: [
+                    // Background circle reveal layer
+                    if (!_pageEntryController.isCompleted)
+                      Positioned.fill(
+                        child: ClipPath(
+                          clipper: _BottomCircleRevealClipper(
+                            center: revealCenter,
+                            radius: backgroundRevealRadius,
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.2,
-                                    color: colorScheme.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(
-                                  '加载人物中...',
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(
-                                        color: colorScheme.onSurface,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          child: ColoredBox(color: colorScheme.primary),
                         ),
                       ),
-                    );
-                  } else if (snapshot.hasError) {
-                    pageBody = Center(
-                      child: Text(
-                        '人物数据加载失败',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.error,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  } else {
-                    final celebrities =
-                        snapshot.data ?? const <CelebrityProfile>[];
-                    if (celebrities.isEmpty) {
-                      pageBody = Center(
-                        child: Text(
-                          '暂无人物数据',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      );
-                    } else {
-                      pageBody = _CelebrityCarouselContent(
-                        celebrities: celebrities,
-                        currentIndex: _currentIndex,
-                        previousIndex: _previousIndex,
-                        phase: _phase,
-                        isFinishing: _isFinishing,
-                        finishExitT: finishExitT,
-                        selectedTopicName: _selectedTopicName,
-                        topicsFuture: _topicsFuture,
-                        stageAnimDuration: _stageAnimDuration,
-                        showActionButtons: widget.showActionButtons,
-                        colorScheme: colorScheme,
-                        onSkip: skipHandler,
-                        onGoToIndex: (nextIndex) =>
-                            _goToIndex(nextIndex, celebrities),
-                        onHorizontalDragEnd: (details) =>
-                            _onHorizontalDragEnd(details, celebrities),
-                        onContinue: _onContinuePressed,
-                        onBackStep: _onBackStepPressed,
-                        onTopicSelected: (name) => setState(() {
-                          _selectedTopicName = name;
-                        }),
-                      );
-                    }
-                  }
+                    // Page body layer — independently animated
+                    if (_showPageReveal)
+                      FutureBuilder<List<CelebrityProfile>>(
+                        future: _celebritiesFuture,
+                        builder: (context, snapshot) {
+                          final isLoading =
+                              snapshot.connectionState !=
+                              ConnectionState.done;
 
-                  return Stack(
-                    children: [
-                      if (!_pageEntryController.isCompleted)
-                        Positioned.fill(
-                          child: ClipPath(
-                            clipper: _BottomCircleRevealClipper(
-                              center: revealCenter,
-                              radius: backgroundRevealRadius,
-                            ),
-                            child: ColoredBox(color: colorScheme.primary),
-                          ),
-                        ),
-                      if (_showPageReveal)
-                        Positioned.fill(
-                          child: _pageEntryController.isCompleted
-                              ? pageBody
-                              : ClipPath(
-                                  clipper: _BottomCircleRevealClipper(
-                                    center: revealCenter,
-                                    radius: pageRevealRadius,
-                                  ),
-                                  child: pageBody,
-                                ),
-                        ),
-                      if (isLoading &&
-                          _showPageReveal &&
-                          !_pageEntryController.isCompleted)
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: bottomInset + 28,
-                          child: IgnorePointer(
-                            child: Opacity(
-                              opacity: loadingOpacity,
-                              child: Center(
-                                child: Container(
-                                  width: revealStartRadius * 2,
-                                  height: revealStartRadius * 2,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: colorScheme.surfaceContainerHighest,
-                                  ),
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.2,
-                                        color: colorScheme.primary,
+                          if (isLoading) {
+                            return RepaintBoundary(
+                              child: AnimatedBuilder(
+                                animation: _pageEntryController,
+                                builder: (context, _) {
+                                  final pageRevealT =
+                                      Curves.easeOutCubic.transform(
+                                        _pageEntryController.value,
+                                      );
+                                  final pageRevealRadius =
+                                      revealStartRadius +
+                                      (farthestCornerDistance * pageRevealT);
+                                  final loadingOpacity =
+                                      (1 - pageRevealT).clamp(0.0, 1.0);
+
+                                  final loadingBody = Container(
+                                    color: colorScheme.surface,
+                                    child: Center(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: colorScheme
+                                              .surfaceContainerLowest,
+                                          borderRadius:
+                                              BorderRadius.circular(22),
+                                          border: Border.all(
+                                            color:
+                                                colorScheme.outlineVariant,
+                                          ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x14000000),
+                                              blurRadius: 18,
+                                              offset: Offset(0, 8),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets
+                                              .symmetric(
+                                            horizontal: 18,
+                                            vertical: 14,
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 2.2,
+                                                      color: colorScheme
+                                                          .primary,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              Text(
+                                                '加载人物中...',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: colorScheme
+                                                          .onSurface,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
+                                  );
+
+                                  return Stack(
+                                    children: [
+                                      if (!_pageEntryController
+                                          .isCompleted)
+                                        Positioned.fill(
+                                          child: ClipPath(
+                                            clipper:
+                                                _BottomCircleRevealClipper(
+                                              center: revealCenter,
+                                              radius: pageRevealRadius,
+                                            ),
+                                            child: loadingBody,
+                                          ),
+                                        )
+                                      else
+                                        Positioned.fill(
+                                            child: loadingBody),
+                                      if (_showPageReveal &&
+                                          !_pageEntryController
+                                              .isCompleted)
+                                        Positioned(
+                                          left: 0,
+                                          right: 0,
+                                          bottom: bottomInset + 28,
+                                          child: IgnorePointer(
+                                            child: Opacity(
+                                              opacity: loadingOpacity,
+                                              child: Center(
+                                                child: Container(
+                                                  width:
+                                                      revealStartRadius *
+                                                          2,
+                                                  height:
+                                                      revealStartRadius *
+                                                          2,
+                                                  decoration:
+                                                      BoxDecoration(
+                                                    shape:
+                                                        BoxShape.circle,
+                                                    color: colorScheme
+                                                        .surfaceContainerHighest,
+                                                  ),
+                                                  child: Center(
+                                                    child: SizedBox(
+                                                      width: 18,
+                                                      height: 18,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2.2,
+                                                        color: colorScheme
+                                                            .primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
                               ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              );
-            },
+                            );
+                          } else if (snapshot.hasError) {
+                            return Center(
+                              child: Text(
+                                '人物数据加载失败',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: colorScheme.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            );
+                          } else {
+                            final celebrities =
+                                snapshot.data ??
+                                const <CelebrityProfile>[];
+                            if (celebrities.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  '暂无人物数据',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyLarge
+                                      ?.copyWith(
+                                        color: colorScheme
+                                            .onSurfaceVariant,
+                                      ),
+                                ),
+                              );
+                            }
+
+                            return RepaintBoundary(
+                              child: AnimatedBuilder(
+                                animation: _pageEntryController,
+                                builder: (context, _) {
+                                  final pageRevealT =
+                                      Curves.easeOutCubic.transform(
+                                        _pageEntryController.value,
+                                      );
+                                  final pageRevealRadius =
+                                      revealStartRadius +
+                                      (farthestCornerDistance * pageRevealT);
+
+                                  final content = RepaintBoundary(
+                                    child: AnimatedBuilder(
+                                      animation: _finishExitController,
+                                      builder: (context, _) {
+                                        final finishExitT =
+                                            Curves.easeOutCubic.transform(
+                                          _finishExitController.value,
+                                        );
+                                        return _CelebrityCarouselContent(
+                                          celebrities: celebrities,
+                                          currentIndex: _currentIndex,
+                                          previousIndex: _previousIndex,
+                                          phase: _phase,
+                                          isFinishing: _isFinishing,
+                                          finishExitT: finishExitT,
+                                          selectedTopicName:
+                                              _selectedTopicName,
+                                          topicsFuture: _topicsFuture,
+                                          stageAnimDuration:
+                                              _stageAnimDuration,
+                                          showActionButtons:
+                                              widget.showActionButtons,
+                                          colorScheme: colorScheme,
+                                          onSkip: skipHandler,
+                                          onGoToIndex: (nextIndex) =>
+                                              _goToIndex(
+                                            nextIndex,
+                                            celebrities,
+                                          ),
+                                          onHorizontalDragEnd: (details) =>
+                                              _onHorizontalDragEnd(
+                                            details,
+                                            celebrities,
+                                          ),
+                                          onContinue: _onContinuePressed,
+                                          onBackStep: _onBackStepPressed,
+                                          onTopicSelected: (name) =>
+                                              setState(() {
+                                            _selectedTopicName = name;
+                                          }),
+                                        );
+                                      },
+                                    ),
+                                  );
+
+                                  if (!_pageEntryController.isCompleted) {
+                                    return ClipPath(
+                                      clipper: _BottomCircleRevealClipper(
+                                        center: revealCenter,
+                                        radius: pageRevealRadius,
+                                      ),
+                                      child: content,
+                                    );
+                                  }
+                                  return content;
+                                },
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                  ],
+                );
+              },
+            ),
           );
         },
       ),

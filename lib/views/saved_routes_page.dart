@@ -177,16 +177,17 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: _savedRoutes.map((route) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 24),
-            child: _RouteCard(
-              route: route,
-              onTap: () => widget.onRouteTap?.call(route.id),
-            ),
-          );
-        }).toList(),
+      child: ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: _savedRoutes.length,
+        itemBuilder: (_, i) => Padding(
+          padding: const EdgeInsets.only(bottom: 24),
+          child: _RouteCard(
+            route: _savedRoutes[i],
+            onTap: () => widget.onRouteTap?.call(_savedRoutes[i].id),
+          ),
+        ),
       ),
     );
   }
@@ -257,6 +258,7 @@ class _RouteCard extends StatelessWidget {
                     Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
+                      cacheWidth: 600,
                       errorBuilder: (_, __, ___) =>
                           Container(color: AppColors.sageBorder),
                     ),

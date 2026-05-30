@@ -26,6 +26,12 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
   // ignore: unused_field — kept for future map interactions
   AMapController? _mapController;
 
+  static const _filters = [
+    ('全部历史遗迹', true),
+    ('白居易路线 - 杭州', false),
+    ('宋代', false),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -124,16 +130,10 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
   // ── Filter Capsules ──
 
   Widget _buildFilterCapsules() {
-    final filters = [
-      ('全部历史遗迹', true),
-      ('白居易路线 - 杭州', false),
-      ('宋代', false),
-    ];
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: filters.map((f) {
+        children: _filters.map((f) {
           final label = f.$1;
           final isActive = f.$2;
           return Container(
@@ -241,6 +241,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
                             child: Image.network(
                               location.imageUrl,
                               fit: BoxFit.cover,
+                              cacheWidth: 160,
                             ),
                           ),
                           Positioned(

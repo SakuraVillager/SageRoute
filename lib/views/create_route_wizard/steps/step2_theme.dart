@@ -247,6 +247,7 @@ class Step2Theme extends StatelessWidget {
             Image.network(
               url,
               fit: BoxFit.cover,
+              cacheWidth: 256,
               width: 128,
               height: 96,
             ),

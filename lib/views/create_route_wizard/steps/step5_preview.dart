@@ -94,6 +94,7 @@ class _Step5PreviewState extends State<Step5Preview> {
             Image.network(
               _heroImageUrl,
               fit: BoxFit.cover,
+              cacheWidth: 800,
               errorBuilder: (_, __, ___) => Container(
                 color: _cardBorder,
                 child: const Center(

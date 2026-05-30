@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../data/mock_figures.dart' as mock;
@@ -34,6 +32,10 @@ class HomePage extends StatelessWidget {
 
   /// Callback when the search bar is tapped.
   final VoidCallback? onSearchTap;
+
+  // Pre-computed trending figures (avoids list creation on every build).
+  static final List<mock.MockFigure> _trendingFigures =
+      mock.mockFigures.take(2).toList();
 
   static const String _heroImageUrl =
       'https://images.unsplash.com/photo-1574227492706-f65b24c3688a?auto=format&fit=crop&q=80&w=800';
@@ -225,7 +227,7 @@ class HomePage extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 // Background image
-                Image.network(_heroImageUrl, fit: BoxFit.cover),
+                Image.network(_heroImageUrl, fit: BoxFit.cover, cacheWidth: 800),
                 // Gradient overlay (dark at bottom for text readability)
                 // Web: from-black/80 via-black/20 to-black/10 (bottom→top)
                 Positioned.fill(
@@ -416,13 +418,11 @@ class HomePage extends StatelessWidget {
   // ── Trending Figures Horizontal Scroll ──
 
   Widget _buildTrendingFigures(BuildContext context) {
-    final trending = mock.mockFigures.take(2).toList();
-
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.only(left: 24, right: 24, bottom: 4),
       child: Row(
-        children: trending.map((figure) {
+        children: _trendingFigures.map((figure) {
           return Padding(
             padding: const EdgeInsets.only(right: 16),
             child: _FigureCard(
@@ -477,34 +477,27 @@ class _FigureCard extends StatelessWidget {
                 children: [
                   AspectRatio(
                     aspectRatio: 4 / 5,
-                    child: Image.network(figure.imageUrl, fit: BoxFit.cover),
+                    child: Image.network(figure.imageUrl, fit: BoxFit.cover, cacheWidth: 320),
                   ),
                   // Dynasty badge (top-left corner)
                   Positioned(
                     top: 8,
                     left: 8,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: BackdropFilter(
-                        // Web: backdrop-blur on bg-black/40
-                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.4),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            figure.dynasty,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        figure.dynasty,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
