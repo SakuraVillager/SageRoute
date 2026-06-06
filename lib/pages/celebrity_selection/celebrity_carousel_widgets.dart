@@ -327,9 +327,7 @@ class _ViewDetailButton extends StatelessWidget {
                 imageUrl: selected.avatarUrl,
               );
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => FigureDetailPage(figure: figure),
-          ),
+          slideFromRightRoute(FigureDetailPage(figure: figure)),
         );
       },
       icon: Icon(Icons.visibility_outlined, size: 16, color: colorScheme.primary),

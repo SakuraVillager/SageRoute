@@ -20,6 +20,7 @@ class ProfilePage extends StatelessWidget {
     this.onAchievementTap,
     this.onSettingItemTap,
     this.onLogout,
+    this.onDebugRouteTap,
   });
 
   /// Callback when the settings icon is tapped.
@@ -33,6 +34,9 @@ class ProfilePage extends StatelessWidget {
 
   /// Callback when the logout button is tapped.
   final VoidCallback? onLogout;
+
+  /// Callback when the debug route item is tapped.
+  final VoidCallback? onDebugRouteTap;
 
   // ── Page-specific colors (from Web Profile.tsx) ──
 
@@ -391,6 +395,11 @@ class ProfilePage extends StatelessWidget {
               style: TextStyle(fontSize: 12, color: AppColors.sageMuted),
             ),
             onTap: () => onSettingItemTap?.call(2),
+          ),
+          _buildSettingItem(
+            leading: const Icon(Icons.bug_report_outlined, size: 18),
+            label: 'Debug',
+            onTap: () => onDebugRouteTap?.call(),
             showDivider: false,
           ),
         ],

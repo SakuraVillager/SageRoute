@@ -8,6 +8,7 @@ import '../../data/topic_repository.dart';
 import '../../models/celebrity_profile.dart';
 import '../../models/figure.dart';
 import '../../models/topic_record.dart';
+import '../../utils/slide_route.dart';
 import '../../views/figure_detail_page.dart';
 
 part 'celebrity_overlay_animation.dart';

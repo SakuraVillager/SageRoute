@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../data/mock_figures.dart';
 import '../../../models/figure.dart';
 import '../../../theme/color_schemes.dart';
+import '../../../utils/slide_route.dart';
 import '../../figure_detail_page.dart';
 
 /// Step 1 of CreateRouteWizard — historical figure selection.
@@ -145,8 +146,8 @@ class _FigureListTile extends StatelessWidget {
             IconButton(
               onPressed: () {
                 Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => FigureDetailPage(
+                  slideFromRightRoute(
+                    FigureDetailPage(
                       figure: Figure(
                         id: figure.id,
                         name: figure.name,

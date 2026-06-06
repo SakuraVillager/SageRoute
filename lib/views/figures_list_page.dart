@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/color_schemes.dart';
 import '../data/mock_figures.dart';
 import '../models/figure.dart';
+import '../utils/slide_route.dart';
 import 'figure_detail_page.dart';
 
 /// Historical figures list page matching the Web version's FiguresList.tsx.
@@ -19,13 +20,7 @@ import 'figure_detail_page.dart';
 ///
 /// All filters are static UI — no real filtering logic.
 class FiguresListPage extends StatelessWidget {
-  const FiguresListPage({super.key, this.onNavigateAway, this.onNavigateBack});
-
-  /// Called before navigating away from this page (e.g. to detail page).
-  final VoidCallback? onNavigateAway;
-
-  /// Called when returning to this page from a detail page.
-  final VoidCallback? onNavigateBack;
+  const FiguresListPage({super.key});
 
   static const List<String> _dynasties = ['全部', '唐朝', '宋朝', '汉朝', '周朝', '明朝'];
 
@@ -405,10 +400,9 @@ class FiguresListPage extends StatelessWidget {
 
   // ── Navigate to figure detail page ──
   void _openFigure(BuildContext context, MockFigure mf) {
-    onNavigateAway?.call();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FigureDetailPage(
+      slideFromRightRoute(
+        FigureDetailPage(
           figure: Figure(
             id: mf.id,
             name: mf.name,
@@ -426,7 +420,7 @@ class FiguresListPage extends StatelessWidget {
           ),
         ),
       ),
-    ).then((_) => onNavigateBack?.call());
+    );
   }
 
   // ── Featured figure card (full-width, 24px radius, image + gradient + info) ──

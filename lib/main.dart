@@ -17,6 +17,7 @@ import 'views/create_route_wizard/create_route_wizard.dart';
 import 'views/saved_routes_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
+import 'utils/slide_route.dart';
 
 /// 高德地图 Android Key，通过 --dart-define 或 --dart-define-from-file 注入。
 const String _amapAndroidKeyFromDefine = String.fromEnvironment(
@@ -206,40 +207,48 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
-  bool _hideBottomNav = false;
   bool _showCelebrityOverlay = false;
 
   // 惰性 tab 构建：只有访问过的 tab 才会被构建，避免首次进入时
-  // IndexedStack 同时构建全部 5 个页面导致主线程过载 (ANR)。
+  // IndexedStack 同时构建全部 4 个页面导致主线程过载 (ANR)。
+  // 索引: 0=首页, 1=人物, 2=收藏, 3=我的（规划通过 push 独立页面进入）
   late final List<Widget> _tabs;
   final Set<int> _builtTabs = {0}; // 首页立即构建
+
+  /// 底部导航栏 index → _tabs index 的映射。
+  /// 导航栏中间的"规划"按钮（navIndex=2）不对应 tab，而是 push 新页面。
+  static const _navToTab = {0: 0, 1: 1, 3: 2, 4: 3};
 
   @override
   void initState() {
     super.initState();
     _tabs = [
       const HomePage(),
-      FiguresListPage(
-        onNavigateAway: () => _setBottomNavVisible(false),
-        onNavigateBack: () => _setBottomNavVisible(true),
-      ),
-      CreateRouteWizard(
-        onExit: () => setState(() {
-          _selectedIndex = 0;
-          _hideBottomNav = false;
-        }),
-      ),
+      const FiguresListPage(),
       const SavedRoutesPage(),
-      const ProfilePage(),
+      ProfilePage(onDebugRouteTap: _pushCreateRouteWizard),
     ];
   }
 
-  void _onItemTapped(int index) {
+  void _pushCreateRouteWizard() {
+    Navigator.of(context).push(
+      slideFromRightRoute(
+        CreateRouteWizard(
+          onExit: () => Navigator.of(context).pop(),
+          onComplete: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
+  void _onItemTapped(int navIndex) {
     if (_showCelebrityOverlay) return;
+    // "规划"按钮暂时不做任何事情
+    if (navIndex == 2) return;
+    final tabIndex = _navToTab[navIndex]!;
     setState(() {
-      _selectedIndex = index;
-      _hideBottomNav = index == 2;
-      _builtTabs.add(index);
+      _selectedIndex = navIndex;
+      _builtTabs.add(tabIndex);
     });
   }
 
@@ -251,10 +260,6 @@ class _MainScreenState extends State<MainScreen> {
   void _closeCelebrityOverlay() {
     if (!_showCelebrityOverlay) return;
     setState(() => _showCelebrityOverlay = false);
-  }
-
-  void _setBottomNavVisible(bool visible) {
-    setState(() => _hideBottomNav = !visible);
   }
 
   @override
@@ -271,26 +276,22 @@ class _MainScreenState extends State<MainScreen> {
               if (!_builtTabs.contains(index)) {
                 return const SizedBox.shrink();
               }
+              final tabIndex = _navToTab[_selectedIndex] ?? 0;
               return Offstage(
-                offstage: _selectedIndex != index,
+                offstage: tabIndex != index,
                 child: _tabs[index],
               );
             }),
           ),
         ),
-        // Bottom nav — overlaid on top so it can slide away without reserving layout space.
+        // Bottom nav — 始终显示。
         Positioned(
           left: 0,
           right: 0,
           bottom: 0,
-          child: AnimatedSlide(
-            offset: _hideBottomNav ? const Offset(0, 1) : Offset.zero,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeInOutCubic,
-            child: SageRouteBottomNav(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-            ),
+          child: SageRouteBottomNav(
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
           ),
         ),
         if (_showCelebrityOverlay)

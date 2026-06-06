@@ -4,6 +4,7 @@ import '../data/mock_figures.dart';
 import '../data/mock_locations.dart';
 import '../models/figure.dart';
 import '../models/location.dart';
+import '../utils/slide_route.dart';
 import 'location_detail_page.dart';
 
 class FigureDetailPage extends StatefulWidget {
@@ -450,8 +451,8 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
       child: Column(children: _displaySites.map((loc) => _SiteCard(
         location: loc,
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => LocationDetailPage(
+          slideFromRightRoute(
+            LocationDetailPage(
               location: Location(
                 id: loc.id,
                 name: loc.name,
