@@ -38,9 +38,8 @@ class HomePage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -53,7 +52,7 @@ class HomePage extends StatelessWidget {
                     fontStyle: FontStyle.italic, // Web: font-serif italic
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   '准备好探索历史了吗？',
                   style: TextStyle(

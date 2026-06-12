@@ -137,9 +137,9 @@ class TicketCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // TRAVEL JOURNAL + globe
-                        Row(
+                        const Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
+                          children: [
                             Text(
                               'TRAVEL\nJOURNAL',
                               style: TextStyle(
@@ -158,10 +158,10 @@ class TicketCard extends StatelessWidget {
                           ],
                         ),
                         // 虚线分隔
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6),
                           child: CustomPaint(
-                            size: const Size(double.infinity, 1),
+                            size: Size(double.infinity, 1),
                             painter: _DashedLinePainter(color: _lineColor),
                           ),
                         ),

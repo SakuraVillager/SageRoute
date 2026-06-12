@@ -4,6 +4,7 @@ import 'package:sageroute/models/celebrity_profile.dart';
 import 'package:sageroute/services/database_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'test_helpers/env_loader.dart';
+import 'test_helpers/integration_test_skip.dart';
 
 void main() {
   setUp(() {
@@ -74,6 +75,7 @@ void main() {
 
       expect(rows, isA<List<CelebrityProfile>>());
     },
+    skip: supabaseIntegrationSkipReason(),
     timeout: const Timeout(Duration(minutes: 2)),
   );
 }

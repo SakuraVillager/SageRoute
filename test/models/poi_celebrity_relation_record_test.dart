@@ -18,7 +18,7 @@ void main() {
 
         expect(record.id, 1);
         expect(record.createdAt,
-            equals(DateTime(2024, 1, 15, 10, 30, 0, 0)));
+            equals(DateTime(2024, 1, 15, 10, 30)));
         expect(record.locationName, '大明宫');
         expect(record.celebrityName, '李白');
         expect(record.relationType, '居住');
@@ -143,7 +143,7 @@ void main() {
 
       test('changes createdAt', () {
         final original = PoiCelebrityRelationRecord.fromMap(fullMap);
-        final newDate = DateTime(2025, 6, 1);
+        final newDate = DateTime(2025, 6);
         final modified = original.copyWith(createdAt: newDate);
         expect(modified.createdAt, newDate);
       });

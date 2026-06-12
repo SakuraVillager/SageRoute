@@ -17,7 +17,7 @@ void main() {
 
         expect(record.id, 1);
         expect(record.createdAt,
-            equals(DateTime(2024, 3, 1, 8, 0, 0, 0)));
+            equals(DateTime(2024, 3, 1, 8)));
         expect(record.celebrity, '李白');
         expect(record.name, '唐诗');
         expect(record.description, '唐代诗歌的巅峰');
@@ -141,7 +141,7 @@ void main() {
 
       test('changes createdAt', () {
         final original = TopicRecord.fromMap(fullMap);
-        final newDate = DateTime(2025, 6, 1);
+        final newDate = DateTime(2025, 6);
         final modified = original.copyWith(createdAt: newDate);
         expect(modified.createdAt, newDate);
       });

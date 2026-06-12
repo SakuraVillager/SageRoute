@@ -29,7 +29,7 @@ class SageRouteBottomNav extends StatelessWidget {
         height: 72,
         decoration: BoxDecoration(
           color: _bgColor.withValues(alpha: 0.96),
-          border: Border(top: BorderSide(color: _borderColor)),
+          border: const Border(top: BorderSide(color: _borderColor)),
         ),
         child: Row(
           children: [

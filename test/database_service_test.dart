@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sageroute/data/supabase_table_repository.dart';
 import 'package:sageroute/services/database_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'test_helpers/env_loader.dart';
+import 'test_helpers/integration_test_skip.dart';
 
 void main() {
   group('DatabaseService', () {
@@ -31,9 +33,7 @@ void main() {
     test('initialize throws when required env is missing', () async {
       expect(
         () => DatabaseService.initialize(
-          env: const {
-            'SUPABASE_URL': 'https://example.supabase.co',
-          },
+          env: const {'SUPABASE_URL': 'https://example.supabase.co'},
           initializer: (url, anonKey) async {},
         ),
         throwsException,
@@ -46,15 +46,17 @@ void main() {
       await DatabaseService.testConnection(
         query: (table) async {
           calledTable = table;
-          return <dynamic>[{'id': 1}];
+          return <dynamic>[
+            {'id': 1},
+          ];
         },
       );
 
       expect(calledTable, 'Celebrity');
     });
 
-    test('getFieldList returns non-null field values', () async {
-      final values = await DatabaseService.getFieldList(
+    test('repository returns non-null field values', () async {
+      final values = await _fetchSelectedFieldValues(
         table: 'Celebrity',
         field: 'name',
         query: (table, field) async {
@@ -72,28 +74,50 @@ void main() {
     test(
       'integration: query Supabase Celebrity table via env credentials',
       () async {
-      final env = loadEnvFromFile('assets/env.env');
-      final url = env['SUPABASE_URL'] ?? '';
-      final anonKey = env['SUPABASE_ANON_KEY'] ?? '';
+        final env = loadEnvFromFile('assets/env.env');
+        final url = env['SUPABASE_URL'] ?? '';
+        final anonKey = env['SUPABASE_ANON_KEY'] ?? '';
 
-      expect(url, isNotEmpty);
-      expect(anonKey, isNotEmpty);
+        expect(url, isNotEmpty);
+        expect(anonKey, isNotEmpty);
 
-      final client = SupabaseClient(url, anonKey);
+        final client = SupabaseClient(url, anonKey);
 
-      await DatabaseService.testConnection(
-        query: (table) => client.from(table).select().limit(1),
-      );
+        await DatabaseService.testConnection(
+          query: (table) => client.from(table).select().limit(1),
+        );
 
-      final names = await DatabaseService.getFieldList(
-        table: 'Celebrity',
-        field: 'name',
-        query: (table, field) => client.from(table).select(field),
-      );
+        final names = await _fetchSelectedFieldValues(
+          table: 'Celebrity',
+          field: 'name',
+          query: (table, field) => client.from(table).select(field),
+        );
 
-      expect(names, isA<List<dynamic>>());
+        expect(names, isA<List<dynamic>>());
       },
+      skip: supabaseIntegrationSkipReason(),
       timeout: const Timeout(Duration(minutes: 2)),
     );
   });
+}
+
+Future<List<Object>> _fetchSelectedFieldValues({
+  required String table,
+  required String field,
+  required QueryFieldFn query,
+}) async {
+  final repository = SupabaseTableRepository(
+    tableName: table,
+    rawFetcher: ({required tableName, required columns, limit, equals}) {
+      assert(limit == null);
+      assert(equals == null);
+      return query(tableName, columns);
+    },
+  );
+
+  final rows = await repository.fetchAllRaw(columns: field);
+  return rows
+      .map<Object?>((row) => row[field])
+      .whereType<Object>()
+      .toList(growable: false);
 }

@@ -361,7 +361,7 @@ class FiguresListPage extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: AppColors.sageCard,
               shape: BoxShape.circle,
             ),

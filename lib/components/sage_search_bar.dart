@@ -35,7 +35,7 @@ class SageSearchBar extends StatelessWidget {
 
     final inner = Row(
       children: [
-        Icon(Icons.search, size: 20, color: AppColors.sageMuted),
+        const Icon(Icons.search, size: 20, color: AppColors.sageMuted),
         const SizedBox(width: 12),
         Expanded(
           child: hasInput

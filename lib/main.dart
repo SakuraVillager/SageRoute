@@ -9,11 +9,13 @@ import 'package:x_amap_base/x_amap_base.dart';
 
 import 'theme.dart';
 import 'components/bottom_nav.dart';
+import 'models/new_route_draft.dart';
 import 'pages/celebrity_selection/celebrity_selection_page.dart';
 import 'views/landing_page.dart';
 import 'views/home_page.dart';
 import 'views/figures_list_page.dart';
 import 'views/create_route_wizard/create_route_wizard.dart';
+import 'views/new_route_theatre_overlay.dart';
 import 'views/saved_routes_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
@@ -110,9 +112,7 @@ class _SageRouteAppState extends State<SageRouteApp> {
       if (!mounted) return;
       AMapInitializer.init(
         context,
-        apiKey: key.key.isEmpty
-            ? null
-            : AMapApiKey(androidKey: key.key),
+        apiKey: key.key.isEmpty ? null : AMapApiKey(androidKey: key.key),
       );
     });
   }
@@ -208,6 +208,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
+  bool _showNewRouteTheatre = false;
+  final _newRouteDrafts = ValueNotifier<List<NewRouteDraft>>(
+    const <NewRouteDraft>[],
+  );
 
   // 惰性 tab 构建：只有访问过的 tab 才会被构建，避免首次进入时
   // IndexedStack 同时构建全部 4 个页面导致主线程过载 (ANR)。
@@ -225,9 +229,15 @@ class _MainScreenState extends State<MainScreen> {
     _tabs = [
       const HomePage(),
       const FiguresListPage(),
-      const SavedRoutesPage(),
+      SavedRoutesPage(createdRoutesListenable: _newRouteDrafts),
       ProfilePage(onDebugRouteTap: _pushCreateRouteWizard),
     ];
+  }
+
+  @override
+  void dispose() {
+    _newRouteDrafts.dispose();
+    super.dispose();
   }
 
   void _pushCreateRouteWizard() {
@@ -242,14 +252,31 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onItemTapped(int navIndex) {
-    if (_showCelebrityOverlay) return;
-    // "规划"按钮暂时不做任何事情
-    if (navIndex == 2) return;
+    if (_showCelebrityOverlay || _showNewRouteTheatre) return;
+    // The center planning action opens the theatre-style ticket builder.
+    if (navIndex == 2) {
+      _openNewRouteTheatre();
+      return;
+    }
     final tabIndex = _navToTab[navIndex]!;
     setState(() {
       _selectedIndex = navIndex;
       _builtTabs.add(tabIndex);
     });
+  }
+
+  void _openNewRouteTheatre() {
+    setState(() {
+      _selectedIndex = 3;
+      _builtTabs.add(2);
+      _showNewRouteTheatre = true;
+    });
+  }
+
+  void _handleNewRouteComplete(NewRouteDraft draft) {
+    _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
+    if (!mounted) return;
+    setState(() => _showNewRouteTheatre = false);
   }
 
   // ignore: unused_element — kept for future CelebritySelection overlay access.
@@ -277,10 +304,7 @@ class _MainScreenState extends State<MainScreen> {
                 return const SizedBox.shrink();
               }
               final tabIndex = _navToTab[_selectedIndex] ?? 0;
-              return Offstage(
-                offstage: tabIndex != index,
-                child: _tabs[index],
-              );
+              return Offstage(offstage: tabIndex != index, child: _tabs[index]);
             }),
           ),
         ),
@@ -294,6 +318,10 @@ class _MainScreenState extends State<MainScreen> {
             onTap: _onItemTapped,
           ),
         ),
+        if (_showNewRouteTheatre)
+          Positioned.fill(
+            child: NewRouteTheatreOverlay(onComplete: _handleNewRouteComplete),
+          ),
         if (_showCelebrityOverlay)
           Positioned.fill(
             child: CelebritySelectionPage(

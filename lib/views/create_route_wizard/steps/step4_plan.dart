@@ -15,9 +15,7 @@ class Step4Plan extends StatefulWidget {
 class _Step4PlanState extends State<Step4Plan> {
   int _selectedPace = 0;
 
-
   // ── Colors (HTML design) ──
-  static const _bg = Color(0xFFF6F4EF);
   static const _cardBg = Color(0xFFFCFBF9);
   static const _textMain = Color(0xFF3D3935);
   static const _textSecondary = Color(0xFF9B9690);
@@ -29,8 +27,11 @@ class _Step4PlanState extends State<Step4Plan> {
 
   static const _paces = ['悠闲', '适中', '紧凑'];
   static const _paceDescriptions = ['每天2-3处', '每天3-4处', '每天5处以上'];
-  static const _paceIcons = [Icons.eco_outlined, Icons.balance_outlined, Icons.bolt_outlined];
-
+  static const _paceIcons = [
+    Icons.eco_outlined,
+    Icons.balance_outlined,
+    Icons.bolt_outlined,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +54,11 @@ class _Step4PlanState extends State<Step4Plan> {
 
   // ── Section Title ──
 
-  Widget _buildSectionTitle(String title, IconData icon, {bool isRedIcon = false}) {
+  Widget _buildSectionTitle(
+    String title,
+    IconData icon, {
+    bool isRedIcon = false,
+  }) {
     return Row(
       children: [
         Container(
@@ -85,12 +90,24 @@ class _Step4PlanState extends State<Step4Plan> {
       children: [
         Expanded(child: _buildDateCard('出发日期', '10月12日', '2025', _accent)),
         const SizedBox(width: 12),
-        Expanded(child: _buildDateCard('返程日期', '10月15日', '2025', const Color(0xFF8BA8A1))),
+        Expanded(
+          child: _buildDateCard(
+            '返程日期',
+            '10月15日',
+            '2025',
+            const Color(0xFF8BA8A1),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildDateCard(String label, String date, String year, Color iconColor) {
+  Widget _buildDateCard(
+    String label,
+    String date,
+    String year,
+    Color iconColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -101,7 +118,10 @@ class _Step4PlanState extends State<Step4Plan> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: _textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: _textSecondary),
+          ),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -112,10 +132,17 @@ class _Step4PlanState extends State<Step4Plan> {
                 const SizedBox(width: 8),
                 Text(
                   date,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _textMain),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: _textMain,
+                  ),
                 ),
                 const SizedBox(width: 6),
-                Text(year, style: const TextStyle(fontSize: 12, color: _textSecondary)),
+                Text(
+                  year,
+                  style: const TextStyle(fontSize: 12, color: _textSecondary),
+                ),
               ],
             ),
           ),
@@ -132,12 +159,18 @@ class _Step4PlanState extends State<Step4Plan> {
         final selected = _selectedPace == i;
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(left: i == 0 ? 0 : 6, right: i == 2 ? 0 : 6),
+            padding: EdgeInsets.only(
+              left: i == 0 ? 0 : 6,
+              right: i == 2 ? 0 : 6,
+            ),
             child: GestureDetector(
               onTap: () => setState(() => _selectedPace = i),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 8,
+                ),
                 decoration: BoxDecoration(
                   color: selected ? _accentBg : _cardBg,
                   borderRadius: BorderRadius.circular(16),
@@ -164,7 +197,9 @@ class _Step4PlanState extends State<Step4Plan> {
                       _paceDescriptions[i],
                       style: TextStyle(
                         fontSize: 11,
-                        color: selected ? _accent.withValues(alpha: 0.7) : _textSecondary,
+                        color: selected
+                            ? _accent.withValues(alpha: 0.7)
+                            : _textSecondary,
                       ),
                     ),
                   ],
@@ -176,5 +211,4 @@ class _Step4PlanState extends State<Step4Plan> {
       }),
     );
   }
-
 }

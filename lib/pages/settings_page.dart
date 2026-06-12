@@ -31,7 +31,7 @@ class SettingsPage extends StatelessWidget {
             side: const BorderSide(color: AppColors.sageBorder),
           ),
           child: ListTile(
-            leading: Icon(Icons.person, color: AppColors.sageMuted),
+            leading: const Icon(Icons.person, color: AppColors.sageMuted),
             title: const Text('切换人物'),
             subtitle: const Text('从角色库中挑选新的同行者'),
             trailing: const Icon(
