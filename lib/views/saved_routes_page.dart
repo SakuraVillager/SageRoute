@@ -1,11 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../components/ticket_card.dart';
 import '../components/sage_tab_bar.dart';
 import '../data/mock_routes.dart' as routes;
 import '../data/mock_figures.dart' as figures;
-import '../models/new_route_draft.dart';
 import '../theme/color_schemes.dart';
 
 /// 收藏页，匹配 Web 版 SavedRoutes.tsx 视觉风格。
@@ -18,12 +15,10 @@ class SavedRoutesPage extends StatefulWidget {
   const SavedRoutesPage({
     super.key,
     this.onRouteTap,
-    this.createdRoutesListenable,
   });
 
   /// Callback when a route card is tapped.
   final void Function(String routeId)? onRouteTap;
-  final ValueListenable<List<NewRouteDraft>>? createdRoutesListenable;
 
   @override
   State<SavedRoutesPage> createState() => _SavedRoutesPageState();
@@ -42,18 +37,6 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final listenable = widget.createdRoutesListenable;
-    if (listenable == null) {
-      return _buildScaffold(const <NewRouteDraft>[]);
-    }
-
-    return ValueListenableBuilder<List<NewRouteDraft>>(
-      valueListenable: listenable,
-      builder: (context, createdRoutes, _) => _buildScaffold(createdRoutes),
-    );
-  }
-
-  Widget _buildScaffold(List<NewRouteDraft> createdRoutes) {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       body: SafeArea(
@@ -63,9 +46,9 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
-              _buildTabBar(createdRoutes),
+              _buildTabBar(),
               const SizedBox(height: 24),
-              _buildTabContent(createdRoutes),
+              _buildTabContent(),
               // Bottom nav spacing
               const SizedBox(height: 80),
             ],
@@ -104,10 +87,10 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
   // ── Tab Bar ──
 
-  Widget _buildTabBar(List<NewRouteDraft> createdRoutes) {
+  Widget _buildTabBar() {
     final tabLabels = _tabs.asMap().entries.map((e) {
       final showCount = e.key == 0;
-      final count = _savedRoutes.length + createdRoutes.length;
+      final count = _savedRoutes.length;
       return showCount ? '${e.value} ($count)' : e.value;
     }).toList();
 
@@ -121,10 +104,10 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
   // ── Tab Content ──
 
-  Widget _buildTabContent(List<NewRouteDraft> createdRoutes) {
+  Widget _buildTabContent() {
     switch (_selectedTab) {
       case 0:
-        return _buildSavedRoutes(createdRoutes);
+        return _buildSavedRoutes();
       case 1:
         return _buildPlaceholderTab(Icons.people_outline, '历史人物');
       case 2:
@@ -164,9 +147,9 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
   // ── Saved Routes List ──
 
-  Widget _buildSavedRoutes(List<NewRouteDraft> createdRoutes) {
+  Widget _buildSavedRoutes() {
     final savedRoutes = _savedRoutes;
-    if (createdRoutes.isEmpty && savedRoutes.isEmpty) {
+    if (savedRoutes.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: SizedBox(
@@ -201,17 +184,6 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          for (final route in createdRoutes)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TicketCard(
-                title: route.title,
-                dateRange: route.dateRange,
-                memberText: '全新规划的旅程',
-                duration: route.duration,
-                distance: route.distance,
-              ),
-            ),
           for (final route in savedRoutes)
             Padding(
               padding: const EdgeInsets.only(bottom: 24),

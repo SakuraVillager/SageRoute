@@ -56,3 +56,5 @@ broken.txt
 .sisyphus/
 
 sageroute/
+# claude
+CLAUDE.md

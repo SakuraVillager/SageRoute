@@ -227,9 +227,9 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _tabs = [
-      const HomePage(),
+      HomePage(createdRoutesListenable: _newRouteDrafts),
       const FiguresListPage(),
-      SavedRoutesPage(createdRoutesListenable: _newRouteDrafts),
+      const SavedRoutesPage(),
       ProfilePage(onDebugRouteTap: _pushCreateRouteWizard),
     ];
   }
@@ -274,9 +274,21 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _handleNewRouteComplete(NewRouteDraft draft) {
+    debugPrint('[MainScreen] onComplete draft=${draft.id} title=${draft.title}');
+    debugPrint('[MainScreen] before set value len=${_newRouteDrafts.value.length}');
+
     _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
+
     if (!mounted) return;
-    setState(() => _showNewRouteTheatre = false);
+    setState(() {
+      _showNewRouteTheatre = false;
+      // Switch to Home (nav index 0) so the user sees the newly created route immediately.
+      _selectedIndex = 0;
+      // Ensure the home tab is built.
+      _builtTabs.add(0);
+    });
+
+    debugPrint('[MainScreen] after setState selectedIndex=$_selectedIndex builtTabs=$_builtTabs newValueLen=${_newRouteDrafts.value.length}');
   }
 
   // ignore: unused_element — kept for future CelebritySelection overlay access.

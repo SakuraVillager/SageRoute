@@ -12,8 +12,6 @@ enum _TheatrePhase {
   flyIn,
   zoomTitle,
   datePicker,
-  archiveTop,
-  archiveSlot,
 }
 
 class NewRouteTheatreOverlay extends StatefulWidget {
@@ -43,7 +41,6 @@ class _NewRouteTheatreOverlayState extends State<NewRouteTheatreOverlay> {
   _TheatrePhase _phase = _TheatrePhase.hidden;
   bool _showPanel = false;
   bool _showCalendar = false;
-  bool _fadeBackground = false;
 
   String _title = '';
   String _dateRange = '';
@@ -124,28 +121,30 @@ class _NewRouteTheatreOverlayState extends State<NewRouteTheatreOverlay> {
       return;
     }
 
-    setState(() {
-      _showPanel = false;
-      _fadeBackground = true;
-      _phase = _TheatrePhase.archiveTop;
+    final draft = NewRouteDraft(
+      id: 'new-route-${DateTime.now().microsecondsSinceEpoch}',
+      title: _title,
+      dateRange: _dateRange,
+      duration: _duration,
+      distance: _distance,
+    );
+
+    // Cancel pending timers (archive animation) so no delayed callbacks run after completion.
+    for (final t in _timers) {
+      t.cancel();
+    }
+    _timers.clear();
+
+    // Immediately deliver the draft to parent on the next frame; this avoids
+    // re-entrant setState between the overlay and its parent which can cause
+    // race conditions on some devices.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onComplete(draft);
     });
 
-    _later(const Duration(milliseconds: 550), () {
-      _setPhase(_TheatrePhase.archiveSlot);
-
-      _later(const Duration(milliseconds: 450), () {
-        if (!mounted) return;
-        widget.onComplete(
-          NewRouteDraft(
-            id: 'new-route-${DateTime.now().microsecondsSinceEpoch}',
-            title: _title,
-            dateRange: _dateRange,
-            duration: _duration,
-            distance: _distance,
-          ),
-        );
-      });
-    });
+    // Cleanup UI focus
+    _titleFocusNode.unfocus();
   }
 
   void _selectDay(int day) {
@@ -202,10 +201,8 @@ class _NewRouteTheatreOverlayState extends State<NewRouteTheatreOverlay> {
           final size = Size(constraints.maxWidth, constraints.maxHeight);
           return Stack(
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 550),
-                curve: Curves.easeOutCubic,
-                color: _fadeBackground ? _bgPage.withValues(alpha: 0) : _bgPage,
+              Container(
+                color: _bgPage,
               ),
               _buildTheatreCard(size),
               _buildInputPanel(size),
@@ -276,22 +273,6 @@ class _NewRouteTheatreOverlayState extends State<NewRouteTheatreOverlay> {
           opacity: 1,
           duration: const Duration(milliseconds: 850),
           curve: Curves.easeOutCubic,
-        );
-      case _TheatrePhase.archiveTop:
-        return const _CardGeometry(
-          top: 20,
-          scale: 1,
-          opacity: 1,
-          duration: Duration(milliseconds: 550),
-          curve: Curves.easeOutCubic,
-        );
-      case _TheatrePhase.archiveSlot:
-        return const _CardGeometry(
-          top: 64,
-          scale: 1,
-          opacity: 1,
-          duration: Duration(milliseconds: 450),
-          curve: Curves.easeOutBack,
         );
     }
   }
