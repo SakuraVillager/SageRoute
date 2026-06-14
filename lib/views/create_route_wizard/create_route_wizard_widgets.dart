@@ -1,4 +1,4 @@
-part of 'new_route_theatre_overlay.dart';
+part of 'create_route_wizard.dart';
 
 class _CardGeometry {
   const _CardGeometry({
@@ -29,11 +29,11 @@ class _TheatreTicketCard extends StatelessWidget {
   final String duration;
   final String distance;
 
-  static const _ticketLeft = _NewRouteTheatreOverlayState._ticketLeft;
-  static const _ticketRight = _NewRouteTheatreOverlayState._ticketRight;
-  static const _textMain = _NewRouteTheatreOverlayState._textMain;
-  static const _textSub = _NewRouteTheatreOverlayState._textSub;
-  static const _accent = _NewRouteTheatreOverlayState._accent;
+  static const _ticketLeft = _CreateRouteWizardState._ticketLeft;
+  static const _ticketRight = _CreateRouteWizardState._ticketRight;
+  static const _textMain = _CreateRouteWizardState._textMain;
+  static const _textSub = _CreateRouteWizardState._textSub;
+  static const _accent = _CreateRouteWizardState._accent;
 
   @override
   Widget build(BuildContext context) {
@@ -217,8 +217,8 @@ class _StubInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const textSub = _NewRouteTheatreOverlayState._textSub;
-    const textMain = _NewRouteTheatreOverlayState._textMain;
+    const textSub = _CreateRouteWizardState._textSub;
+    const textMain = _CreateRouteWizardState._textMain;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -253,7 +253,7 @@ class _SkeletonLine extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: _NewRouteTheatreOverlayState._skeletonColor,
+        color: _CreateRouteWizardState._skeletonColor,
         borderRadius: BorderRadius.circular(7),
       ),
     );
@@ -276,7 +276,7 @@ class _PunchHole extends StatelessWidget {
         width: 18,
         height: 18,
         decoration: const BoxDecoration(
-          color: _NewRouteTheatreOverlayState._bgPage,
+          color: _CreateRouteWizardState._bgPage,
           shape: BoxShape.circle,
         ),
       ),
@@ -290,7 +290,7 @@ class _StubDividerPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = _NewRouteTheatreOverlayState._lineColor
+      ..color = _CreateRouteWizardState._lineColor
       ..strokeWidth = 1;
     const dashWidth = 4.0;
     const dashSpace = 4.0;
@@ -346,14 +346,14 @@ class _PanelTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: _NewRouteTheatreOverlayState._textSub),
+          Icon(icon, size: 16, color: _CreateRouteWizardState._textSub),
           const SizedBox(width: 6),
           Text(
             text,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: _NewRouteTheatreOverlayState._textSub,
+              color: _CreateRouteWizardState._textSub,
             ),
           ),
         ],
@@ -417,7 +417,7 @@ class _WeekHeader extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  color: _NewRouteTheatreOverlayState._textSub,
+                  color: _CreateRouteWizardState._textSub,
                 ),
               ),
             ),
@@ -454,10 +454,10 @@ class _DayCell extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: isSelected
-              ? _NewRouteTheatreOverlayState._accent
+              ? _CreateRouteWizardState._accent
               : inRange
-              ? _NewRouteTheatreOverlayState._calendarRangeBg
-              : Colors.transparent,
+                  ? _CreateRouteWizardState._calendarRangeBg
+                  : Colors.transparent,
           shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
         ),
         child: Center(
@@ -468,7 +468,7 @@ class _DayCell extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: isSelected
                   ? Colors.white
-                  : _NewRouteTheatreOverlayState._textMain,
+                  : _CreateRouteWizardState._textMain,
             ),
           ),
         ),

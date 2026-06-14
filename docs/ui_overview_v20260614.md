@@ -1,6 +1,6 @@
 # SageRoute UI 说明文档
 
-**版本**: v20260612 | **最后更新**: 2026-06-12 | **平台**: Flutter (Material 3)
+**版本**: v20260614 | **最后更新**: 2026-06-14 | **平台**: Flutter (Material 3)
 
 > 本文档按页面分类，说明 `lib/` 下每个 UI 代码块对应的可视化功能，帮助后续程序员快速理解进度与结构。
 
@@ -17,15 +17,14 @@
 7. [景点详情 (LocationDetailPage)](#7-景点详情-locationdetailpage)
 8. [创建路线向导 (CreateRouteWizard)](#8-创建路线向导-createroutewizard)
 9. [路线规划 (RoutePlannerPage)](#9-路线规划-routeplannerpage)
-10. [新路线剧场弹层 (NewRouteTheatreOverlay)](#10-新路线剧场弹层-newroutetheatreoverlay)
-11. [收藏页 (SavedRoutesPage)](#11-收藏页-savedroutespage)
-12. [个人页 (ProfilePage)](#12-个人页-profilepage)
-13. [地图探索 (MapExplorerPage)](#13-地图探索-mapexplorerpage)
-14. [导览页 (GuidePage)](#14-导览页-guidepage)
-15. [名人选择 (CelebritySelectionPage)](#15-名人选择-celebrityselectionpage)
-16. [设置页 (SettingsPage)](#16-设置页-settingspage)
-17. [共享组件](#17-共享组件)
-18. [主题系统](#18-主题系统)
+10. [收藏页 (SavedRoutesPage)](#10-收藏页-savedroutespage)
+11. [个人页 (ProfilePage)](#11-个人页-profilepage)
+12. [地图探索 (MapExplorerPage)](#12-地图探索-mapexplorerpage)
+13. [导览页 (GuidePage)](#13-导览页-guidepage)
+14. [名人选择 (CelebritySelectionPage)](#14-名人选择-celebrityselectionpage)
+15. [设置页 (SettingsPage)](#15-设置页-settingspage)
+16. [共享组件](#16-共享组件)
+17. [主题系统](#17-主题系统)
 
 ---
 
@@ -37,7 +36,7 @@
 |---------|------|-----------|
 | `SageRouteApp` | 80-146 | 应用根组件。初始化 DatabaseService → 解析高德 Key → 渲染 `AppLaunchDecider` |
 | `AppLaunchDecider` | 148-199 | 判断是否显示引导页：`SharedPreferences` 中 `hasSeenOnboarding` 为 false → LandingPage，否则 → MainScreen |
-| `MainScreen` | 201-335 | **主导航框架**。4-tab IndexedStack（惰性构建，防 ANR）+ 底部自定义导航栏 + 剧场弹层 Overlay |
+| `MainScreen` | 201-347 | **主导航框架**。4-tab IndexedStack（惰性构建，防 ANR）+ 底部自定义导航栏 + 规划按钮 push 路线向导 |
 | `_resolveAmapKey()` | 36-61 | 高德 Key 解析链: dart-define → assets/env.env → dart_define.json → missing |
 
 **导航结构**: LandingPage → MainScreen (4 tabs) + 可 push: CreateRouteWizard + FigureDetailPage + LocationDetailPage + GuidePage
@@ -68,11 +67,11 @@
 
 | 行号 | 功能 |
 |------|------|
-| 209-235 | 状态: `_selectedIndex`, 4 个 tabs + 剧场弹层 + 名人弹层 |
+| 208-213 | 状态: `_selectedIndex`, 4 个 tabs + 名人弹层 + `_newRouteDrafts` 路线草稿列表 |
 | 219-220 | 惰性 tab 构建: 只首次访问时才构建页面 |
 | 224 | `_navToTab` 映射: 导航栏 0→首页, 1→人物, 3→收藏, 4→我的 |
-| 254-265 | 中间按钮(索引2)触发 `NewRouteTheatreOverlay` |
-| 294-335 | `Stack` 布局: 底部导航栏始终显示 + 全屏 Overlay 弹层 |
+| 242-258 | 中间按钮(索引2)触发 `Navigator.push(CreateRouteWizard)`，await 返回 `NewRouteDraft`，存入列表 + 跳转首页 + 显示 SnackBar "行程已保存" |
+| 304-347 | `Stack` 布局: 底部导航栏始终显示 + 可选名人选择 Overlay 弹层 |
 
 ### `lib/components/bottom_nav.dart` — SageRouteBottomNav
 
@@ -174,20 +173,36 @@
 ## 8. 创建路线向导 (CreateRouteWizard)
 
 **文件**: `lib/views/create_route_wizard/create_route_wizard.dart`  
-**步骤文件**: `lib/views/create_route_wizard/steps/step{1,2,3,4}_*.dart`
+**Part 文件**: `lib/views/create_route_wizard/create_route_wizard_widgets.dart` — 剧场票据卡片、日历、面板等共享组件  
+**步骤文件**: `lib/views/create_route_wizard/steps/step{1,2,3}_*.dart`
 
-4 步全屏创建路线流程。
+4 步全屏创建路线流程（2026-06-14 合并：原 NewRouteTheatreOverlay 的剧场入场 + 日历选择现为 Step 1）。
 
 ### 框架 (create_route_wizard.dart)
 
-| 代码 | 行号 | 功能 |
-|-----|------|------|
-| Header | 124-173 | 返回按钮 + `STEP X OF 4` 标注 + 步骤标题 |
-| 进度条 | 178-200 | 4 段横条: 已完成「陶土色」/ 未完成「浅灰」动画过渡 |
-| AnimatedSwitcher | 227-252 | 滑动切换动画(前进后退方向不同) |
-| 底部按钮 | 256-300 | `下一步` / `保存行程` 按钮，禁用态判断 |
+| 代码 | 功能 |
+|------|------|
+| `CreateRouteWizard` | **无参数** Widget。通过 `Navigator.push` 进入，`pop(NewRouteDraft)` 返回结果，null 表示取消 |
+| Header | 返回按钮(圆圈箭头) + `STEP X OF 4` 标注 + 步骤标题 |
+| 进度条 | 4 段横条: 已完成「陶土色」/ 未完成「浅灰」动画过渡 |
+| PopScope | `canPop: _currentStep == 1` — 步骤 2/3/4 时系统返回先回退到上一步 |
+| 底部按钮 | 步骤 2-3: `下一步`；步骤 4: `保存行程`（含禁用态判断）；步骤 1 无底部按钮(由面板内按钮接管) |
+| 归档动画 | 步骤 4 点击保存后: 半透明遮罩覆盖层 + 缩放对勾图标 + "行程已保存" 文字 → 1.8s 后 `pop(draft)` 返回 |
 
-### Step 1 — 选择人物 (step1_figure.dart)
+### Step 1 — 行程规划 / 剧场入场 (原 NewRouteTheatreOverlay)
+
+| 阶段/代码 | 可视化效果 |
+|----------|-----------|
+| `_TheatrePhase` 状态机 | 4 阶段: hidden → flyIn → zoomTitle → datePicker |
+| 入场动画 | 票据从下方飞入(850ms easeOutBack) → 放大标题进入焦点(950ms) → 显示输入面板 |
+| 票据卡片 (`_TheatreTicketCard`) | 左右分色(白/米) + 打孔缺口 + 左:定位图标/标题/日期 + 右:TRAVEL JOURNAL/时长/里程 |
+| 空态骨架屏 | 标题/日期为空时显示灰色骨架线动画 |
+| 标题输入面板 | `行程标题` TextField + `继续选取日期` 确认按钮 |
+| 日历选择面板 | 6月日历网格(30天), 日期范围选择 + 起点/终点陶土圆 + 区间半透明高亮 |
+| `_DayCell` | 单日格子: 起点/终点圆形陶土色, 区间半透明, 未选中无背景 |
+| 完成按钮 | `完成并开始规划` → 进入 Step 2 |
+
+### Step 2 — 选择人物 (step1_figure.dart)
 
 | 代码 | 功能 |
 |------|------|
@@ -196,7 +211,7 @@
 | 选中态 | 背景高亮 + 头像色变化 + 圆形 check 图标 |
 | 查看详情 | 每个条目右侧 info 按钮 → FigureDetailPage |
 
-### Step 2 — 选择主题 (step2_theme.dart)
+### Step 3 — 选择主题 (step2_theme.dart)
 
 | 代码 | 功能 |
 |------|------|
@@ -204,7 +219,7 @@
 | 选中态 | 边框变为陶土色 + check 圆圈 |
 | 预览区 | 选中后显示横向预览图片(带渐变遮罩和标签) |
 
-### Step 3 — 探索地图 (step3_map.dart)
+### Step 4 — 探索地图 (step3_map.dart)
 
 | 代码 | 功能 |
 |------|------|
@@ -214,13 +229,7 @@
 | 右侧可用地点 | 点击添加，按名字排序 |
 | 面板拉手 | 顶部横条拖动指示器 |
 
-### Step 4 — 行程规划 (step4_plan.dart)
-
-| 代码 | 功能 |
-|------|------|
-| 日期卡片 | 出发日期 + 返程日期(硬编码示例数据) |
-| 游览节奏 | 3选1: 悠闲(每天2-3处) / 适中(3-4处) / 紧凑(5处以上) |
-| 选中态 | 背景变色 + 边框突出 |
+**注意**: 原 `step4_plan.dart`（行程规划页）已被 Step 1 的剧院流程取代，该文件保留但不再在向导中使用。
 
 ---
 
@@ -237,26 +246,7 @@
 
 ---
 
-## 10. 新路线剧场弹层 (NewRouteTheatreOverlay)
-
-**文件**: `lib/views/new_route_theatre_overlay.dart` + `new_route_theatre_widgets.dart`
-
-全屏动画弹层，从底部导航栏"规划"按钮触发。
-
-| 阶段/代码 | 行号 | 可视化效果 |
-|----------|------|-----------|
-| `int _phase` | 42 | 6 阶段状态机: hidden → flyIn → zoomTitle → datePicker → archiveTop → archiveSlot |
-| 入场动画 | 72-84 | 票据从下方飞入 → 放大标题进入焦点 → 显示输入面板 |
-| 票据卡片 | 40-68 (`_TheatreTicketCard`) | 左右分色(白/米) + 打孔缺口 + 左:定位图标/标题/日期 + 右:TRAVEL JOURNAL/时长/里程 |
-| 空态骨架屏 | 184-261 | 标题/日期为空时显示灰色骨架线动画 |
-| 标题输入 | 323-363 | `行程标题` 输入框 + 确认按钮 `继续选取日期` |
-| 日历选择 | 366-408 | 6月日历网格(30天), 范围选择 + 已选范围高亮 |
-| 归档动画 | 130-147 | 选择完成 → 票据缩小 → 左上角落 → 销毁并传递数据给 HomePage |
-| `_DayCell` | 430-478 | 单日格子: 起点/终点圆形陶土色, 区间半透明, 未选中无背景 |
-
----
-
-## 11. 收藏页 (SavedRoutesPage)
+## 10. 收藏页 (SavedRoutesPage)
 
 **文件**: `lib/views/saved_routes_page.dart`
 
@@ -270,7 +260,7 @@
 
 ---
 
-## 12. 个人页 (ProfilePage)
+## 11. 个人页 (ProfilePage)
 
 **文件**: `lib/views/profile_page.dart`
 
@@ -285,7 +275,7 @@
 
 ---
 
-## 13. 地图探索 (MapExplorerPage)
+## 12. 地图探索 (MapExplorerPage)
 
 **文件**: `lib/views/map_explorer_page.dart`
 
@@ -301,7 +291,7 @@
 
 ---
 
-## 14. 导览页 (GuidePage)
+## 13. 导览页 (GuidePage)
 
 **文件**: `lib/pages/guide/guide_page.dart` + 5 个 `part` 文件
 
@@ -320,7 +310,7 @@
 
 ---
 
-## 15. 名人选择 (CelebritySelectionPage)
+## 14. 名人选择 (CelebritySelectionPage)
 
 **文件**: `lib/pages/celebrity_selection/celebrity_selection_page.dart`  
 **Part 文件**: `celebrity_overlay_animation.dart`, `celebrity_overlay_painter.dart`, `celebrity_carousel_widgets.dart`
@@ -338,7 +328,7 @@
 
 ---
 
-## 16. 设置页 (SettingsPage)
+## 15. 设置页 (SettingsPage)
 
 **文件**: `lib/pages/settings_page.dart`
 
@@ -349,12 +339,12 @@
 
 ---
 
-## 17. 共享组件
+## 16. 共享组件
 
 | 组件文件 | 用途 |
 |---------|------|
 | `lib/components/bottom_nav.dart` | 5-tab 自定义底部导航栏 |
-| `lib/components/ticket_card.dart` | 行程票据卡片（首页/剧场弹层复用） |
+| `lib/components/ticket_card.dart` | 行程票据卡片（首页复用） |
 | `lib/components/detail_content_section.dart` | 详情页段落包装（标题 — 副标题 + 内容 + 可选"查看全部"） |
 | `lib/components/detail_circle_button.dart` | 详情页圆形小按钮（返回/收藏/分享） |
 | `lib/components/detail_scroll_tab_bar.dart` | 详情页可滑动的吸顶 Tab 栏 |
@@ -365,7 +355,7 @@
 
 ---
 
-## 18. 主题系统
+## 17. 主题系统
 
 **文件**: `lib/theme/color_schemes.dart` / `app_theme.dart` / `components.dart` / `typography.dart`
 
@@ -401,8 +391,7 @@ primaryLight  #C37153   — 浅色主要色
 - ✅ 人物列表 (FiguresListPage) — 筛选栏 + 精选卡片 + 双列网格
 - ✅ 人物详情 (FigureDetailPage) — 5 段 Tab 滚动
 - ✅ 景点详情 (LocationDetailPage) — 5 段 Tab + 图片网格
-- ✅ 创建路线向导 (CreateRouteWizard) — 4 步完整流程
-- ✅ 新路线剧场 (NewRouteTheatreOverlay) — 全屏动画弹层
+- ✅ 创建路线向导 (CreateRouteWizard) — 4 步合并流程：剧场入场+日历(Step1) → 人物(Step2) → 主题(Step3) → 地图(Step4) + 归档动画
 - ✅ 收藏页 (SavedRoutesPage) — 路线卡片展示 + 空态
 - ✅ 个人页 (ProfilePage) — 头像 + 成就 + 设置列表
 - ✅ 地图探索 (MapExplorerPage) — AMap + UI 覆盖层

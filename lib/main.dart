@@ -15,7 +15,6 @@ import 'views/landing_page.dart';
 import 'views/home_page.dart';
 import 'views/figures_list_page.dart';
 import 'views/create_route_wizard/create_route_wizard.dart';
-import 'views/new_route_theatre_overlay.dart';
 import 'views/saved_routes_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
@@ -208,7 +207,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
-  bool _showNewRouteTheatre = false;
   final _newRouteDrafts = ValueNotifier<List<NewRouteDraft>>(
     const <NewRouteDraft>[],
   );
@@ -240,22 +238,32 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  void _pushCreateRouteWizard() {
-    Navigator.of(context).push(
-      slideFromRightRoute(
-        CreateRouteWizard(
-          onExit: () => Navigator.of(context).pop(),
-          onComplete: () => Navigator.of(context).pop(),
-        ),
-      ),
+  Future<void> _pushCreateRouteWizard() async {
+    final draft = await Navigator.of(context).push<NewRouteDraft>(
+      slideFromRightRoute(const CreateRouteWizard()),
     );
+    if (draft == null || !mounted) return;
+    _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
+    setState(() {
+      _selectedIndex = 0;
+      _builtTabs.add(0);
+    });
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('行程已保存'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
   }
 
   void _onItemTapped(int navIndex) {
-    if (_showCelebrityOverlay || _showNewRouteTheatre) return;
-    // The center planning action opens the theatre-style ticket builder.
+    if (_showCelebrityOverlay) return;
     if (navIndex == 2) {
-      _openNewRouteTheatre();
+      _pushCreateRouteWizard();
       return;
     }
     final tabIndex = _navToTab[navIndex]!;
@@ -263,32 +271,6 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = navIndex;
       _builtTabs.add(tabIndex);
     });
-  }
-
-  void _openNewRouteTheatre() {
-    setState(() {
-      _selectedIndex = 3;
-      _builtTabs.add(2);
-      _showNewRouteTheatre = true;
-    });
-  }
-
-  void _handleNewRouteComplete(NewRouteDraft draft) {
-    debugPrint('[MainScreen] onComplete draft=${draft.id} title=${draft.title}');
-    debugPrint('[MainScreen] before set value len=${_newRouteDrafts.value.length}');
-
-    _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
-
-    if (!mounted) return;
-    setState(() {
-      _showNewRouteTheatre = false;
-      // Switch to Home (nav index 0) so the user sees the newly created route immediately.
-      _selectedIndex = 0;
-      // Ensure the home tab is built.
-      _builtTabs.add(0);
-    });
-
-    debugPrint('[MainScreen] after setState selectedIndex=$_selectedIndex builtTabs=$_builtTabs newValueLen=${_newRouteDrafts.value.length}');
   }
 
   // ignore: unused_element — kept for future CelebritySelection overlay access.
@@ -305,13 +287,11 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // Body — always full-screen; nav bar is an overlay, not inside Scaffold.
         Scaffold(
           extendBody: true,
           body: Stack(
             fit: StackFit.expand,
             children: List.generate(_tabs.length, (index) {
-              // 只有访问过的 tab 才构建，其余用空 Container 占位。
               if (!_builtTabs.contains(index)) {
                 return const SizedBox.shrink();
               }
@@ -320,7 +300,6 @@ class _MainScreenState extends State<MainScreen> {
             }),
           ),
         ),
-        // Bottom nav — 始终显示。
         Positioned(
           left: 0,
           right: 0,
@@ -330,10 +309,6 @@ class _MainScreenState extends State<MainScreen> {
             onTap: _onItemTapped,
           ),
         ),
-        if (_showNewRouteTheatre)
-          Positioned.fill(
-            child: NewRouteTheatreOverlay(onComplete: _handleNewRouteComplete),
-          ),
         if (_showCelebrityOverlay)
           Positioned.fill(
             child: CelebritySelectionPage(

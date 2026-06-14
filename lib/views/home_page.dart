@@ -22,6 +22,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   late List<NewRouteDraft> _items;
   VoidCallback? _listener;
 
@@ -47,28 +48,36 @@ class _HomePageState extends State<HomePage> {
     try {
       final newList = widget.createdRoutesListenable!.value;
       if (newList.length > _items.length) {
-        // Inserted at front in MainScreen logic
+        // New item inserted at front.
         final inserted = newList.firstWhere(
           (n) => !_items.any((o) => o.id == n.id),
           orElse: () => newList.first,
         );
 
         if (!mounted) return;
-        setState(() => _items = [inserted, ..._items]);
-
-        // Skipping AnimatedList insert — using simple list rendering for now.
-        debugPrint('[HomePage] inserted into _items (no animated insert)');
+        // Defer BOTH _items update and insertItem to postFrameCallback.
+        // The MainScreen needs to rebuild first (showing HomePage tab)
+        // so AnimatedList is created with the correct (old) initialItemCount.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _items = [inserted, ..._items];
+          try {
+            _listKey.currentState?.insertItem(0, duration: const Duration(milliseconds: 450));
+          } catch (e, st) {
+            debugPrint('AnimatedList insertItem error: $e\n$st');
+          }
+        });
         return;
       }
 
+      // For removals/resets — use setState since we aren't animating those.
       if (newList.length < _items.length) {
-        // Simple non-animated sync for removals or resets
         if (!mounted) return;
         setState(() => _items = List<NewRouteDraft>.from(newList));
         return;
       }
 
-      // Same length — replace if different
+      // Same length, different content — replace.
       if (!listEquals(_items, newList)) {
         if (!mounted) return;
         setState(() => _items = List<NewRouteDraft>.from(newList));
@@ -183,19 +192,30 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Animated list for freshly created routes
-          // NOTE: Temporarily rendering as a simple Column for reliability.
-          for (final route in _items)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TicketCard(
-                title: route.title,
-                dateRange: route.dateRange,
-                memberText: '全新规划的旅程',
-                duration: route.duration,
-                distance: route.distance,
-              ),
-            ),
+          // AnimatedList for freshly created routes (insert animation)
+          AnimatedList(
+            key: _listKey,
+            initialItemCount: _items.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index, animation) {
+              final route = _items[index];
+              return SizeTransition(
+                sizeFactor: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                axisAlignment: -1.0,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TicketCard(
+                    title: route.title,
+                    dateRange: route.dateRange,
+                    memberText: '全新规划的旅程',
+                    duration: route.duration,
+                    distance: route.distance,
+                  ),
+                ),
+              );
+            },
+          ),
 
           // Preset example cards (always shown)
           TicketCard(
