@@ -52,6 +52,23 @@ class TopicRepository {
     return exactMatched;
   }
 
+  /// 按 ID 获取单个主题。
+  Future<TopicRecord?> fetchTopicById(int id) async {
+    if (_fetcher != null) {
+      final all = await _fetcher();
+      for (final t in all) {
+        if (t.id == id) return t;
+      }
+      return null;
+    }
+    final results = await _tableRepository.fetchAll<TopicRecord>(
+      mapper: TopicRecord.fromMap,
+      equals: {'id': id},
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   String _normalizeName(String value) {
     return value.replaceAll(RegExp(r'[\s\u3000]+'), '').trim();
   }

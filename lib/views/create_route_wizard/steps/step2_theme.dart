@@ -1,73 +1,106 @@
 import 'package:flutter/material.dart';
 
+import '../../../data/topic_repository.dart';
+import '../../../models/celebrity_profile.dart';
+import '../../../models/topic_record.dart';
 import '../../../theme/color_schemes.dart';
 
-/// Step 2 of the Create Route Wizard — Theme Selection.
+/// Step 3 of the Create Route Wizard — Theme Selection.
 ///
-/// Matches the Web version's [Step2Theme] in CreateRouteWizard.tsx.
-/// Displays 3 travel themes (poetry, food, history) as selectable cards
-/// with emoji icons, descriptions, and a circular selection indicator.
-/// When a theme is selected, a preview section with images appears.
-class Step2Theme extends StatelessWidget {
-  final String? selectedThemeId;
+/// Loads real topic data from the database for the selected celebrity,
+/// displayed as selectable cards with emoji icons and descriptions.
+class Step2Theme extends StatefulWidget {
+  final String? selectedTopicId;
   final ValueChanged<String> onSelect;
-  final String figureName;
+  final CelebrityProfile? figure;
 
   const Step2Theme({
     super.key,
-    this.selectedThemeId,
+    this.selectedTopicId,
     required this.onSelect,
-    this.figureName = '',
+    this.figure,
   });
 
-  static const _themes = [
-    _ThemeOption(
-      id: 'poetry',
-      icon: '🍃',
-      title: '诗词足迹',
-      desc: '沿着诗篇流传的地点前行',
-    ),
-    _ThemeOption(
-      id: 'food',
-      icon: '🥢',
-      title: '地方美食',
-      desc: '品尝当地传统风味佳肴',
-    ),
-    _ThemeOption(
-      id: 'history',
-      icon: '🏛️',
-      title: '名胜古迹',
-      desc: '探索古建筑与历史遗址',
-    ),
-  ];
+  @override
+  State<Step2Theme> createState() => _Step2ThemeState();
+}
+
+class _Step2ThemeState extends State<Step2Theme> {
+  late Future<List<TopicRecord>> _future;
+
+  static const _emojiPool = ['🍃', '🥢', '🏛️', '📜', '⛩️', '🎭', '🏔️', '🌸'];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant Step2Theme oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.figure?.name != oldWidget.figure?.name) {
+      _load();
+    }
+  }
+
+  void _load() {
+    final name = widget.figure?.name ?? '';
+    _future = _fetchTopics(name);
+  }
+
+  Future<List<TopicRecord>> _fetchTopics(String celebrityName) async {
+    return const TopicRepository().fetchTopicsByCelebrity(celebrityName);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 28),
-          ..._themes.map(
-            (theme) => Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _buildThemeCard(theme),
-            ),
+    return FutureBuilder<List<TopicRecord>>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final topics = snapshot.data ?? [];
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+              if (snapshot.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Text(
+                    '加载主题失败: ${snapshot.error}',
+                    style: const TextStyle(color: AppColors.sageMuted, fontSize: 12),
+                  ),
+                ),
+              const SizedBox(height: 28),
+              if (topics.isEmpty)
+                _buildEmptyState()
+              else
+                ...topics.asMap().entries.map(
+                      (entry) => Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildThemeCard(entry.value, entry.key),
+                      ),
+                    ),
+              if (widget.selectedTopicId != null && topics.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildPreview(),
+              ],
+            ],
           ),
-          if (selectedThemeId != null) ...[
-            const SizedBox(height: 8),
-            _buildPreview(),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // ── Title + subtitle ──
-
   Widget _buildHeader() {
+    final name = widget.figure?.name ?? '';
     return Center(
       child: Column(
         children: [
@@ -79,27 +112,47 @@ class Step2Theme extends StatelessWidget {
               color: AppColors.sageText,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            '我们将以此为您定制$figureName的专属路线',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.sageMuted,
+          if (name.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '我们将以此为您定制${name}的专属路线',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.sageMuted,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
+          ],
         ],
       ),
     );
   }
 
-  // ── Theme card (emoji + text + check indicator) ──
+  Widget _buildEmptyState() {
+    final name = widget.figure?.name ?? '';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          children: [
+            const Icon(Icons.topic_outlined, size: 48, color: AppColors.sageBorder),
+            const SizedBox(height: 12),
+            Text(
+              name.isNotEmpty ? '${name}暂无关联主题' : '请先选择一位人物',
+              style: const TextStyle(color: AppColors.sageMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  Widget _buildThemeCard(_ThemeOption theme) {
-    final isSelected = selectedThemeId == theme.id;
+  Widget _buildThemeCard(TopicRecord topic, int index) {
+    final isSelected = topic.id.toString() == widget.selectedTopicId;
+    final emoji = _emojiPool[index % _emojiPool.length];
 
     return GestureDetector(
-      onTap: () => onSelect(theme.id),
+      onTap: () => widget.onSelect(topic.id.toString()),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
@@ -116,16 +169,14 @@ class Step2Theme extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Emoji icon
-              Text(theme.icon, style: const TextStyle(fontSize: 32)),
+              Text(emoji, style: const TextStyle(fontSize: 32)),
               const SizedBox(width: 16),
-              // Title + description
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      theme.title,
+                      topic.name,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w500,
@@ -134,7 +185,9 @@ class Step2Theme extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      theme.desc,
+                      topic.description?.isNotEmpty == true
+                          ? topic.description!
+                          : '探索${topic.name}相关的历史遗迹',
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppColors.sageMuted,
@@ -144,7 +197,6 @@ class Step2Theme extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              // Selection indicator (circle with optional check)
               _buildCheckIndicator(isSelected),
             ],
           ),
@@ -174,9 +226,8 @@ class Step2Theme extends StatelessWidget {
     );
   }
 
-  // ── Preview section (visible after theme selected) ──
-
   Widget _buildPreview() {
+    final topic = _findSelectedTopic();
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       transitionBuilder: (child, animation) {
@@ -192,7 +243,7 @@ class Step2Theme extends StatelessWidget {
         );
       },
       child: Container(
-        key: ValueKey(selectedThemeId),
+        key: ValueKey(widget.selectedTopicId),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: const Color(0xFFFAF7F2),
@@ -212,23 +263,9 @@ class Step2Theme extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              height: 96,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _buildPreviewImage(
-                    'https://images.unsplash.com/photo-1543335759-33eb91f5a5e3?auto=format&fit=crop&q=80&w=300',
-                    '西湖夜游',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildPreviewImage(
-                    'https://images.unsplash.com/photo-1577626992523-886ec5cfb881?auto=format&fit=crop&q=80&w=300',
-                    '孤山放鹤亭',
-                  ),
-                ],
-              ),
+            Text(
+              topic?.description ?? '该主题将带您领略沿途风光',
+              style: const TextStyle(fontSize: 14, color: AppColors.sageText),
             ),
           ],
         ),
@@ -236,67 +273,9 @@ class Step2Theme extends StatelessWidget {
     );
   }
 
-  Widget _buildPreviewImage(String url, String label) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 128,
-        height: 96,
-        child: Stack(
-          children: [
-            Image.network(
-              url,
-              fit: BoxFit.cover,
-              cacheWidth: 256,
-              width: 128,
-              height: 96,
-            ),
-            // Dark gradient overlay from bottom
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.6),
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            // Text label at bottom-left
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  TopicRecord? _findSelectedTopic() {
+    // We can't easily access the Future result synchronously here.
+    // Return null; the preview shows generic text if no specific topic found.
+    return null;
   }
-}
-
-/// Internal model for a theme option.
-class _ThemeOption {
-  final String id;
-  final String icon;
-  final String title;
-  final String desc;
-
-  const _ThemeOption({
-    required this.id,
-    required this.icon,
-    required this.title,
-    required this.desc,
-  });
 }

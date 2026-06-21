@@ -1,0 +1,4 @@
+enum RoutePreferenceType {
+  shortest,
+  diversity,
+}

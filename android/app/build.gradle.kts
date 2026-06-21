@@ -42,3 +42,9 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // 与 amap_map Flutter 插件使用同一统一 SDK，仅提供编译期可见性
+    // （运行时已由 amap_map 的 implementation 依赖提供）
+    compileOnly("com.amap.api:3dmap-location-search:10.1.200_loc6.4.9_sea9.7.4")
+}

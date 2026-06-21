@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../../data/mock_figures.dart';
+import '../../models/celebrity_profile.dart';
 import '../../models/new_route_draft.dart';
 import '../../theme/color_schemes.dart';
 import 'steps/step1_figure.dart';
@@ -63,6 +63,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   // ── Wizard state (steps 2–4) ──
   String? _selectedFigureId;
+  CelebrityProfile? _selectedFigure;
   String? _selectedThemeId;
   List<String> _selectedLocations = [];
 
@@ -70,9 +71,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   bool _archiving = false;
 
   // ── Computed ──
-
-  MockFigure? get _selectedFigure =>
-      _selectedFigureId != null ? findFigureById(_selectedFigureId!) : null;
 
   bool get _isNextDisabled {
     if (_currentStep == 2 && _selectedFigureId == null) return true;
@@ -211,16 +209,15 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   // ── Wizard navigation ──
 
-  void _selectFigure(String id) {
-    setState(() => _selectedFigureId = id);
+  void _selectFigure(String id, CelebrityProfile profile) {
+    setState(() {
+      _selectedFigureId = id;
+      _selectedFigure = profile;
+    });
   }
 
   void _selectTheme(String id) {
     setState(() => _selectedThemeId = id);
-  }
-
-  void _updateLocations(List<String> locations) {
-    setState(() => _selectedLocations = locations);
   }
 
   void _handleNext() {
@@ -400,13 +397,17 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         onSelect: _selectFigure,
       ),
       Step2Theme(
-        selectedThemeId: _selectedThemeId,
+        selectedTopicId: _selectedThemeId,
         onSelect: _selectTheme,
-        figureName: _selectedFigure?.name ?? '',
+        figure: _selectedFigure,
       ),
       Step3Map(
-        selectedLocations: _selectedLocations,
-        onLocationsChanged: _updateLocations,
+        figure: _selectedFigure,
+        topicId: _selectedThemeId,
+        selectedCount: _selectedLocations.length,
+        onLocationsChanged: (count) {
+          setState(() => _selectedLocations = List.filled(count, 'x'));
+        },
       ),
     ];
 

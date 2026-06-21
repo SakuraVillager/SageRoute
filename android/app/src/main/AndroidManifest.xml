@@ -9,6 +9,10 @@
         android:name="${applicationName}"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
+        <!-- 高德地图 SDK Key（地图显示 + 路径规划共用） -->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="836383abb3d61b9ec862c4fff1b4a435" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
