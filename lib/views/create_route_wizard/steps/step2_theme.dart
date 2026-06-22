@@ -11,7 +11,7 @@ import '../../../theme/color_schemes.dart';
 /// displayed as selectable cards with emoji icons and descriptions.
 class Step2Theme extends StatefulWidget {
   final String? selectedTopicId;
-  final ValueChanged<String> onSelect;
+  final void Function(String id, String name) onSelect;
   final CelebrityProfile? figure;
 
   const Step2Theme({
@@ -115,7 +115,7 @@ class _Step2ThemeState extends State<Step2Theme> {
           if (name.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              '我们将以此为您定制${name}的专属路线',
+              '我们将以此为您定制$name的专属路线',
               style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.sageMuted,
@@ -138,7 +138,7 @@ class _Step2ThemeState extends State<Step2Theme> {
             const Icon(Icons.topic_outlined, size: 48, color: AppColors.sageBorder),
             const SizedBox(height: 12),
             Text(
-              name.isNotEmpty ? '${name}暂无关联主题' : '请先选择一位人物',
+              name.isNotEmpty ? '$name暂无关联主题' : '请先选择一位人物',
               style: const TextStyle(color: AppColors.sageMuted),
             ),
           ],
@@ -152,7 +152,7 @@ class _Step2ThemeState extends State<Step2Theme> {
     final emoji = _emojiPool[index % _emojiPool.length];
 
     return GestureDetector(
-      onTap: () => widget.onSelect(topic.id.toString()),
+      onTap: () => widget.onSelect(topic.id.toString(), topic.name),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(

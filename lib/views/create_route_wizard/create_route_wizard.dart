@@ -41,6 +41,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Step titles ──
   static const _stepTitles = ['行程规划', '选择人物', '选择主题', '探索地图'];
 
+  String get _currentStepTitle => _stepTitles[_currentStep - 1];
+
   // ── Step state ──
   int _currentStep = 1;
   int _previousStep = 1;
@@ -67,6 +69,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   String? _selectedThemeId;
   List<String> _selectedLocations = [];
 
+  bool _isTopBarCollapsed = false;
   // ── Archive animation ──
   bool _archiving = false;
 
@@ -213,11 +216,16 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     setState(() {
       _selectedFigureId = id;
       _selectedFigure = profile;
+      _selectedThemeId = null;
+      _selectedLocations = [];
+      _isTopBarCollapsed = false;
     });
   }
 
-  void _selectTheme(String id) {
-    setState(() => _selectedThemeId = id);
+  void _selectTheme(String id, String name) {
+    setState(() {
+      _selectedThemeId = id;
+    });
   }
 
   void _handleNext() {
@@ -225,6 +233,9 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       setState(() {
         _previousStep = _currentStep;
         _currentStep++;
+        if (_currentStep != 4) {
+          _isTopBarCollapsed = false;
+        }
       });
     }
   }
@@ -234,10 +245,15 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       setState(() {
         _previousStep = _currentStep;
         _currentStep--;
+        _isTopBarCollapsed = false;
       });
     } else {
       Navigator.of(context).pop();
     }
+  }
+
+  void _toggleTopBar() {
+    setState(() => _isTopBarCollapsed = !_isTopBarCollapsed);
   }
 
   // ── Save (step 4) ──
@@ -291,10 +307,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             SafeArea(
               child: Column(
                 children: [
-                  _buildHeader(),
-                  const SizedBox(height: 12),
-                  _buildProgressBar(),
-                  const SizedBox(height: 24),
+                  _buildTopBarSection(),
                   Expanded(child: _buildStepContent()),
                   _buildBottomButton(),
                 ],
@@ -302,6 +315,64 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             ),
             if (_archiving) _buildArchiveOverlay(),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ── Top bar: header + progress + step 4 collapse toggle ──
+
+  Widget _buildTopBarSection() {
+    final canCollapse = _currentStep == 4;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: _isTopBarCollapsed && canCollapse
+              ? const SizedBox(width: double.infinity)
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 12),
+                    _buildProgressBar(),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+        ),
+        if (canCollapse) _buildTopBarToggle(),
+        SizedBox(height: canCollapse ? 8 : 12),
+      ],
+    );
+  }
+
+  Widget _buildTopBarToggle() {
+    return GestureDetector(
+      onTap: _toggleTopBar,
+      child: Container(
+        width: 42,
+        height: 24,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFAF7F2),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE8E2D9)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x102B2724),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Icon(
+          _isTopBarCollapsed
+              ? Icons.keyboard_double_arrow_down
+              : Icons.keyboard_double_arrow_up,
+          size: 18,
+          color: const Color(0xFF8A8376),
         ),
       ),
     );
@@ -341,12 +412,16 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                _stepTitles[_currentStep - 1],
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D2825),
+              Flexible(
+                child: Text(
+                  _currentStepTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D2825),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -616,26 +691,22 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
           const SizedBox(height: 10),
           const _WeekHeader(),
           const SizedBox(height: 8),
-          Transform.scale(
-            scaleY: 0.9,
-            alignment: Alignment.topCenter,
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: 30,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                mainAxisSpacing: 6,
-              ),
-              itemBuilder: (context, index) => _DayCell(
-                day: index + 1,
-                startDay: _startDay,
-                endDay: _endDay,
-                onTap: () => _selectDay(index + 1),
-              ),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 30,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 6,
+            ),
+            itemBuilder: (context, index) => _DayCell(
+              day: index + 1,
+              startDay: _startDay,
+              endDay: _endDay,
+              onTap: () => _selectDay(index + 1),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 2),
           _ConfirmButton(
             label: '完成并开始规划',
             icon: Icons.arrow_forward,

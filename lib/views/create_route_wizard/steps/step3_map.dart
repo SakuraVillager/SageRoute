@@ -37,10 +37,13 @@ class Step3Map extends StatefulWidget {
 }
 
 class _Step3MapState extends State<Step3Map> {
-  static const double _panelFraction = 0.38;
+  static const double _initialPanelFraction = 0.38;
+  static const List<double> _panelStops = [0.16, 0.26, 0.38, 0.50, 0.64];
 
+  double _panelFraction = _initialPanelFraction;
   List<RoutePlace> _allPlaces = [];
   List<RoutePlace> _selected = [];
+  List<RoutePlace> _markerPlaces = [];
   bool _loading = true;
   String? _error;
 
@@ -77,8 +80,8 @@ class _Step3MapState extends State<Step3Map> {
     });
 
     try {
-      final locationRepo = const LocationRepository();
-      final topicRepo = const TopicRepository();
+      const locationRepo = LocationRepository();
+      const topicRepo = TopicRepository();
       final themeId = widget.topicId != null ? int.tryParse(widget.topicId!) : null;
 
       List<LocationRecord> raw;
@@ -130,15 +133,62 @@ class _Step3MapState extends State<Step3Map> {
       _allPlaces.where((p) => !_selected.contains(p)).toList();
 
   void _addPlace(RoutePlace place) {
-    setState(() => _selected = [..._selected, place]);
+    setState(() {
+      _selected = [..._selected, place];
+      _markerPlaces = [..._markerPlaces, place];
+    });
     widget.onLocationsChanged(_selected.length);
     _scheduleRoute();
   }
 
   void _removePlace(RoutePlace place) {
-    setState(() => _selected = _selected.where((p) => p != place).toList());
+    setState(() {
+      _selected = _selected.where((p) => p != place).toList();
+      _markerPlaces = _markerPlaces.where((p) => p != place).toList();
+    });
     widget.onLocationsChanged(_selected.length);
     _scheduleRoute();
+  }
+
+  void _reorderSelected(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      final updated = [..._selected];
+      final item = updated.removeAt(oldIndex);
+      updated.insert(newIndex, item);
+      _selected = updated;
+    });
+    _scheduleRoute();
+  }
+
+  void _dragPanel(DragUpdateDetails details) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    if (screenHeight <= 0) return;
+    final next = _panelFraction - details.delta.dy / screenHeight;
+    setState(() {
+      _panelFraction = next
+          .clamp(_panelStops.first, _panelStops.last)
+          .toDouble();
+    });
+  }
+
+  void _settlePanel(DragEndDetails details) {
+    setState(() {
+      _panelFraction = _nearestPanelStop(_panelFraction);
+    });
+  }
+
+  double _nearestPanelStop(double value) {
+    var nearest = _panelStops.first;
+    var minDistance = (value - nearest).abs();
+    for (final stop in _panelStops.skip(1)) {
+      final distance = (value - stop).abs();
+      if (distance < minDistance) {
+        nearest = stop;
+        minDistance = distance;
+      }
+    }
+    return nearest;
   }
 
   void _scheduleRoute() {
@@ -169,7 +219,7 @@ class _Step3MapState extends State<Step3Map> {
 
     // Primary: native AMap SDK (RouteSearch via MethodChannel)
     try {
-      final engine = RoutePlanningEngine(gateway: const NativeAmapGateway());
+      const engine = RoutePlanningEngine(gateway: NativeAmapGateway());
       final bundle = await engine.plan(cmd);
       final route = bundle.routes.isNotEmpty ? bundle.routes.first : null;
       debugPrint('[Step3Map] Native route polylineLen=${route?.polyline?.length} meters=${route?.stats.distanceMeters}');
@@ -191,7 +241,7 @@ class _Step3MapState extends State<Step3Map> {
     if (polyline == null) {
       debugPrint('[Step3Map] Falling back to deterministic...');
       try {
-        final detEngine = RoutePlanningEngine(gateway: const DeterministicAmapGateway());
+        const detEngine = RoutePlanningEngine(gateway: DeterministicAmapGateway());
         final bundle = await detEngine.plan(cmd);
         final route = bundle.routes.isNotEmpty ? bundle.routes.first : null;
         if (route?.polyline != null && route!.polyline!.length >= 2) {
@@ -211,8 +261,9 @@ class _Step3MapState extends State<Step3Map> {
     if (!mounted) return;
 
     if (polyline != null) {
-      debugPrint('[Step3Map] Setting polyline with ${polyline!.length} points');
-      setState(() { _polyline = polyline!; _routeSummary = summary ?? ''; });
+      final plannedPolyline = polyline;
+      debugPrint('[Step3Map] Setting polyline with ${plannedPolyline.length} points');
+      setState(() { _polyline = plannedPolyline; _routeSummary = summary ?? ''; });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fitMap();
       });
@@ -279,7 +330,7 @@ class _Step3MapState extends State<Step3Map> {
                   color: AppColors.primaryLight,
                 )..setIdForCopy('route-main'),
               },
-              markers: _selected.map((place) {
+              markers: _markerPlaces.map((place) {
                 final m = Marker(
                   position: LatLng(place.latitude, place.longitude),
                   infoWindow: InfoWindow(title: place.name),
@@ -310,7 +361,9 @@ class _Step3MapState extends State<Step3Map> {
               ),
             ),
           ),
-        Positioned(
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
           left: 0, right: 0, bottom: 0, height: panelH,
           child: Container(
             decoration: const BoxDecoration(
@@ -328,25 +381,51 @@ class _Step3MapState extends State<Step3Map> {
   Widget _buildPanelContent() {
     return Column(
       children: [
-        const SizedBox(height: 10),
-        Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.sageBorder, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 6),
-        const Row(children: [
-          Expanded(child: _PanelHeader(icon: Icons.check_circle_outline, label: '已选地点', accent: AppColors.primaryLight)),
-          SizedBox(height: 28, child: VerticalDivider(width: 1, color: AppColors.sageBorder)),
-          Expanded(child: _PanelHeader(icon: Icons.place_outlined, label: '可用地点', accent: AppColors.sageGreen)),
-        ]),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onVerticalDragUpdate: _dragPanel,
+          onVerticalDragEnd: _settlePanel,
+          child: Column(
+            children: [
+              const SizedBox(height: 10),
+              Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.sageBorder, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 6),
+              const Row(children: [
+                Expanded(child: _PanelHeader(icon: Icons.check_circle_outline, label: '已选地点', accent: AppColors.primaryLight)),
+                SizedBox(height: 28, child: VerticalDivider(width: 1, color: AppColors.sageBorder)),
+                Expanded(child: _PanelHeader(icon: Icons.place_outlined, label: '可用地点', accent: AppColors.sageGreen)),
+              ]),
+            ],
+          ),
+        ),
         Container(height: 0.5, color: AppColors.sageBorder),
         Expanded(
           child: Row(
             children: [
               Expanded(child: _selected.isEmpty
                   ? const _EmptyHint(icon: Icons.add_location_alt_outlined, text: '从右侧添加地点')
-                  : ListView.builder(
+                  : ReorderableListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      buildDefaultDragHandles: false,
                       itemCount: _selected.length,
+                      onReorder: _reorderSelected,
+                      proxyDecorator: (child, _, animation) {
+                        return AnimatedBuilder(
+                          animation: animation,
+                          builder: (context, child) {
+                            return Material(
+                              color: Colors.transparent,
+                              child: Transform.scale(
+                                scale: 1 + animation.value * 0.03,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: child,
+                        );
+                      },
                       itemBuilder: (_, i) => _SelectedTile(
-                        key: ValueKey(_selected[i].id),
+                        key: ValueKey('selected-${_selected[i].id}'),
                         place: _selected[i], index: i,
                         onRemove: () => _removePlace(_selected[i]),
                       ),
@@ -403,7 +482,7 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-// ── Selected tile (no drag handle — stable) ──
+// ── Selected tile ──
 
 class _SelectedTile extends StatelessWidget {
   const _SelectedTile({super.key, required this.place, required this.index, required this.onRemove});
@@ -415,10 +494,20 @@ class _SelectedTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(10)),
       child: Row(children: [
-        Container(width: 22, height: 22, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7)),
-          child: Center(child: Text('${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)))),
+        ReorderableDragStartListener(
+          index: index,
+          child: Container(width: 22, height: 22, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(7)),
+            child: Center(child: Text('${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)))),
+        ),
         const SizedBox(width: 10),
         Expanded(child: Text(place.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.sageText), overflow: TextOverflow.ellipsis)),
+        ReorderableDragStartListener(
+          index: index,
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(Icons.drag_indicator, size: 16, color: AppColors.sageMuted),
+          ),
+        ),
         GestureDetector(
           onTap: onRemove,
           child: Container(width: 20, height: 20, decoration: BoxDecoration(color: AppColors.sageBorder.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(6)),

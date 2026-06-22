@@ -50,7 +50,6 @@ class RoutePlanningEngine {
               passed: false,
               reason: '地点数量不足以满足最小值',
             ),
-            polyline: null,
           ),
         );
         continue;

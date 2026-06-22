@@ -158,7 +158,6 @@ class EditableRouteController extends ChangeNotifier {
         reason: updatedPlaces.length >= 2 ? null : '地点数量不足',
       ),
       meta: route.meta,
-      polyline: null,
     );
   }
 }
