@@ -36,9 +36,12 @@ class _Step3MapState extends State<Step3Map> {
 
   double _panelFraction = _initialPanelFraction;
   List<RoutePlace> _allPlaces = [];
+  List<RoutePlace> _themePlaces = [];
+  List<RoutePlace> _visiblePlaces = [];
   late List<RoutePlace> _selected;
   late Future<List<TopicRecord>> _topicsFuture;
   bool _loading = true;
+  int _loadSequence = 0;
   String? _error;
 
   AMapController? _mapController;
@@ -79,6 +82,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   Future<void> _loadLocations() async {
+    final sequence = ++_loadSequence;
     setState(() {
       _loading = true;
       _error = null;
@@ -90,49 +94,36 @@ class _Step3MapState extends State<Step3Map> {
       final themeId = widget.topicId != null
           ? int.tryParse(widget.topicId!)
           : null;
+      final selectedTopic = themeId == null
+          ? null
+          : await topicRepo.fetchTopicById(themeId);
+      final raw = await locationRepo.fetchLocations();
 
-      List<LocationRecord> raw;
-      if (themeId != null) {
-        final topic = await topicRepo.fetchTopicById(themeId);
-        raw = (topic != null && topic.name.isNotEmpty)
-            ? await locationRepo.fetchLocationsByTopic(topic.name)
-            : <LocationRecord>[];
-        if (raw.isEmpty) raw = await locationRepo.fetchLocations();
-      } else {
-        raw = await locationRepo.fetchLocations();
-      }
+      if (!mounted || sequence != _loadSequence) return;
 
-      if (!mounted) return;
-
-      final places = <RoutePlace>[];
-      for (var i = 0; i < raw.length; i++) {
-        final loc = raw[i];
-        if (loc.coordinates.length >= 2) {
-          final id = loc.id > 0 ? loc.id : 100000 + i;
-          places.add(
-            RoutePlace(
-              id: id,
-              name: loc.nameModern,
-              latitude: loc.coordinates[1],
-              longitude: loc.coordinates[0],
-              averageVisitDurationMin: loc.averageVisitDurationMin,
-              topic: loc.topic,
-              categories: loc.categories.join(', '),
-            ),
-          );
-        }
-      }
-      places.sort((a, b) => a.name.compareTo(b.name));
+      final places = _recordsToPlaces(raw);
+      final themeName = selectedTopic?.name ?? '';
+      final themePlaces = themeName.isEmpty
+          ? places
+          : places
+                .where((place) => _placeHasTopic(place, themeName))
+                .toList(growable: false);
+      final visiblePlaces = _mergeVisiblePlaces(themePlaces, _selected);
+      final selected = _selectedInVisibleOrder(visiblePlaces);
 
       setState(() {
         _allPlaces = places;
+        _themePlaces = themePlaces;
+        _visiblePlaces = visiblePlaces;
+        _selected = selected;
         _loading = false;
       });
+      widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _fitMapToMarkers();
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || sequence != _loadSequence) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -140,42 +131,139 @@ class _Step3MapState extends State<Step3Map> {
     }
   }
 
+  List<RoutePlace> _recordsToPlaces(List<LocationRecord> raw) {
+    final places = <RoutePlace>[];
+    for (var i = 0; i < raw.length; i++) {
+      final loc = raw[i];
+      if (loc.coordinates.length >= 2) {
+        final id = loc.id > 0 ? loc.id : 100000 + i;
+        places.add(
+          RoutePlace(
+            id: id,
+            name: loc.nameModern,
+            latitude: loc.coordinates[1],
+            longitude: loc.coordinates[0],
+            averageVisitDurationMin: loc.averageVisitDurationMin,
+            topic: loc.topic,
+            categories: loc.categories.join(', '),
+          ),
+        );
+      }
+    }
+    places.sort((a, b) => a.name.compareTo(b.name));
+    return places;
+  }
+
+  List<RoutePlace> _mergeVisiblePlaces(
+    List<RoutePlace> themePlaces,
+    List<RoutePlace> selectedPlaces,
+  ) {
+    final allowedIds = <int>{
+      for (final place in themePlaces) place.id,
+      for (final place in selectedPlaces) place.id,
+    };
+    final byId = <int, RoutePlace>{};
+    for (final place in selectedPlaces) {
+      byId[place.id] = place;
+    }
+    for (final place in themePlaces) {
+      byId[place.id] = place;
+    }
+
+    final merged = <RoutePlace>[];
+    for (final place in _visiblePlaces) {
+      final next = byId[place.id];
+      if (next != null && allowedIds.contains(place.id)) {
+        merged.add(next);
+      }
+    }
+
+    final mergedIds = merged.map((p) => p.id).toSet();
+    for (final place in selectedPlaces) {
+      if (allowedIds.contains(place.id) && !mergedIds.contains(place.id)) {
+        merged.add(byId[place.id] ?? place);
+        mergedIds.add(place.id);
+      }
+    }
+    for (final place in themePlaces) {
+      if (!mergedIds.contains(place.id)) {
+        merged.add(place);
+        mergedIds.add(place.id);
+      }
+    }
+    return merged;
+  }
+
+  List<RoutePlace> _selectedInVisibleOrder(
+    List<RoutePlace> visiblePlaces, {
+    int? extraSelectedId,
+  }) {
+    final selectedIds = {..._selectedIds};
+    if (extraSelectedId != null) selectedIds.add(extraSelectedId);
+    return visiblePlaces
+        .where((place) => selectedIds.contains(place.id))
+        .toList(growable: false);
+  }
+
+  bool _placeHasTopic(RoutePlace place, String topicName) {
+    final normalized = _normalizeTopicName(topicName);
+    if (normalized.isEmpty) return true;
+    return _parseLocationTopics(place.topic).contains(normalized);
+  }
+
+  Set<String> _parseLocationTopics(String? raw) {
+    final value = raw?.trim();
+    if (value == null || value.isEmpty) return const <String>{};
+
+    final bracketMatch = RegExp(r'[\[【](.*)[\]】]').firstMatch(value);
+    final inner = bracketMatch?.group(1) ?? value;
+    return inner
+        .split(RegExp(r'[\.。,，、;；\s]+'))
+        .map(_normalizeTopicName)
+        .where((topic) => topic.isNotEmpty)
+        .toSet();
+  }
+
+  String _normalizeTopicName(String value) {
+    return value.replaceAll(RegExp(r'^[\[【]+|[\]】]+$'), '').trim();
+  }
+
   Set<int> get _selectedIds => _selected.map((p) => p.id).toSet();
 
-  List<RoutePlace> get _unselected =>
-      _allPlaces.where((p) => !_selectedIds.contains(p.id)).toList();
-
-  List<RoutePlace> get _markerPlaces {
-    final byId = <int, RoutePlace>{};
-    for (final place in _allPlaces) {
-      byId[place.id] = place;
-    }
-    for (final place in _selected) {
-      byId[place.id] = place;
-    }
-    return byId.values.toList(growable: false);
-  }
+  List<RoutePlace> get _markerPlaces => _visiblePlaces;
 
   void _addPlace(RoutePlace place) {
     if (_selectedIds.contains(place.id)) return;
-    setState(() => _selected = [..._selected, place]);
+    setState(() {
+      _selected = _selectedInVisibleOrder(
+        _visiblePlaces,
+        extraSelectedId: place.id,
+      );
+    });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
   }
 
   void _removePlace(RoutePlace place) {
     setState(() {
-      _selected = _selected.where((p) => p.id != place.id).toList();
+      _selected = _selected
+          .where((selectedPlace) => selectedPlace.id != place.id)
+          .toList(growable: false);
+      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
   }
 
-  void _reorderSelected(int oldIndex, int newIndex) {
+  void _reorderVisiblePlaces(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex < 0 || oldIndex >= _visiblePlaces.length) return;
+    if (newIndex < 0 || newIndex >= _visiblePlaces.length) return;
+
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
-      final updated = [..._selected];
+      final updated = [..._visiblePlaces];
       final item = updated.removeAt(oldIndex);
       updated.insert(newIndex, item);
-      _selected = updated;
+      _visiblePlaces = updated;
+      _selected = _selectedInVisibleOrder(_visiblePlaces);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
   }
@@ -263,7 +351,9 @@ class _Step3MapState extends State<Step3Map> {
     final totalHeight = MediaQuery.sizeOf(context).height;
     final panelH = totalHeight * _panelFraction;
 
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading && _allPlaces.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
     if (_error != null) {
       return Center(
         child: Padding(
@@ -315,6 +405,20 @@ class _Step3MapState extends State<Step3Map> {
             onSelect: widget.onTopicChanged,
           ),
         ),
+        if (_loading)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.18),
+                alignment: Alignment.center,
+                child: const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                ),
+              ),
+            ),
+          ),
         AnimatedPositioned(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
@@ -354,27 +458,23 @@ class _Step3MapState extends State<Step3Map> {
                 ),
               ),
               const SizedBox(height: 6),
-              const Row(
+              Row(
                 children: [
-                  Expanded(
-                    child: _PanelHeader(
-                      icon: Icons.check_circle_outline,
-                      label: '已选地点',
-                      accent: AppColors.primaryLight,
-                    ),
+                  const _PanelHeader(
+                    icon: Icons.format_list_bulleted,
+                    label: '地点选择',
+                    accent: AppColors.primaryLight,
                   ),
-                  SizedBox(
-                    height: 28,
-                    child: VerticalDivider(
-                      width: 1,
-                      color: AppColors.sageBorder,
-                    ),
-                  ),
-                  Expanded(
-                    child: _PanelHeader(
-                      icon: Icons.place_outlined,
-                      label: '可用地点',
-                      accent: AppColors.sageGreen,
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 14),
+                    child: Text(
+                      '已选 ${_selected.length}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.sageMuted,
+                      ),
                     ),
                   ),
                 ],
@@ -384,67 +484,47 @@ class _Step3MapState extends State<Step3Map> {
         ),
         Container(height: 0.5, color: AppColors.sageBorder),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                child: _selected.isEmpty
-                    ? const _EmptyHint(
-                        icon: Icons.add_location_alt_outlined,
-                        text: '从右侧添加地点',
-                      )
-                    : ReorderableListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        buildDefaultDragHandles: false,
-                        itemCount: _selected.length,
-                        onReorder: _reorderSelected,
-                        proxyDecorator: (child, _, animation) {
-                          return AnimatedBuilder(
-                            animation: animation,
-                            builder: (context, child) {
-                              return Material(
-                                color: Colors.transparent,
-                                child: Transform.scale(
-                                  scale: 1 + animation.value * 0.03,
-                                  child: child,
-                                ),
-                              );
-                            },
+          child: _markerPlaces.isEmpty
+              ? const _EmptyHint(icon: Icons.place_outlined, text: '暂无可选地点')
+              : ReorderableListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  buildDefaultDragHandles: false,
+                  itemCount: _markerPlaces.length,
+                  onReorder: _reorderVisiblePlaces,
+                  proxyDecorator: (child, _, animation) {
+                    return AnimatedBuilder(
+                      animation: animation,
+                      builder: (context, child) {
+                        return Material(
+                          color: Colors.transparent,
+                          child: Transform.scale(
+                            scale: 1 + animation.value * 0.03,
                             child: child,
-                          );
-                        },
-                        itemBuilder: (_, i) => _SelectedTile(
-                          key: ValueKey('selected-${_selected[i].id}'),
-                          place: _selected[i],
-                          index: i,
-                          onRemove: () => _removePlace(_selected[i]),
-                        ),
-                      ),
-              ),
-              Container(
-                width: 1,
-                color: AppColors.sageBorder.withValues(alpha: 0.5),
-              ),
-              Expanded(
-                child: _unselected.isEmpty
-                    ? const _EmptyHint(icon: Icons.done_all, text: '所有地点已选')
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        itemCount: _unselected.length,
-                        itemBuilder: (_, i) => _UnselectedTile(
-                          key: ValueKey(_unselected[i].id),
-                          place: _unselected[i],
-                          onTap: () => _addPlace(_unselected[i]),
-                        ),
-                      ),
-              ),
-            ],
-          ),
+                          ),
+                        );
+                      },
+                      child: child,
+                    );
+                  },
+                  itemBuilder: (_, i) {
+                    final place = _markerPlaces[i];
+                    final selectedIndex = _selected.indexWhere(
+                      (item) => item.id == place.id,
+                    );
+                    return _PlaceSelectionTile(
+                      key: ValueKey('place-${place.id}'),
+                      place: place,
+                      selectedIndex: selectedIndex,
+                      visibleIndex: i,
+                      onTap: () => selectedIndex >= 0
+                          ? _removePlace(place)
+                          : _addPlace(place),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -652,140 +732,120 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-class _SelectedTile extends StatelessWidget {
-  const _SelectedTile({
+class _PlaceSelectionTile extends StatelessWidget {
+  const _PlaceSelectionTile({
     super.key,
     required this.place,
-    required this.index,
-    required this.onRemove,
+    required this.selectedIndex,
+    required this.visibleIndex,
+    required this.onTap,
   });
 
   final RoutePlace place;
-  final int index;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 3),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.sageText,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x142B2724),
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.sageText,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              place.name,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          ReorderableDragStartListener(
-            index: index,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(
-                Icons.drag_indicator,
-                size: 16,
-                color: Colors.white70,
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Center(
-                child: Icon(Icons.close, size: 12, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UnselectedTile extends StatelessWidget {
-  const _UnselectedTile({super.key, required this.place, required this.onTap});
-
-  final RoutePlace place;
+  final int selectedIndex;
+  final int visibleIndex;
   final VoidCallback onTap;
+
+  bool get _selected => selectedIndex >= 0;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.sageBorder),
+          color: _selected ? AppColors.sageText : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: _selected ? AppColors.sageText : AppColors.sageBorder,
+          ),
+          boxShadow: _selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x1A2B2724),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.sageBorder),
-                borderRadius: BorderRadius.circular(7),
+            if (_selected) ...[
+              ReorderableDragStartListener(
+                index: visibleIndex,
+                child: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${selectedIndex + 1}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.sageText,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              child: const Center(
-                child: Icon(Icons.add, size: 13, color: AppColors.sageMuted),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: _selected ? FontWeight.w700 : FontWeight.w600,
+                      color: _selected ? Colors.white : AppColors.sageText,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if ((place.topic ?? place.categories ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      place.topic?.isNotEmpty == true
+                          ? place.topic!
+                          : place.categories!,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: _selected ? Colors.white70 : AppColors.sageMuted,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                place.name,
-                style: const TextStyle(fontSize: 13, color: AppColors.sageText),
-                overflow: TextOverflow.ellipsis,
+            if (_selected) ...[
+              const Icon(Icons.check_circle, size: 20, color: Colors.white),
+              const SizedBox(width: 8),
+              ReorderableDragStartListener(
+                index: visibleIndex,
+                child: const Icon(
+                  Icons.drag_indicator,
+                  size: 18,
+                  color: Colors.white70,
+                ),
               ),
-            ),
+            ] else
+              const Icon(
+                Icons.add_circle_outline,
+                size: 20,
+                color: AppColors.sageMuted,
+              ),
           ],
         ),
       ),
