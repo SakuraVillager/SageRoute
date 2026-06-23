@@ -2,16 +2,18 @@ import 'package:flutter/services.dart';
 
 import '../route_planning/amap_gateway.dart';
 import '../route_planning/models/amap_route_types.dart';
+import '../route_planning/models/transport_type.dart';
 
-/// 通过原生高德 Android SDK（RouteSearch）做驾车路径规划的 Gateway。
+/// 通过原生高德 Android SDK（RouteSearch）做路径规划的 Gateway。
 ///
 /// 与 Kotlin 端 RoutePlanningHandler 通过 MethodChannel 通信，
 /// 只需要 AndroidManifest 中配置的高德 SDK Key，无需 Web 服务 Key。
 class NativeAmapGateway implements AmapGateway {
   const NativeAmapGateway();
 
-  static const MethodChannel _channel =
-      MethodChannel('com.sageroute/route_planning');
+  static const MethodChannel _channel = MethodChannel(
+    'com.sageroute/route_planning',
+  );
 
   @override
   Future<AmapRouteResult> fetchRoute(AmapRouteDraftRequest request) async {
@@ -19,16 +21,18 @@ class NativeAmapGateway implements AmapGateway {
         .map((p) => {'lat': p.latitude, 'lon': p.longitude})
         .toList(growable: false);
 
-    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-      'calculateDriveRoute',
-      {
-        'originLat': request.origin.latitude,
-        'originLon': request.origin.longitude,
-        'destLat': request.destination.latitude,
-        'destLon': request.destination.longitude,
-        'waypoints': waypoints,
-      },
-    );
+    final methodName = switch (request.transportType) {
+      TransportType.driving => 'calculateDriveRoute',
+      TransportType.walking => 'calculateWalkRoute',
+    };
+
+    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(methodName, {
+      'originLat': request.origin.latitude,
+      'originLon': request.origin.longitude,
+      'destLat': request.destination.latitude,
+      'destLon': request.destination.longitude,
+      'waypoints': waypoints,
+    });
 
     if (raw == null) {
       throw Exception('原生路径规划返回空结果');

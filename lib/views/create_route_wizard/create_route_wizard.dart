@@ -5,19 +5,15 @@ import 'package:flutter/material.dart';
 
 import '../../models/celebrity_profile.dart';
 import '../../models/new_route_draft.dart';
+import '../../route_planning/models/route_place.dart';
 import '../../theme/color_schemes.dart';
 import 'steps/step1_figure.dart';
-import 'steps/step2_theme.dart';
 import 'steps/step3_map.dart';
+import 'steps/step4_route_preview.dart';
 
 part 'create_route_wizard_widgets.dart';
 
-enum _TheatrePhase {
-  hidden,
-  flyIn,
-  zoomTitle,
-  datePicker,
-}
+enum _TheatrePhase { hidden, flyIn, zoomTitle, datePicker }
 
 class CreateRouteWizard extends StatefulWidget {
   const CreateRouteWizard({super.key});
@@ -39,7 +35,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   static const _calendarRangeBg = Color(0x29926B62);
 
   // ── Step titles ──
-  static const _stepTitles = ['行程规划', '选择人物', '选择主题', '探索地图'];
+  static const _stepTitles = ['行程规划', '选择人物', '地点选择', '路线预览'];
 
   String get _currentStepTitle => _stepTitles[_currentStep - 1];
 
@@ -67,7 +63,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   String? _selectedFigureId;
   CelebrityProfile? _selectedFigure;
   String? _selectedThemeId;
-  List<String> _selectedLocations = [];
+  List<RoutePlace> _selectedLocations = [];
 
   bool _isTopBarCollapsed = false;
   // ── Archive animation ──
@@ -77,8 +73,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   bool get _isNextDisabled {
     if (_currentStep == 2 && _selectedFigureId == null) return true;
-    if (_currentStep == 3 && _selectedThemeId == null) return true;
-    if (_currentStep == 4 && _selectedLocations.isEmpty) return true;
+    if (_currentStep == 3 && _selectedLocations.length < 2) return true;
+    if (_currentStep == 4 && _selectedLocations.length < 2) return true;
     return false;
   }
 
@@ -194,8 +190,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     final start = _startDay;
     if (start == null) return;
 
-    String formatDay(int day) =>
-        '2026.06.${day.toString().padLeft(2, '0')}';
+    String formatDay(int day) => '2026.06.${day.toString().padLeft(2, '0')}';
     final end = _endDay;
     if (end == null) {
       _dateRange = '${formatDay(start)} - 待选择';
@@ -467,23 +462,17 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
     final allSteps = <Widget>[
       _buildTheatreStep(),
-      Step1Figure(
-        selectedFigureId: _selectedFigureId,
-        onSelect: _selectFigure,
-      ),
-      Step2Theme(
-        selectedTopicId: _selectedThemeId,
-        onSelect: _selectTheme,
-        figure: _selectedFigure,
-      ),
+      Step1Figure(selectedFigureId: _selectedFigureId, onSelect: _selectFigure),
       Step3Map(
         figure: _selectedFigure,
         topicId: _selectedThemeId,
-        selectedCount: _selectedLocations.length,
-        onLocationsChanged: (count) {
-          setState(() => _selectedLocations = List.filled(count, 'x'));
+        selectedPlaces: _selectedLocations,
+        onTopicChanged: _selectTheme,
+        onLocationsChanged: (locations) {
+          setState(() => _selectedLocations = locations);
         },
       ),
+      Step4RoutePreview(places: _selectedLocations),
     ];
 
     return Align(
@@ -516,8 +505,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Theatre step (step 1) ──
 
   Widget _buildTheatreStep() {
-    final isFirstTime = _previousStep == _currentStep &&
-        _theatrePhase != _TheatrePhase.hidden;
+    final isFirstTime =
+        _previousStep == _currentStep && _theatrePhase != _TheatrePhase.hidden;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -605,8 +594,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   }
 
   Widget _buildTheatreInputPanel(Size size) {
-    final top =
-        _showCalendar ? size.height * 0.5 - 38 : size.height * 0.5 + 35;
+    final top = _showCalendar ? size.height * 0.5 - 38 : size.height * 0.5 + 35;
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 650),
       curve: Curves.easeOutCubic,
@@ -622,8 +610,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
           opacity: _showTheatrePanel ? 1 : 0,
           child: IgnorePointer(
             ignoring: !_showTheatrePanel,
-            child:
-                _showCalendar ? _buildCalendarPanel() : _buildTitlePanel(),
+            child: _showCalendar ? _buildCalendarPanel() : _buildTitlePanel(),
           ),
         ),
       ),
@@ -725,16 +712,18 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     if (_currentStep == 1) return const SizedBox.shrink();
 
     final isLastStep = _currentStep == 4;
-    final buttonText = isLastStep ? '保存行程' : '下一步';
+    final buttonText = isLastStep
+        ? '保存行程'
+        : _currentStep == 3
+        ? '预览路线'
+        : '下一步';
     final buttonHandler = isLastStep ? _handleSave : _handleNext;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
       decoration: const BoxDecoration(
         color: Color(0xFFFDFBF7),
-        border: Border(
-          top: BorderSide(color: Color(0x80E8E2D9)),
-        ),
+        border: Border(top: BorderSide(color: Color(0x80E8E2D9))),
       ),
       child: ElevatedButton(
         onPressed: _isNextDisabled ? null : buttonHandler,
@@ -754,10 +743,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
           children: [
             Text(
               buttonText,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (!isLastStep) ...[
               const SizedBox(width: 8),
