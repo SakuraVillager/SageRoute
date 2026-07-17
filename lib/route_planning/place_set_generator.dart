@@ -83,6 +83,17 @@ abstract class PlaceSetGenerator {
     return viaM <= directM * expansionFactor;
   }
 
+  /// Returns true if [a] and [b] refer to the same logical place.
+  /// Uses identical() first (same Dart object), then falls back to
+  /// comparing name + coordinates.  Do NOT rely on [RoutePlace.id] alone
+  /// because the database may assign id=0 to multiple distinct rows.
+  static bool isSamePlace(RoutePlace a, RoutePlace b) {
+    if (identical(a, b)) return true;
+    return a.name == b.name &&
+        a.latitude == b.latitude &&
+        a.longitude == b.longitude;
+  }
+
   static double _toRad(double deg) => deg * math.pi / 180.0;
 }
 
@@ -109,7 +120,10 @@ class ShortestPlaceSetGenerator extends PlaceSetGenerator {
   }) {
     // Step 1: corridor + ellipse filter
     final candidates = places.where((place) {
-      if (place.id == origin.id || place.id == destination.id) return false;
+      if (PlaceSetGenerator.isSamePlace(place, origin) ||
+          PlaceSetGenerator.isSamePlace(place, destination)) {
+        return false;
+      }
       return PlaceSetGenerator.isWithinCorridor(origin, destination, place,
               bufferKm: corridorBufferKm) &&
           PlaceSetGenerator.isWithinEllipse(origin, destination, place);
@@ -152,7 +166,10 @@ class DiversityPlaceSetGenerator extends PlaceSetGenerator {
   }) {
     // Step 1: corridor filter
     final candidates = places.where((place) {
-      if (place.id == origin.id || place.id == destination.id) return false;
+      if (PlaceSetGenerator.isSamePlace(place, origin) ||
+          PlaceSetGenerator.isSamePlace(place, destination)) {
+        return false;
+      }
       return PlaceSetGenerator.isWithinCorridor(origin, destination, place,
           bufferKm: corridorBufferKm);
     }).toList(growable: false);
@@ -218,11 +235,12 @@ List<RoutePlace> _buildOrderedPlaces(
 ) {
   final result = <RoutePlace>[origin];
   for (final place in selected) {
-    if (place.id != origin.id && place.id != destination.id) {
+    if (!PlaceSetGenerator.isSamePlace(place, origin) &&
+        !PlaceSetGenerator.isSamePlace(place, destination)) {
       result.add(place);
     }
   }
-  if (destination.id != origin.id) {
+  if (!PlaceSetGenerator.isSamePlace(destination, origin)) {
     result.add(destination);
   }
   // Trim to maxPlaces

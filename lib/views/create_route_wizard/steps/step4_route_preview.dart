@@ -31,6 +31,9 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
   Timer? _routeDebounce;
   AMapController? _mapController;
 
+  // 诊断信息 — 当 polyline 为空时向用户展示更多细节
+  String? _diagInfo;
+
   @override
   void initState() {
     super.initState();
@@ -78,6 +81,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
           _polyline = [];
           _routeSummary = '';
           _error = '至少选择 2 个地点后才能预览路线';
+          _diagInfo = null;
           _planning = false;
         });
       }
@@ -87,6 +91,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
     setState(() {
       _planning = true;
       _error = null;
+      _diagInfo = null;
     });
 
     final command = RoutePlanCommand(
@@ -102,19 +107,45 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
 
     try {
       const engine = RoutePlanningEngine(gateway: NativeAmapGateway());
+      // 调试：输出传入的地点坐标
+      debugPrint('[DEBUG step4] 传入 ${selected.length} 个地点:');
+      for (final p in selected) {
+        debugPrint(
+          '[DEBUG step4] ${p.name} (id=${p.id}) '
+          'lat=${p.latitude} lng=${p.longitude}',
+        );
+      }
       final bundle = await engine.plan(command);
       final route = bundle.routes.isNotEmpty ? bundle.routes.first : null;
+      debugPrint(
+        '[DEBUG step4] 路线数=${bundle.routes.length} '
+        'polyline点数=${route?.polyline?.length ?? 0}',
+      );
       final clean = route?.polyline
           ?.where((p) => p.length >= 2 && p[0].isFinite && p[1].isFinite)
           .toList();
+      debugPrint('[DEBUG step4] clean点数=${clean?.length ?? 0}');
 
       if (!mounted) return;
+
+      // 构建诊断信息
+      final stats = route?.stats;
+      final diagParts = <String>[
+        if (route == null) '路线对象为空',
+        if (route != null && (route.polyline == null || route.polyline!.isEmpty))
+          'polyline 为空',
+        if (stats?.distanceMeters != null)
+          '距离=${(stats!.distanceMeters! / 1000).toStringAsFixed(1)}km',
+        if (stats?.travelDuration != null)
+          '耗时=${stats!.travelDuration!.inMinutes}分',
+      ];
 
       if (route == null || clean == null || clean.length < 2) {
         setState(() {
           _polyline = [];
           _routeSummary = '';
           _error = '暂未获取到可渲染的路线';
+          _diagInfo = diagParts.isNotEmpty ? diagParts.join('，') : null;
           _planning = false;
         });
         return;
@@ -128,6 +159,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
             '${_transportLabel(_transportType)} · '
             '${km.toStringAsFixed(1)} km · '
             '${min ~/ 60 > 0 ? '${min ~/ 60}时' : ''}${min % 60}分';
+        _diagInfo = null;
         _planning = false;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -139,6 +171,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
         _polyline = [];
         _routeSummary = '';
         _error = '路径规划失败：$e';
+        _diagInfo = null;
         _planning = false;
       });
     }
@@ -154,7 +187,9 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
   void _fitMap() {
     final points = _polyline.isNotEmpty
         ? _polyline
-        : widget.places.map((p) => <double>[p.latitude, p.longitude]).toList();
+        : widget.places
+            .map((p) => <double>[p.latitude, p.longitude])
+            .toList();
     if (points.isEmpty || _mapController == null) return;
 
     double minLat = double.infinity;
@@ -235,7 +270,8 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
                     },
               markers: widget.places.asMap().entries.map((entry) {
                 final marker = Marker(
-                  position: LatLng(entry.value.latitude, entry.value.longitude),
+                  position:
+                      LatLng(entry.value.latitude, entry.value.longitude),
                   infoWindow: InfoWindow(
                     title: '${entry.key + 1}. ${entry.value.name}',
                   ),
@@ -266,6 +302,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
             planning: _planning,
             summary: _routeSummary,
             error: _error,
+            diagInfo: _diagInfo,
             transportLabel: _transportLabel(_transportType),
           ),
         ),
@@ -385,6 +422,7 @@ class _RoutePreviewPanel extends StatelessWidget {
     required this.planning,
     required this.summary,
     required this.error,
+    required this.diagInfo,
     required this.transportLabel,
   });
 
@@ -392,6 +430,7 @@ class _RoutePreviewPanel extends StatelessWidget {
   final bool planning;
   final String summary;
   final String? error;
+  final String? diagInfo;
   final String transportLabel;
 
   @override
@@ -461,9 +500,36 @@ class _RoutePreviewPanel extends StatelessWidget {
           ),
           if (error != null) ...[
             const SizedBox(height: 12),
-            Text(
-              error!,
-              style: const TextStyle(fontSize: 12, color: Color(0xFFC44536)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0x1AC44536),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    error!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFC44536),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (diagInfo != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      diagInfo!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xCCC44536),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
           const SizedBox(height: 12),

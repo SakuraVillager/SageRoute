@@ -9,6 +9,7 @@ import '../../../models/location_record.dart';
 import '../../../models/topic_record.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../theme/color_schemes.dart';
+import 'add_place_page.dart';
 
 class Step3Map extends StatefulWidget {
   final CelebrityProfile? figure;
@@ -245,12 +246,69 @@ class _Step3MapState extends State<Step3Map> {
 
   void _removePlace(RoutePlace place) {
     setState(() {
+      // 按名称移除（数据库 id 可能重复）
       _selected = _selected
-          .where((selectedPlace) => selectedPlace.id != place.id)
+          .where((selectedPlace) => selectedPlace.name != place.name)
           .toList(growable: false);
       _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+  }
+
+  void _clearAllPlaces() {
+    setState(() {
+      _selected = const [];
+      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
+    });
+    widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+  }
+
+  Future<void> _confirmRemovePlace(RoutePlace place) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除地点'),
+        content: Text('确定要从路线中删除「${place.name}」吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      _removePlace(place);
+    }
+  }
+
+  Future<void> _confirmClearAll() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('清空全部地点'),
+        content: const Text('确定要清空所有已选地点吗？此操作不可撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('清空'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      _clearAllPlaces();
+    }
   }
 
   void _reorderVisiblePlaces(int oldIndex, int newIndex) {
@@ -395,16 +453,6 @@ class _Step3MapState extends State<Step3Map> {
             ),
           ),
         ),
-        Positioned(
-          top: 8,
-          left: 20,
-          right: 20,
-          child: _ThemeStrip(
-            future: _topicsFuture,
-            selectedTopicId: widget.topicId,
-            onSelect: widget.onTopicChanged,
-          ),
-        ),
         if (_loading)
           Positioned.fill(
             child: IgnorePointer(
@@ -458,42 +506,46 @@ class _Step3MapState extends State<Step3Map> {
                 ),
               ),
               const SizedBox(height: 6),
-              Row(
-                children: [
-                  const _PanelHeader(
-                    icon: Icons.format_list_bulleted,
-                    label: '地点选择',
-                    accent: AppColors.primaryLight,
-                  ),
-                  const Spacer(),
-                  Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: Text(
-                      '已选 ${_selected.length}',
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.place, size: 15, color: AppColors.primaryLight),
+                    const SizedBox(width: 6),
+                    Text(
+                      '已选地点 (${_selected.length})',
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.sageMuted,
+                        color: AppColors.sageText,
                       ),
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    _AddPlaceButton(
+                      onTap: () => _navigateToAddPlace(),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: 6),
             ],
           ),
         ),
         Container(height: 0.5, color: AppColors.sageBorder),
         Expanded(
-          child: _markerPlaces.isEmpty
-              ? const _EmptyHint(icon: Icons.place_outlined, text: '暂无可选地点')
+          child: _selected.isEmpty
+              ? _EmptyHint(
+                  icon: Icons.add_location_alt_outlined,
+                  text: '点击右上角添加地点',
+                )
               : ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 8,
                   ),
                   buildDefaultDragHandles: false,
-                  itemCount: _markerPlaces.length,
-                  onReorder: _reorderVisiblePlaces,
+                  itemCount: _selected.length,
+                  onReorder: _reorderSelectedPlaces,
                   proxyDecorator: (child, _, animation) {
                     return AnimatedBuilder(
                       animation: animation,
@@ -510,201 +562,80 @@ class _Step3MapState extends State<Step3Map> {
                     );
                   },
                   itemBuilder: (_, i) {
-                    final place = _markerPlaces[i];
-                    final selectedIndex = _selected.indexWhere(
-                      (item) => item.id == place.id,
-                    );
-                    return _PlaceSelectionTile(
-                      key: ValueKey('place-${place.id}'),
+                    final place = _selected[i];
+                    return _SelectedPlaceTile(
+                      key: ValueKey('selected-${place.name}'),
                       place: place,
-                      selectedIndex: selectedIndex,
-                      visibleIndex: i,
-                      onTap: () => selectedIndex >= 0
-                          ? _removePlace(place)
-                          : _addPlace(place),
+                      index: i,
+                      onRemove: () => _confirmRemovePlace(place),
                     );
                   },
                 ),
         ),
-      ],
-    );
-  }
-}
-
-class _ThemeStrip extends StatelessWidget {
-  const _ThemeStrip({
-    required this.future,
-    required this.selectedTopicId,
-    required this.onSelect,
-  });
-
-  final Future<List<TopicRecord>> future;
-  final String? selectedTopicId;
-  final void Function(String id, String name) onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<TopicRecord>>(
-      future: future,
-      builder: (context, snapshot) {
-        final topics = snapshot.data ?? const <TopicRecord>[];
-        final loading = snapshot.connectionState != ConnectionState.done;
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-          decoration: BoxDecoration(
-            color: const Color(0xF7FAF8F3),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.sageBorder),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x182B2724),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
+        // 清空全部按钮
+        if (_selected.isNotEmpty)
+          GestureDetector(
+            onTap: _confirmClearAll,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.auto_awesome,
-                    size: 14,
-                    color: AppColors.primaryLight,
-                  ),
+                  Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
                   const SizedBox(width: 6),
-                  const Text(
-                    '选择主题',
+                  Text(
+                    '清空全部地点',
                     style: TextStyle(
                       fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.sageText,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    loading ? '加载中' : '${topics.length} 个主题',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.sageMuted,
+                      color: Colors.red.shade300,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (loading)
-                const LinearProgressIndicator(minHeight: 2)
-              else if (topics.isEmpty)
-                const Text(
-                  '暂无关联主题，可先从全部地点中选择',
-                  style: TextStyle(fontSize: 12, color: AppColors.sageMuted),
-                )
-              else
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: topics.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final topic = topics[index];
-                      final selected = topic.id.toString() == selectedTopicId;
-                      return _ThemeChip(
-                        topic: topic,
-                        selected: selected,
-                        onTap: () => onSelect(topic.id.toString(), topic.name),
-                      );
-                    },
-                  ),
-                ),
-            ],
+            ),
           ),
-        );
-      },
+      ],
     );
   }
-}
 
-class _ThemeChip extends StatelessWidget {
-  const _ThemeChip({
-    required this.topic,
-    required this.selected,
-    required this.onTap,
-  });
+  void _reorderSelectedPlaces(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex < 0 || oldIndex >= _selected.length) return;
+    if (newIndex < 0 || newIndex >= _selected.length) return;
 
-  final TopicRecord topic;
-  final bool selected;
-  final VoidCallback onTap;
+    setState(() {
+      final updated = [..._selected];
+      final item = updated.removeAt(oldIndex);
+      updated.insert(newIndex, item);
+      _selected = updated;
+    });
+    widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.sageText : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? AppColors.sageText : AppColors.sageBorder,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (selected) ...[
-              const Icon(Icons.check, size: 13, color: Colors.white),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              topic.name,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: selected ? Colors.white : AppColors.sageText,
-              ),
-            ),
-          ],
+  Future<void> _navigateToAddPlace() async {
+    final result = await Navigator.of(context).push<List<RoutePlace>>(
+      MaterialPageRoute(
+        builder: (context) => AddPlacePage(
+          figure: widget.figure,
+          currentSelectedPlaces: _selected,
         ),
       ),
     );
-  }
-}
 
-class _PanelHeader extends StatelessWidget {
-  const _PanelHeader({
-    required this.icon,
-    required this.label,
-    required this.accent,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 6),
-      child: Row(
-        children: [
-          Icon(icon, size: 15, color: accent),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.sageText,
-            ),
-          ),
-        ],
-      ),
-    );
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        // 合并新选择的地点（按名称去重，数据库 id 可能重复）
+        final existingNames = _selected.map((p) => p.name).toSet();
+        final newPlaces = result.where((p) => !existingNames.contains(p.name)).toList();
+        _selected = [..._selected, ...newPlaces];
+      });
+      widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitMapToMarkers();
+      });
+    }
   }
 }
 
@@ -732,83 +663,118 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-class _PlaceSelectionTile extends StatelessWidget {
-  const _PlaceSelectionTile({
-    super.key,
-    required this.place,
-    required this.selectedIndex,
-    required this.visibleIndex,
-    required this.onTap,
-  });
+class _AddPlaceButton extends StatelessWidget {
+  const _AddPlaceButton({required this.onTap});
 
-  final RoutePlace place;
-  final int selectedIndex;
-  final int visibleIndex;
   final VoidCallback onTap;
-
-  bool get _selected => selectedIndex >= 0;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add, size: 16, color: Colors.white),
+            SizedBox(width: 4),
+            Text(
+              '添加地点',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedPlaceTile extends StatelessWidget {
+  const _SelectedPlaceTile({
+    super.key,
+    required this.place,
+    required this.index,
+    required this.onRemove,
+  });
+
+  final RoutePlace place;
+  final int index;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dismissible(
+      key: ValueKey('dismiss-${place.name}'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
+      ),
+      onDismissed: (_) => onRemove(),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         margin: const EdgeInsets.symmetric(vertical: 5),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
-          color: _selected ? AppColors.sageText : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _selected ? AppColors.sageText : AppColors.sageBorder,
-          ),
-          boxShadow: _selected
-              ? const [
-                  BoxShadow(
-                    color: Color(0x1A2B2724),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ]
-              : null,
+          border: Border.all(color: AppColors.sageBorder),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A2B2724),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            if (_selected) ...[
-              ReorderableDragStartListener(
-                index: visibleIndex,
-                child: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${selectedIndex + 1}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.sageText,
-                      ),
+            ReorderableDragStartListener(
+              index: index,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppColors.sageText,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-            ],
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     place.name,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: _selected ? FontWeight.w700 : FontWeight.w600,
-                      color: _selected ? Colors.white : AppColors.sageText,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.sageText,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -818,9 +784,9 @@ class _PlaceSelectionTile extends StatelessWidget {
                       place.topic?.isNotEmpty == true
                           ? place.topic!
                           : place.categories!,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: _selected ? Colors.white70 : AppColors.sageMuted,
+                        color: AppColors.sageMuted,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -829,23 +795,31 @@ class _PlaceSelectionTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            if (_selected) ...[
-              const Icon(Icons.check_circle, size: 20, color: Colors.white),
-              const SizedBox(width: 8),
-              ReorderableDragStartListener(
-                index: visibleIndex,
-                child: const Icon(
+            // 拖拽手柄
+            ReorderableDragStartListener(
+              index: index,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Icon(
                   Icons.drag_indicator,
                   size: 18,
-                  color: Colors.white70,
+                  color: AppColors.sageMuted,
                 ),
               ),
-            ] else
-              const Icon(
-                Icons.add_circle_outline,
-                size: 20,
-                color: AppColors.sageMuted,
+            ),
+            // 垃圾桶删除按钮
+            GestureDetector(
+              onTap: onRemove,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.sageMuted,
+                ),
               ),
+            ),
           ],
         ),
       ),

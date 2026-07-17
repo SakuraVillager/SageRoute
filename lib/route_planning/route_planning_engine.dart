@@ -112,8 +112,14 @@ class RoutePlanningEngine {
   }
 
   _ResolvedEndpoints _resolveEndpoints(RoutePlanCommand command) {
-    final start = _findPlace(command.places, command.startPlaceId) ?? command.places.first;
-    final end = _findPlace(command.places, command.endPlaceId) ?? start;
+    final start =
+        _findPlace(command.places, command.startPlaceId) ?? command.places.first;
+    // _findPlace searches from index 0; when IDs are duplicated (e.g. all id=0)
+    // the first element is always returned, which would make origin == destination.
+    // Walk from the tail for the destination so that non-unique IDs still resolve
+    // to distinct list positions.
+    final end = _findPlaceLast(command.places, command.endPlaceId) ??
+        command.places.last;
     return _ResolvedEndpoints(origin: start, destination: end);
   }
 
@@ -131,6 +137,20 @@ class RoutePlanningEngine {
       if (place.id == parsedId) {
         return place;
       }
+    }
+    return null;
+  }
+
+  /// Like [_findPlace] but searches from the end of the list.
+  /// Used to resolve [RoutePlanCommand.endPlaceId] so that when start & end
+  /// share the same id (e.g. 0), the destination resolves to the last element
+  /// rather than the first.
+  RoutePlace? _findPlaceLast(List<RoutePlace> places, String? placeId) {
+    if (placeId == null) return null;
+    final parsedId = int.tryParse(placeId);
+    if (parsedId == null) return null;
+    for (var i = places.length - 1; i >= 0; i--) {
+      if (places[i].id == parsedId) return places[i];
     }
     return null;
   }

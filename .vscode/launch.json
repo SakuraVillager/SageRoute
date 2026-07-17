@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SageRoute (debug)",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--dart-define-from-file=dart_define.json"
+            ]
+        },
+        {
+            "name": "SageRoute (profile)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile",
+            "args": [
+                "--dart-define-from-file=dart_define.json"
+            ]
+        }
+    ]
+}

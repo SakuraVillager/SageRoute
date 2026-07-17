@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../route_planning/amap_gateway.dart';
@@ -9,7 +12,9 @@ import '../route_planning/models/transport_type.dart';
 /// 与 Kotlin 端 RoutePlanningHandler 通过 MethodChannel 通信，
 /// 只需要 AndroidManifest 中配置的高德 SDK Key，无需 Web 服务 Key。
 class NativeAmapGateway implements AmapGateway {
-  const NativeAmapGateway();
+  const NativeAmapGateway({this.timeout = const Duration(seconds: 15)});
+
+  final Duration timeout;
 
   static const MethodChannel _channel = MethodChannel(
     'com.sageroute/route_planning',
@@ -26,13 +31,37 @@ class NativeAmapGateway implements AmapGateway {
       TransportType.walking => 'calculateWalkRoute',
     };
 
-    final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>(methodName, {
-      'originLat': request.origin.latitude,
-      'originLon': request.origin.longitude,
-      'destLat': request.destination.latitude,
-      'destLon': request.destination.longitude,
-      'waypoints': waypoints,
-    });
+    debugPrint(
+      '[GW] → $methodName '
+      'origin=(${request.origin.latitude},${request.origin.longitude}) '
+      'dest=(${request.destination.latitude},${request.destination.longitude}) '
+      'waypoints=${waypoints.length}',
+    );
+
+    final Map<dynamic, dynamic>? raw;
+    try {
+      raw = await _channel
+          .invokeMethod<Map<dynamic, dynamic>>(methodName, {
+        'originLat': request.origin.latitude,
+        'originLon': request.origin.longitude,
+        'destLat': request.destination.latitude,
+        'destLon': request.destination.longitude,
+        'waypoints': waypoints,
+      }).timeout(timeout);
+    } on TimeoutException {
+      debugPrint('[GW] ⏱ 调用超时 (${timeout.inSeconds}s)');
+      throw Exception(
+        '原生路径规划超时 (${timeout.inSeconds}s)，'
+        '请检查高德 Key 是否已开通路线规划服务',
+      );
+    } on MissingPluginException catch (e) {
+      debugPrint('[GW] ⚠ MethodChannel 未注册: $e');
+      throw Exception(
+        '原生路由模块未注册，请确保 RoutePlanningHandler 已正确初始化',
+      );
+    }
+
+    debugPrint('[GW] ← raw keys=${raw?.keys}');
 
     if (raw == null) {
       throw Exception('原生路径规划返回空结果');
@@ -42,7 +71,11 @@ class NativeAmapGateway implements AmapGateway {
     final duration = (raw['duration'] as num?)?.toInt() ?? 0;
 
     // polyline 原生返回 [[lat, lon], ...]
-    final rawPolyline = (raw['polyline'] as List?) ?? const [];
+    final rawPolyline = (raw['polyline'] as List?) ?? [];
+    debugPrint(
+      '[GW] distance=$distance duration=${duration}s '
+      'rawPolylineLen=${rawPolyline.length}',
+    );
     final polyline = <List<double>>[];
     for (final point in rawPolyline) {
       if (point is List && point.length >= 2) {
@@ -50,6 +83,13 @@ class NativeAmapGateway implements AmapGateway {
         final lon = (point[1] as num).toDouble();
         polyline.add(<double>[lat, lon]);
       }
+    }
+
+    if (polyline.isEmpty && distance > 0) {
+      debugPrint(
+        '[GW] ⚠ 路线距离非零但 polyline 为空，'
+        '高德 SDK 可能未返回步骤折线数据',
+      );
     }
 
     return AmapRouteResult(
