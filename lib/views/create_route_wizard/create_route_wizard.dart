@@ -65,7 +65,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   String? _selectedThemeId;
   List<RoutePlace> _selectedLocations = [];
 
-  bool _isTopBarCollapsed = false;
   // ── Archive animation ──
   bool _archiving = false;
 
@@ -213,7 +212,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       _selectedFigure = profile;
       _selectedThemeId = null;
       _selectedLocations = [];
-      _isTopBarCollapsed = false;
     });
   }
 
@@ -224,15 +222,11 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   }
 
   void _handleNext() {
-    if (_currentStep < 4) {
-      setState(() {
-        _previousStep = _currentStep;
-        _currentStep++;
-        if (_currentStep != 4) {
-          _isTopBarCollapsed = false;
-        }
-      });
-    }
+    if (_currentStep >= 4) return;
+    setState(() {
+      _previousStep = _currentStep;
+      _currentStep++;
+    });
   }
 
   void _handleBack() {
@@ -240,15 +234,10 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       setState(() {
         _previousStep = _currentStep;
         _currentStep--;
-        _isTopBarCollapsed = false;
       });
-    } else {
-      Navigator.of(context).pop();
+      return;
     }
-  }
-
-  void _toggleTopBar() {
-    setState(() => _isTopBarCollapsed = !_isTopBarCollapsed);
+    Navigator.of(context).pop();
   }
 
   // ── Save (step 4) ──
@@ -315,61 +304,16 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     );
   }
 
-  // ── Top bar: header + progress + step 4 collapse toggle ──
+  // ── Compact top bar: header + progress ──
 
   Widget _buildTopBarSection() {
-    final canCollapse = _currentStep == 4;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        AnimatedSize(
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topCenter,
-          child: _isTopBarCollapsed && canCollapse
-              ? const SizedBox(width: double.infinity)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 12),
-                    _buildProgressBar(),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-        ),
-        if (canCollapse) _buildTopBarToggle(),
-        SizedBox(height: canCollapse ? 8 : 12),
+        _buildHeader(),
+        _buildProgressBar(),
+        const SizedBox(height: 8),
       ],
-    );
-  }
-
-  Widget _buildTopBarToggle() {
-    return GestureDetector(
-      onTap: _toggleTopBar,
-      child: Container(
-        width: 42,
-        height: 24,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F2),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE8E2D9)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x102B2724),
-              blurRadius: 8,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Icon(
-          _isTopBarCollapsed
-              ? Icons.keyboard_double_arrow_down
-              : Icons.keyboard_double_arrow_up,
-          size: 18,
-          color: const Color(0xFF8A8376),
-        ),
-      ),
     );
   }
 
@@ -377,80 +321,77 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: _handleBack,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F2),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.sageBorder),
+          Material(
+            color: const Color(0xFFFAF7F2),
+            shape: const CircleBorder(
+              side: BorderSide(color: AppColors.sageBorder),
+            ),
+            child: InkWell(
+              onTap: _handleBack,
+              customBorder: const CircleBorder(),
+              child: const SizedBox(
+                width: 36,
+                height: 36,
+                child: Icon(Icons.arrow_back, size: 18),
               ),
-              child: const Icon(Icons.arrow_back, size: 18),
             ),
           ),
-          const Spacer(),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'STEP $_currentStep OF 4',
-                style: const TextStyle(
-                  color: Color(0xFFC37153),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Flexible(
-                child: Text(
-                  _currentStepTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2D2825),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0x14C37153),
+                    borderRadius: BorderRadius.circular(9),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    '$_currentStep / 4',
+                    style: const TextStyle(
+                      color: Color(0xFFC37153),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    _currentStepTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2D2825),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
-          const SizedBox(width: 40),
         ],
       ),
     );
   }
 
-  // ── Progress bar: 4 segments ──
+  // ── Progress bar ──
 
   Widget _buildProgressBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: List.generate(4, (index) {
-          final step = index + 1;
-          return Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 350),
-              curve: Curves.easeInOut,
-              height: 4,
-              margin: const EdgeInsets.symmetric(horizontal: 2),
-              decoration: BoxDecoration(
-                color: step <= _currentStep
-                    ? const Color(0xFFC37153)
-                    : const Color(0xFFE8E2D9),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          );
-        }),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(3),
+        child: LinearProgressIndicator(
+          minHeight: 3,
+          value: _currentStep / 4,
+          backgroundColor: const Color(0xFFE8E2D9),
+          valueColor: const AlwaysStoppedAnimation(Color(0xFFC37153)),
+        ),
       ),
     );
   }
@@ -720,7 +661,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     final buttonHandler = isLastStep ? _handleSave : _handleNext;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       decoration: const BoxDecoration(
         color: Color(0xFFFDFBF7),
         border: Border(top: BorderSide(color: Color(0x80E8E2D9))),
@@ -733,7 +674,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
           disabledBackgroundColor: const Color(0xFFE8E2D9),
           disabledForegroundColor: const Color(0xFFA8A195),
           elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

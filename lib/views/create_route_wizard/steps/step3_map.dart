@@ -6,7 +6,6 @@ import '../../../data/location_repository.dart';
 import '../../../data/topic_repository.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../models/location_record.dart';
-import '../../../models/topic_record.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../theme/color_schemes.dart';
 import 'add_place_page.dart';
@@ -32,15 +31,14 @@ class Step3Map extends StatefulWidget {
 }
 
 class _Step3MapState extends State<Step3Map> {
-  static const double _initialPanelFraction = 0.38;
-  static const List<double> _panelStops = [0.16, 0.26, 0.38, 0.50, 0.64];
+  static const double _initialPanelFraction = 0.18;
+  static const List<double> _panelStops = [0.16, 0.24, 0.42, 0.62];
 
   double _panelFraction = _initialPanelFraction;
   List<RoutePlace> _allPlaces = [];
   List<RoutePlace> _themePlaces = [];
   List<RoutePlace> _visiblePlaces = [];
   late List<RoutePlace> _selected;
-  late Future<List<TopicRecord>> _topicsFuture;
   bool _loading = true;
   int _loadSequence = 0;
   String? _error;
@@ -51,16 +49,12 @@ class _Step3MapState extends State<Step3Map> {
   void initState() {
     super.initState();
     _selected = List<RoutePlace>.from(widget.selectedPlaces);
-    _loadTopics();
     _loadLocations();
   }
 
   @override
   void didUpdateWidget(covariant Step3Map oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.figure?.name != oldWidget.figure?.name) {
-      _loadTopics();
-    }
     if (widget.topicId != oldWidget.topicId) {
       _loadLocations();
     }
@@ -72,14 +66,9 @@ class _Step3MapState extends State<Step3Map> {
   bool _hasSamePlaceIds(List<RoutePlace> a, List<RoutePlace> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id) return false;
+      if (a[i].name != b[i].name) return false;
     }
     return true;
-  }
-
-  void _loadTopics() {
-    final name = widget.figure?.name ?? '';
-    _topicsFuture = const TopicRepository().fetchTopicsByCelebrity(name);
   }
 
   Future<void> _loadLocations() async {
@@ -159,50 +148,44 @@ class _Step3MapState extends State<Step3Map> {
     List<RoutePlace> themePlaces,
     List<RoutePlace> selectedPlaces,
   ) {
-    final allowedIds = <int>{
-      for (final place in themePlaces) place.id,
-      for (final place in selectedPlaces) place.id,
+    final allowedNames = <String>{
+      for (final place in themePlaces) place.name,
+      for (final place in selectedPlaces) place.name,
     };
-    final byId = <int, RoutePlace>{};
+    final byName = <String, RoutePlace>{};
     for (final place in selectedPlaces) {
-      byId[place.id] = place;
+      byName[place.name] = place;
     }
     for (final place in themePlaces) {
-      byId[place.id] = place;
+      byName[place.name] = place;
     }
 
     final merged = <RoutePlace>[];
+    final mergedNames = <String>{};
     for (final place in _visiblePlaces) {
-      final next = byId[place.id];
-      if (next != null && allowedIds.contains(place.id)) {
+      final next = byName[place.name];
+      if (next != null && allowedNames.contains(place.name)) {
         merged.add(next);
+        mergedNames.add(place.name);
       }
     }
-
-    final mergedIds = merged.map((p) => p.id).toSet();
     for (final place in selectedPlaces) {
-      if (allowedIds.contains(place.id) && !mergedIds.contains(place.id)) {
-        merged.add(byId[place.id] ?? place);
-        mergedIds.add(place.id);
+      if (allowedNames.contains(place.name) && mergedNames.add(place.name)) {
+        merged.add(byName[place.name] ?? place);
       }
     }
     for (final place in themePlaces) {
-      if (!mergedIds.contains(place.id)) {
+      if (mergedNames.add(place.name)) {
         merged.add(place);
-        mergedIds.add(place.id);
       }
     }
     return merged;
   }
 
-  List<RoutePlace> _selectedInVisibleOrder(
-    List<RoutePlace> visiblePlaces, {
-    int? extraSelectedId,
-  }) {
-    final selectedIds = {..._selectedIds};
-    if (extraSelectedId != null) selectedIds.add(extraSelectedId);
+  List<RoutePlace> _selectedInVisibleOrder(List<RoutePlace> visiblePlaces) {
+    final selectedNames = _selected.map((place) => place.name).toSet();
     return visiblePlaces
-        .where((place) => selectedIds.contains(place.id))
+        .where((place) => selectedNames.contains(place.name))
         .toList(growable: false);
   }
 
@@ -229,21 +212,6 @@ class _Step3MapState extends State<Step3Map> {
     return value.replaceAll(RegExp(r'^[\[【]+|[\]】]+$'), '').trim();
   }
 
-  Set<int> get _selectedIds => _selected.map((p) => p.id).toSet();
-
-  List<RoutePlace> get _markerPlaces => _visiblePlaces;
-
-  void _addPlace(RoutePlace place) {
-    if (_selectedIds.contains(place.id)) return;
-    setState(() {
-      _selected = _selectedInVisibleOrder(
-        _visiblePlaces,
-        extraSelectedId: place.id,
-      );
-    });
-    widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
-  }
-
   void _removePlace(RoutePlace place) {
     setState(() {
       // 按名称移除（数据库 id 可能重复）
@@ -253,6 +221,11 @@ class _Step3MapState extends State<Step3Map> {
       _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+    if (_selected.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitMapToMarkers();
+      });
+    }
   }
 
   void _clearAllPlaces() {
@@ -311,25 +284,10 @@ class _Step3MapState extends State<Step3Map> {
     }
   }
 
-  void _reorderVisiblePlaces(int oldIndex, int newIndex) {
-    if (newIndex > oldIndex) newIndex -= 1;
-    if (oldIndex < 0 || oldIndex >= _visiblePlaces.length) return;
-    if (newIndex < 0 || newIndex >= _visiblePlaces.length) return;
-
-    setState(() {
-      final updated = [..._visiblePlaces];
-      final item = updated.removeAt(oldIndex);
-      updated.insert(newIndex, item);
-      _visiblePlaces = updated;
-      _selected = _selectedInVisibleOrder(_visiblePlaces);
-    });
-    widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
-  }
-
   void _dragPanel(DragUpdateDetails details) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    if (screenHeight <= 0) return;
-    final next = _panelFraction - details.delta.dy / screenHeight;
+    final availableHeight = context.size?.height ?? MediaQuery.sizeOf(context).height;
+    if (availableHeight <= 0) return;
+    final next = _panelFraction - details.delta.dy / availableHeight;
     setState(() {
       _panelFraction = next
           .clamp(_panelStops.first, _panelStops.last)
@@ -404,11 +362,10 @@ class _Step3MapState extends State<Step3Map> {
 
   double mathMax(double a, double b) => a > b ? a : b;
 
+  List<RoutePlace> get _markerPlaces => _visiblePlaces;
+
   @override
   Widget build(BuildContext context) {
-    final totalHeight = MediaQuery.sizeOf(context).height;
-    final panelH = totalHeight * _panelFraction;
-
     if (_loading && _allPlaces.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -425,95 +382,126 @@ class _Step3MapState extends State<Step3Map> {
       );
     }
 
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: AMapWidget(
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(30.259462, 120.147151),
-                zoom: 13,
-              ),
-              onMapCreated: _onMapCreated,
-              markers: _markerPlaces.map((place) {
-                final selectedIndex = _selected.indexWhere(
-                  (item) => item.id == place.id,
-                );
-                final marker = Marker(
-                  position: LatLng(place.latitude, place.longitude),
-                  infoWindow: InfoWindow(
-                    title: selectedIndex >= 0
-                        ? '${selectedIndex + 1}. ${place.name}'
-                        : place.name,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final panelH = constraints.maxHeight * _panelFraction;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: RepaintBoundary(
+                child: AMapWidget(
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(30.259462, 120.147151),
+                    zoom: 13,
                   ),
-                );
-                marker.setIdForCopy('marker-${place.id}');
-                return marker;
-              }).toSet(),
-            ),
-          ),
-        ),
-        if (_loading)
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                color: Colors.white.withValues(alpha: 0.18),
-                alignment: Alignment.center,
-                child: const SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.4),
+                  onMapCreated: _onMapCreated,
+                  markers: _markerPlaces.map((place) {
+                    final selectedIndex = _selected.indexWhere(
+                      (item) => item.name == place.name,
+                    );
+                    final marker = Marker(
+                      position: LatLng(place.latitude, place.longitude),
+                      infoWindow: InfoWindow(
+                        title: selectedIndex >= 0
+                            ? '${selectedIndex + 1}. ${place.name}'
+                            : place.name,
+                      ),
+                    );
+                    marker.setIdForCopy('marker-${place.id}-${place.name}');
+                    return marker;
+                  }).toSet(),
                 ),
               ),
             ),
-          ),
-        AnimatedPositioned(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: panelH,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: AppColors.sageCard,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            Positioned(
+              top: 14,
+              right: 14,
+              child: _MapAddPlaceButton(
+                selectedCount: _selected.length,
+                onTap: _navigateToAddPlace,
+              ),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: _buildPanelContent(),
-          ),
-        ),
-      ],
+            if (_loading)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    ),
+                  ),
+                ),
+              ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: panelH,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.sageCard,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x1A2B2724),
+                      blurRadius: 16,
+                      offset: Offset(0, -4),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: _buildPanelContent(),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildPanelContent() {
+    final compact = _panelFraction <= 0.24;
     return Column(
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onVerticalDragUpdate: _dragPanel,
           onVerticalDragEnd: _settlePanel,
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.sageBorder,
-                  borderRadius: BorderRadius.circular(2),
+          onTap: () {
+            setState(() {
+              _panelFraction = compact ? 0.42 : 0.18;
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
+            child: Column(
+              children: [
+                Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.sageBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Row(
+                const SizedBox(height: 8),
+                Row(
                   children: [
-                    Icon(Icons.place, size: 15, color: AppColors.primaryLight),
+                    const Icon(
+                      Icons.route_outlined,
+                      size: 16,
+                      color: AppColors.primaryLight,
+                    ),
                     const SizedBox(width: 6),
                     Text(
-                      '已选地点 (${_selected.length})',
+                      _selected.isEmpty
+                          ? '尚未添加地点'
+                          : '已选 ${_selected.length} 个地点',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -521,14 +509,23 @@ class _Step3MapState extends State<Step3Map> {
                       ),
                     ),
                     const Spacer(),
-                    _AddPlaceButton(
-                      onTap: () => _navigateToAddPlace(),
+                    Text(
+                      compact ? '上滑排序' : '下滑收起',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.sageMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    Icon(
+                      compact ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      size: 18,
+                      color: AppColors.sageMuted,
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 6),
-            ],
+              ],
+            ),
           ),
         ),
         Container(height: 0.5, color: AppColors.sageBorder),
@@ -536,7 +533,22 @@ class _Step3MapState extends State<Step3Map> {
           child: _selected.isEmpty
               ? _EmptyHint(
                   icon: Icons.add_location_alt_outlined,
-                  text: '点击右上角添加地点',
+                  text: '点击地图上的“添加地点”开始选择',
+                )
+              : compact
+              ? ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
+                  itemCount: _selected.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final place = _selected[index];
+                    return _SelectedPlaceChip(
+                      index: index,
+                      place: place,
+                      onRemove: () => _removePlace(place),
+                    );
+                  },
                 )
               : ReorderableListView.builder(
                   padding: const EdgeInsets.symmetric(
@@ -572,27 +584,16 @@ class _Step3MapState extends State<Step3Map> {
                   },
                 ),
         ),
-        // 清空全部按钮
-        if (_selected.isNotEmpty)
-          GestureDetector(
-            onTap: _confirmClearAll,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
-                  const SizedBox(width: 6),
-                  Text(
-                    '清空全部地点',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.red.shade300,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+        if (!compact && _selected.isNotEmpty)
+          TextButton.icon(
+            onPressed: _confirmClearAll,
+            icon: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
+            label: Text(
+              '清空全部地点',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.red.shade300,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -615,27 +616,29 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   Future<void> _navigateToAddPlace() async {
-    final result = await Navigator.of(context).push<List<RoutePlace>>(
-      MaterialPageRoute(
-        builder: (context) => AddPlacePage(
-          figure: widget.figure,
-          currentSelectedPlaces: _selected,
-        ),
+    final result = await showModalBottomSheet<List<RoutePlace>>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.28),
+      builder: (context) => AddPlacePage(
+        figure: widget.figure,
+        currentSelectedPlaces: _selected,
       ),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        // 合并新选择的地点（按名称去重，数据库 id 可能重复）
-        final existingNames = _selected.map((p) => p.name).toSet();
-        final newPlaces = result.where((p) => !existingNames.contains(p.name)).toList();
-        _selected = [..._selected, ...newPlaces];
-      });
-      widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitMapToMarkers();
-      });
-    }
+    if (result == null) return;
+    setState(() {
+      // Replace the complete selection so removals made in the picker take effect.
+      _selected = List<RoutePlace>.from(result);
+      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
+      _panelFraction = _selected.isEmpty ? 0.16 : 0.18;
+    });
+    widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _fitMapToMarkers();
+    });
   }
 }
 
@@ -663,36 +666,146 @@ class _EmptyHint extends StatelessWidget {
   }
 }
 
-class _AddPlaceButton extends StatelessWidget {
-  const _AddPlaceButton({required this.onTap});
+class _MapAddPlaceButton extends StatelessWidget {
+  const _MapAddPlaceButton({
+    required this.selectedCount,
+    required this.onTap,
+  });
 
+  final int selectedCount;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.sageBorder),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x242B2724),
+                blurRadius: 14,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.add_location_alt_outlined,
+                size: 19,
+                color: AppColors.primaryLight,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                '添加地点',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.sageText,
+                ),
+              ),
+              if (selectedCount > 0) ...[
+                const SizedBox(width: 7),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 20),
+                  height: 20,
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$selectedCount',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 16, color: Colors.white),
-            SizedBox(width: 4),
-            Text(
-              '添加地点',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _SelectedPlaceChip extends StatelessWidget {
+  const _SelectedPlaceChip({
+    required this.index,
+    required this.place,
+    required this.onRemove,
+  });
+
+  final int index;
+  final RoutePlace place;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 190),
+      padding: const EdgeInsets.fromLTRB(8, 6, 5, 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppColors.sageBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.sageText,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${index + 1}',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
                 color: Colors.white,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 7),
+          Flexible(
+            child: Text(
+              place.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.sageText,
+              ),
+            ),
+          ),
+          const SizedBox(width: 3),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(12),
+            child: const Padding(
+              padding: EdgeInsets.all(3),
+              child: Icon(Icons.close, size: 15, color: AppColors.sageMuted),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -724,7 +837,10 @@ class _SelectedPlaceTile extends StatelessWidget {
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
       ),
-      onDismissed: (_) => onRemove(),
+      confirmDismiss: (_) async {
+        onRemove();
+        return false;
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
         margin: const EdgeInsets.symmetric(vertical: 5),
