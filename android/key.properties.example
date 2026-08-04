@@ -1,0 +1,17 @@
+# 项目签名配置文件（复制为 key.properties 后使用）
+# key.properties 已被 .gitignore 排除，不会被提交到 Git。
+#
+# 新成员配置步骤：
+# 1. 复制此文件为 android/key.properties
+# 2. 向团队获取 keystore 密码（所有开发者使用同一密码）
+# 3. 运行 flutter build apk --debug 验证
+
+storeFile=android/app/keystore/sageroute-dev.jks
+storePassword=<向团队获取密码>
+keyAlias=sageroute-dev
+keyPassword=<向团队获取密码>
+
+debugStoreFile=android/app/keystore/sageroute-dev.jks
+debugStorePassword=<向团队获取密码>
+debugKeyAlias=sageroute-dev
+debugKeyPassword=<向团队获取密码>

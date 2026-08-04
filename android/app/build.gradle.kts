@@ -1,9 +1,25 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// 从 key.properties 加载项目专用签名配置（所有开发者共用同一 keystore，保证 SHA1 一致）
+fun loadKeystoreProperties(): Properties? {
+    val propsFile = rootProject.file("key.properties")
+    if (!propsFile.exists()) {
+        println("WARNING: key.properties not found at ${propsFile.absolutePath}, falling back to default debug keystore")
+        return null
+    }
+    val props = Properties()
+    propsFile.inputStream().use { props.load(it) }
+    return props
+}
+
+val keystoreProps = loadKeystoreProperties()
 
 android {
     namespace = "com.sageroute.sageroute"
@@ -30,11 +46,23 @@ android {
         versionName = flutter.versionName
     }
 
+    // 项目专用签名配置：使用 android/app/keystore/sageroute-dev.jks
+    // 所有开发者共享同一 keystore，确保高德 SHA1 指纹一致
+    val projectSigningConfig = signingConfigs.create("project").apply {
+        if (keystoreProps != null) {
+            storeFile = rootProject.file(keystoreProps!!.getProperty("storeFile"))
+            storePassword = keystoreProps!!.getProperty("storePassword")
+            keyAlias = keystoreProps!!.getProperty("keyAlias")
+            keyPassword = keystoreProps!!.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = if (keystoreProps != null) projectSigningConfig else signingConfigs.getByName("debug")
+        }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystoreProps != null) projectSigningConfig else signingConfigs.getByName("debug")
         }
     }
 }
