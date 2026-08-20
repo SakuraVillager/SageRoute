@@ -24,7 +24,7 @@ class SettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Card(
-          color: Colors.white,
+          color: AppColors.sageCard,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),

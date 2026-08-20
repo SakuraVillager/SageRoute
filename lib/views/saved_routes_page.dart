@@ -12,10 +12,7 @@ import '../theme/color_schemes.dart';
 /// - 路线卡片：图片头部 + 渐变遮罩 + 收藏图标 + 路线名称 + 统计信息
 /// - 卡片底部：人物头像 + "+X" 计数 + "查看行程" 按钮
 class SavedRoutesPage extends StatefulWidget {
-  const SavedRoutesPage({
-    super.key,
-    this.onRouteTap,
-  });
+  const SavedRoutesPage({super.key, this.onRouteTap});
 
   /// Callback when a route card is tapped.
   final void Function(String routeId)? onRouteTap;
@@ -235,7 +232,7 @@ class _RouteCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.sageCard,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: AppColors.sageBorder),
           boxShadow: [
@@ -391,7 +388,7 @@ class _RouteCard extends StatelessWidget {
                           children: [
                             _StatRow(
                               Icons.route,
-                              const Color(0xFFA89840),
+                              AppColors.sageMuted,
                               route.totalDistance,
                             ),
                             const SizedBox(height: 6),
@@ -447,7 +444,7 @@ class _RouteCard extends StatelessWidget {
                           width: 32,
                           height: 32,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFEEEAD9),
+                            color: AppColors.brandLight,
                             shape: BoxShape.circle,
                           ),
                           child: const Center(

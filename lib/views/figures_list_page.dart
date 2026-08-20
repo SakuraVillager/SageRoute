@@ -98,7 +98,7 @@ class FiguresListPage extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEEEAD9),
+                  color: AppColors.brandLight,
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -114,7 +114,7 @@ class FiguresListPage extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFEEEAD9), width: 2),
+                  border: Border.all(color: AppColors.brandLight, width: 2),
                   image: const DecorationImage(
                     image: NetworkImage('https://i.pravatar.cc/150?img=47'),
                     fit: BoxFit.cover,
@@ -352,7 +352,7 @@ class FiguresListPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.sageBorder),
       ),
@@ -432,180 +432,180 @@ class FiguresListPage extends StatelessWidget {
       child: GestureDetector(
         onTap: () => _openFigure(context, figure),
         child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: 4 / 3,
-                child: Image.network(
-                  figure.imageUrl,
-                  fit: BoxFit.cover,
-                  cacheWidth: 800,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: AppColors.primaryLight.withValues(alpha: 0.2),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: AppColors.sageBorder.withValues(alpha: 0.3),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.sageMuted,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.25),
-                        Colors.black.withValues(alpha: 0.68),
-                      ],
-                      stops: const [0.0, 0.46, 0.76, 1.0],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 14,
-                left: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.sageAccent,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    figure.dynasty,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 14,
-                right: 14,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.32),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.16),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.bookmark_border,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 18,
-                right: 18,
-                bottom: 18,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      figure.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        height: 1.05,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${figure.years} · ${figure.shortDesc}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    if (figure.role.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: figure.role.take(2).map((role) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: Text(
-                              role,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        _FeaturedStat(
-                          icon: Icons.location_on_outlined,
-                          iconColor: Colors.white,
-                          text: '${figure.locationsCount} 处遗址',
-                        ),
-                        const SizedBox(width: 16),
-                        _FeaturedStat(
-                          icon: Icons.route_outlined,
-                          iconColor: Colors.white,
-                          text: '${figure.routesCount} 条路线',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-        ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.network(
+                    figure.imageUrl,
+                    fit: BoxFit.cover,
+                    cacheWidth: 800,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.primaryLight.withValues(alpha: 0.2),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: AppColors.sageBorder.withValues(alpha: 0.3),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.sageMuted,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.25),
+                          Colors.black.withValues(alpha: 0.68),
+                        ],
+                        stops: const [0.0, 0.46, 0.76, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  left: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.sageAccent,
+                      borderRadius: BorderRadius.circular(100),
+                    ),
+                    child: Text(
+                      figure.dynasty,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.32),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.16),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.bookmark_border,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 18,
+                  right: 18,
+                  bottom: 18,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        figure.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${figure.years} · ${figure.shortDesc}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.82),
+                          fontSize: 13,
+                          height: 1.35,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 12),
+                      if (figure.role.isNotEmpty)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: figure.role.take(2).map((role) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                ),
+                              ),
+                              child: Text(
+                                role,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          _FeaturedStat(
+                            icon: Icons.location_on_outlined,
+                            iconColor: Colors.white,
+                            text: '${figure.locationsCount} 处遗址',
+                          ),
+                          const SizedBox(width: 16),
+                          _FeaturedStat(
+                            icon: Icons.route_outlined,
+                            iconColor: Colors.white,
+                            text: '${figure.routesCount} 条路线',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -648,7 +648,7 @@ class FiguresListPage extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.brandWash,
                     borderRadius: BorderRadius.circular(6),
                     boxShadow: [
                       BoxShadow(
@@ -699,11 +699,20 @@ class FiguresListPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 16),
               child: Row(
                 children: [
-                  Expanded(child: _FigureCard(figure: gridFigures[i], onTap: () => _openFigure(context, gridFigures[i]))),
+                  Expanded(
+                    child: _FigureCard(
+                      figure: gridFigures[i],
+                      onTap: () => _openFigure(context, gridFigures[i]),
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: i + 1 < gridFigures.length
-                        ? _FigureCard(figure: gridFigures[i + 1], onTap: () => _openFigure(context, gridFigures[i + 1]))
+                        ? _FigureCard(
+                            figure: gridFigures[i + 1],
+                            onTap: () =>
+                                _openFigure(context, gridFigures[i + 1]),
+                          )
                         : const SizedBox.shrink(),
                   ),
                 ],
@@ -729,7 +738,7 @@ class FiguresListPage extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            side: const BorderSide(color: Color(0xFFDCD6B3)),
+            side: const BorderSide(color: AppColors.sageBorder),
             elevation: 0,
           ),
           child: const Row(
@@ -880,219 +889,219 @@ class _FigureCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.sageBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Image area with overlays ──
-          SizedBox(
-            height: 130,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      figure.imageUrl,
-                      fit: BoxFit.cover,
-                      cacheWidth: 320,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.sageBorder.withValues(alpha: 0.3),
-                      ),
-                    ),
-                  ),
-                ),
-                // Dynasty tag — top-left (green, rounded-full)
-                Positioned(
-                  top: 18,
-                  left: 18,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.sageGreen,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Text(
-                      figure.dynasty,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                // Bookmark icon — top-right (accent color)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.bookmark_border,
-                      size: 14,
-                      color: AppColors.sageAccent,
-                    ),
-                  ),
-                ),
-              ],
+        decoration: BoxDecoration(
+          color: AppColors.sageCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.sageBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          // ── Content area ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Name
-                Text(
-                  figure.name,
-                  style: const TextStyle(
-                    color: AppColors.sageText,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                // Years
-                Text(
-                  figure.years,
-                  style: const TextStyle(
-                    color: AppColors.sageMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                // Role tags
-                if (figure.role.isNotEmpty)
-                  Wrap(
-                    spacing: 6,
-                    children: figure.role.take(2).map((r) {
-                      final isFirst = r == figure.role.first;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Image area with overlays ──
+            SizedBox(
+              height: 130,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        figure.imageUrl,
+                        fit: BoxFit.cover,
+                        cacheWidth: 320,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: AppColors.sageBorder.withValues(alpha: 0.3),
                         ),
-                        decoration: BoxDecoration(
-                          color: isFirst
-                              ? AppColors
-                                    .sageCard // Let's use light brown/orange bg for first?
-                              : AppColors.sageCard,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(
-                          r,
-                          style: TextStyle(
-                            color: isFirst
-                                ? AppColors.sageAccent
-                                : AppColors.sageMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                const SizedBox(height: 10),
-                // Bottom stats row with divider + "查看" button
-                const Divider(height: 1, color: AppColors.sageBorder),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 10,
-                          color: AppColors.sageMuted,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${figure.locationsCount} 处',
-                          style: const TextStyle(
-                            color: AppColors.sageMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                    Container(
+                  ),
+                  // Dynasty tag — top-left (green, rounded-full)
+                  Positioned(
+                    top: 18,
+                    left: 18,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
+                        horizontal: 8,
+                        vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.sageCard,
+                        color: AppColors.sageGreen,
                         borderRadius: BorderRadius.circular(100),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '查看',
+                      child: Text(
+                        figure.dynasty,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bookmark icon — top-right (accent color)
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.bookmark_border,
+                        size: 14,
+                        color: AppColors.sageAccent,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // ── Content area ──
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Name
+                  Text(
+                    figure.name,
+                    style: const TextStyle(
+                      color: AppColors.sageText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  // Years
+                  Text(
+                    figure.years,
+                    style: const TextStyle(
+                      color: AppColors.sageMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w400,
+                      height: 1.2,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Role tags
+                  if (figure.role.isNotEmpty)
+                    Wrap(
+                      spacing: 6,
+                      children: figure.role.take(2).map((r) {
+                        final isFirst = r == figure.role.first;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isFirst
+                                ? AppColors
+                                      .sageCard // Let's use light brown/orange bg for first?
+                                : AppColors.sageCard,
+                            borderRadius: BorderRadius.circular(100),
+                          ),
+                          child: Text(
+                            r,
                             style: TextStyle(
-                              color: AppColors.sageText,
+                              color: isFirst
+                                  ? AppColors.sageAccent
+                                  : AppColors.sageMuted,
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          SizedBox(width: 2),
-                          Icon(
-                            Icons.arrow_forward,
+                        );
+                      }).toList(),
+                    ),
+                  const SizedBox(height: 10),
+                  // Bottom stats row with divider + "查看" button
+                  const Divider(height: 1, color: AppColors.sageBorder),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
                             size: 10,
-                            color: AppColors.sageText,
+                            color: AppColors.sageMuted,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            '${figure.locationsCount} 处',
+                            style: const TextStyle(
+                              color: AppColors.sageMuted,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.sageCard,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '查看',
+                              style: TextStyle(
+                                color: AppColors.sageText,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 10,
+                              color: AppColors.sageText,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

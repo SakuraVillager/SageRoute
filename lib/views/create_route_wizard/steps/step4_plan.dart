@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../models/figure.dart';
+import '../../../theme/color_schemes.dart';
 
 /// Step 3: 行程规划 — 日期、游览节奏。
 class Step4Plan extends StatefulWidget {
@@ -17,13 +18,13 @@ class _Step4PlanState extends State<Step4Plan> {
 
   // ── Colors (HTML design) ──
   static const _cardBg = Color(0xFFFFFFFF);
-  static const _textMain = Color(0xFF382F00);
-  static const _textSecondary = Color(0xFFA89840);
-  static const _accent = Color(0xFF8B7500);
-  static const _accentBg = Color(0xFFEEEAD9);
-  static const _border = Color(0xFFEEEAD9);
-  static const _greenIcon = Color(0xFFC5BA80);
-  static const _brownRedIcon = Color(0xFFA89840);
+  static const _textMain = AppColors.sageText;
+  static const _textSecondary = AppColors.sageMuted;
+  static const _accent = AppColors.sageAccent;
+  static const _accentBg = AppColors.brandLight;
+  static const _border = AppColors.brandLight;
+  static const _greenIcon = AppColors.brandDeeper;
+  static const _brownRedIcon = AppColors.sageMuted;
 
   static const _paces = ['悠闲', '适中', '紧凑'];
   static const _paceDescriptions = ['每天2-3处', '每天3-4处', '每天5处以上'];
@@ -91,12 +92,7 @@ class _Step4PlanState extends State<Step4Plan> {
         Expanded(child: _buildDateCard('出发日期', '10月12日', '2025', _accent)),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildDateCard(
-            '返程日期',
-            '10月15日',
-            '2025',
-            const Color(0xFFA89840),
-          ),
+          child: _buildDateCard('返程日期', '10月15日', '2025', AppColors.sageMuted),
         ),
       ],
     );
@@ -181,7 +177,7 @@ class _Step4PlanState extends State<Step4Plan> {
                     Icon(
                       _paceIcons[i],
                       size: 20,
-                      color: selected ? _accent : const Color(0xFFA89840),
+                      color: selected ? _accent : AppColors.sageMuted,
                     ),
                     const SizedBox(height: 8),
                     Text(

@@ -45,9 +45,9 @@ class _RegisterPageState extends State<RegisterPage> {
   static const _mutedColor = AppColors.sageMuted;
   static const _borderColor = AppColors.sageBorder;
   static const _accentColor = AppColors.sageAccent;
-  static const _buttonBg = Color(0xFF1C1700);
+  static const _buttonBg = AppColors.sageDeep;
   static const _buttonText = Colors.white;
-  static const _errorColor = Color(0xFF6F5E00);
+  static const _errorColor = AppColors.sageText;
 
   @override
   void initState() {
@@ -225,10 +225,8 @@ class _RegisterPageState extends State<RegisterPage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Material(
-        color: const Color(0xFFF8F7F0),
-        shape: CircleBorder(
-          side: BorderSide(color: _borderColor),
-        ),
+        color: AppColors.sageBg,
+        shape: CircleBorder(side: BorderSide(color: _borderColor)),
         child: InkWell(
           onTap: () => Navigator.of(context).pop(),
           customBorder: const CircleBorder(),
@@ -317,7 +315,9 @@ class _RegisterPageState extends State<RegisterPage> {
         prefixIcon: Icon(Icons.lock_outlined, size: 20, color: _mutedColor),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            _obscurePassword
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
             size: 20,
             color: _mutedColor,
           ),
@@ -342,7 +342,9 @@ class _RegisterPageState extends State<RegisterPage> {
         prefixIcon: Icon(Icons.lock_outlined, size: 20, color: _mutedColor),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            _obscureConfirm
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
             size: 20,
             color: _mutedColor,
           ),
@@ -494,7 +496,7 @@ class _RegisterPageState extends State<RegisterPage> {
           width: 80,
           height: 80,
           decoration: const BoxDecoration(
-            color: Color(0xFFDCD6B3),
+            color: AppColors.sageBorder,
             shape: BoxShape.circle,
           ),
           child: Icon(Icons.email_outlined, size: 36, color: _accentColor),
@@ -517,7 +519,11 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 16),
         Text(
           _emailController.text.trim(),
-          style: TextStyle(color: _textColor, fontSize: 14, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            color: _textColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );

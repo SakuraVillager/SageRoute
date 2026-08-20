@@ -38,9 +38,9 @@ class _LoginPageState extends State<LoginPage> {
   static const _mutedColor = AppColors.sageMuted;
   static const _borderColor = AppColors.sageBorder;
   static const _accentColor = AppColors.sageAccent;
-  static const _buttonBg = Color(0xFF1C1700);
+  static const _buttonBg = AppColors.sageDeep;
   static const _buttonText = Colors.white;
-  static const _errorColor = Color(0xFF6F5E00);
+  static const _errorColor = AppColors.sageText;
 
   @override
   void initState() {
@@ -378,7 +378,7 @@ class _BrandTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(
-      color: Color(0xFF382F00),
+      color: AppColors.sageText,
       fontSize: 36,
       height: 1.0,
       fontWeight: FontWeight.w700,
@@ -393,7 +393,7 @@ class _BrandTitle extends StatelessWidget {
           width: 28,
           height: 1,
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF382F00)),
+            decoration: BoxDecoration(color: AppColors.sageText),
           ),
         ),
         SizedBox(width: 12),

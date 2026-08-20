@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/color_schemes.dart';
+
 class DetailScrollTabBar extends StatelessWidget {
   const DetailScrollTabBar({
     super.key,
@@ -16,11 +18,11 @@ class DetailScrollTabBar extends StatelessWidget {
   final ValueChanged<int> onTabTap;
   final double itemRightPadding;
 
-  static const _background = Color(0xFFF8F7F0);
-  static const _activeText = Color(0xFF1C1700);
-  static const _inactiveText = Color(0xFFA89840);
-  static const _indicator = Color(0xFF8B7500);
-  static const _bottomBorder = Color(0xFFEEEAD9);
+  static const _background = AppColors.sageBg;
+  static const _activeText = AppColors.sageDeep;
+  static const _inactiveText = AppColors.sageMuted;
+  static const _indicator = AppColors.sageAccent;
+  static const _bottomBorder = AppColors.brandLight;
 
   @override
   Widget build(BuildContext context) {

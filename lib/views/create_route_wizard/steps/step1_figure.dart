@@ -45,12 +45,14 @@ class _Step1FigureState extends State<Step1Figure> {
   List<CelebrityProfile> _filterFigures(List<CelebrityProfile> figures) {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return figures;
-    return figures.where((figure) {
-      return figure.name.toLowerCase().contains(query) ||
-          figure.dynasty.toLowerCase().contains(query) ||
-          figure.bioShort.toLowerCase().contains(query) ||
-          figure.topic.any((topic) => topic.toLowerCase().contains(query));
-    }).toList(growable: false);
+    return figures
+        .where((figure) {
+          return figure.name.toLowerCase().contains(query) ||
+              figure.dynasty.toLowerCase().contains(query) ||
+              figure.bioShort.toLowerCase().contains(query) ||
+              figure.topic.any((topic) => topic.toLowerCase().contains(query));
+        })
+        .toList(growable: false);
   }
 
   @override
@@ -156,23 +158,23 @@ class _Step1FigureState extends State<Step1Figure> {
                         return GridView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                           itemCount: visibleFigures.length,
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: columns,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            mainAxisExtent: columns == 2 ? 190 : 142,
-                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                mainAxisSpacing: 10,
+                                crossAxisSpacing: 10,
+                                mainAxisExtent: columns == 2 ? 190 : 142,
+                              ),
                           itemBuilder: (context, index) {
                             final figure = visibleFigures[index];
                             return _FigureCard(
                               figure: figure,
                               horizontal: columns == 1,
                               isSelected:
-                                  figure.id.toString() == widget.selectedFigureId,
-                              onTap: () => widget.onSelect(
-                                figure.id.toString(),
-                                figure,
-                              ),
+                                  figure.id.toString() ==
+                                  widget.selectedFigureId,
+                              onTap: () =>
+                                  widget.onSelect(figure.id.toString(), figure),
                             );
                           },
                         );
@@ -224,7 +226,9 @@ class _FigureCard extends StatelessWidget {
             children: [
               _FigureAvatar(figure: figure, isSelected: isSelected, size: 62),
               const SizedBox(width: 14),
-              Expanded(child: _FigureCardText(figure: figure, isSelected: isSelected)),
+              Expanded(
+                child: _FigureCardText(figure: figure, isSelected: isSelected),
+              ),
               IconButton(
                 onPressed: () => _openDetails(context),
                 icon: const Icon(Icons.info_outline, size: 19),
@@ -239,12 +243,19 @@ class _FigureCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _FigureAvatar(figure: figure, isSelected: isSelected, size: 54),
+                  _FigureAvatar(
+                    figure: figure,
+                    isSelected: isSelected,
+                    size: 54,
+                  ),
                   const Spacer(),
                   IconButton(
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 32,
+                    ),
                     onPressed: () => _openDetails(context),
                     icon: const Icon(Icons.info_outline, size: 18),
                     color: AppColors.sageMuted,
@@ -253,7 +264,9 @@ class _FigureCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Expanded(child: _FigureCardText(figure: figure, isSelected: isSelected)),
+              Expanded(
+                child: _FigureCardText(figure: figure, isSelected: isSelected),
+              ),
             ],
           );
 
@@ -276,7 +289,7 @@ class _FigureCard extends StatelessWidget {
             ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0D382F00),
+                color: Color(0x0D332E24),
                 blurRadius: 8,
                 offset: Offset(0, 3),
               ),

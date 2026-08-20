@@ -12,6 +12,7 @@ import 'package:x_amap_base/x_amap_base.dart';
 import '../../data/icon_repository.dart';
 import '../../data/location_repository.dart';
 import '../../models/location_record.dart';
+import '../../theme/color_schemes.dart';
 import '../../utils/svg_path_parser.dart';
 
 part 'guide_location_logic.dart';

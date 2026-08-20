@@ -7,6 +7,7 @@ import '../components/detail_circle_button.dart';
 import '../components/detail_scroll_tab_bar.dart';
 import '../models/figure.dart';
 import '../models/location.dart';
+import '../theme/color_schemes.dart';
 import '../utils/detail_scroll_spy_controller.dart';
 import '../utils/slide_route.dart';
 import 'location_detail_page.dart';
@@ -27,20 +28,20 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
   static const _tabs = ['生平', '遗址', '名言', '地图', '作品'];
 
   // ── Colors ──
-  static const _bg = Color(0xFFF8F7F0);
-  static const _accent = Color(0xFF8B7500);
-  static const _green = Color(0xFF6F5E00);
-  static const _gold = Color(0xFF8B7500);
-  static const _star = Color(0xFFA89840);
-  static const _text1 = Color(0xFF1C1700);
-  static const _text2 = Color(0xFF534600);
-  static const _muted = Color(0xFFA89840);
-  static const _tagPoet = Color(0xFFEEEAD9);
-  static const _tagPoetText = Color(0xFF6F5E00);
-  static const _tagOfficial = Color(0xFFF8F7F0);
-  static const _tagOfficialText = Color(0xFF8B7500);
-  static const _tagPhilosopher = Color(0xFFF8F7F0);
-  static const _tagPhilosopherText = Color(0xFF8B7500);
+  static const _bg = AppColors.sageBg;
+  static const _accent = AppColors.sageAccent;
+  static const _green = AppColors.sageText;
+  static const _gold = AppColors.sageAccent;
+  static const _star = AppColors.sageMuted;
+  static const _text1 = AppColors.sageDeep;
+  static const _text2 = AppColors.sageText;
+  static const _muted = AppColors.sageMuted;
+  static const _tagPoet = AppColors.brandLight;
+  static const _tagPoetText = AppColors.sageText;
+  static const _tagOfficial = AppColors.sageBg;
+  static const _tagOfficialText = AppColors.sageAccent;
+  static const _tagPhilosopher = AppColors.sageBg;
+  static const _tagPhilosopherText = AppColors.sageAccent;
 
   @override
   void initState() {
@@ -133,7 +134,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFFDCD6B3), Color(0xFFDCD6B3), _bg],
+                    colors: [AppColors.sageBorder, AppColors.sageBorder, _bg],
                     stops: [0.0, 0.5, 1.0],
                   ),
                 ),
@@ -149,7 +150,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                           gradient: RadialGradient(
                             center: Alignment.bottomRight,
                             radius: 1.0,
-                            colors: [Color(0x1F534600), Colors.transparent],
+                            colors: [Color(0x1F665B48), Colors.transparent],
                           ),
                         ),
                       ),
@@ -324,12 +325,12 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFDCD6B3), width: 0.5),
+        border: Border.all(color: AppColors.sageBorder, width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D8B7500),
+            color: Color(0x0D665B48),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -393,7 +394,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1C1700),
+                  backgroundColor: AppColors.sageDeep,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -420,7 +421,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _text1,
-                  side: const BorderSide(color: Color(0xFFDCD6B3)),
+                  side: const BorderSide(color: AppColors.sageBorder),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(
@@ -571,9 +572,9 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
             final h = constraints.maxHeight;
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFDCD6B3),
+                color: AppColors.sageBorder,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFDCD6B3), width: 0.5),
+                border: Border.all(color: AppColors.sageBorder, width: 0.5),
               ),
               child: Stack(
                 children: [
@@ -693,7 +694,7 @@ class _StatItem extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF382F00),
+                  color: AppColors.sageText,
                 ),
               ),
             ],
@@ -703,7 +704,7 @@ class _StatItem extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFFA89840),
+              color: AppColors.sageMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -731,12 +732,12 @@ class _SiteCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.sageCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
+          border: Border.all(color: AppColors.brandLight, width: 0.5),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x088B7500),
+              color: Color(0x08665B48),
               blurRadius: 14,
               offset: Offset(0, 4),
             ),
@@ -748,7 +749,7 @@ class _SiteCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFEEEAD9),
+                color: AppColors.brandLight,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -757,7 +758,7 @@ class _SiteCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF6F5E00),
+                    color: AppColors.sageText,
                   ),
                 ),
               ),
@@ -772,7 +773,7 @@ class _SiteCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1C1700),
+                      color: AppColors.sageDeep,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -781,7 +782,7 @@ class _SiteCard extends StatelessWidget {
                     location.region,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFA89840),
+                      color: AppColors.sageMuted,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -796,7 +797,7 @@ class _SiteCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEEAD9),
+                  color: AppColors.brandLight,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -804,7 +805,7 @@ class _SiteCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF8B7500),
+                    color: AppColors.sageAccent,
                   ),
                 ),
               ),
@@ -830,12 +831,14 @@ class _QuoteBox extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: const BoxDecoration(
-        color: Color(0xFFEEEAD9),
+        color: AppColors.brandLight,
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
-        border: Border(left: BorderSide(color: Color(0xFF8B7500), width: 3.5)),
+        border: Border(
+          left: BorderSide(color: AppColors.sageAccent, width: 3.5),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +848,7 @@ class _QuoteBox extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1C1700),
+              color: AppColors.sageDeep,
               height: 1.5,
               letterSpacing: 0.5,
             ),
@@ -857,7 +860,7 @@ class _QuoteBox extends StatelessWidget {
               source,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFFA89840),
+                color: AppColors.sageMuted,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -890,7 +893,7 @@ class _DashedLinePainter extends CustomPainter {
     const dashWidth = 6.0;
     const dashSpace = 4.0;
     final paint = Paint()
-      ..color = const Color(0xFFA89840)
+      ..color = AppColors.sageMuted
       ..strokeWidth = 2;
     double x = 0;
     while (x < size.width) {
@@ -924,7 +927,7 @@ class _MapDot extends StatelessWidget {
             width: 9,
             height: 9,
             decoration: BoxDecoration(
-              color: const Color(0xFF8B7500),
+              color: AppColors.sageAccent,
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: const [
@@ -941,7 +944,7 @@ class _MapDot extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFF534600),
+              color: AppColors.sageText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -966,7 +969,7 @@ class _WorkItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 2),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFFDCD6B3), width: 0.5),
+          bottom: BorderSide(color: AppColors.sageBorder, width: 0.5),
         ),
       ),
       child: Row(
@@ -976,7 +979,7 @@ class _WorkItem extends StatelessWidget {
             name,
             style: const TextStyle(
               fontSize: 15,
-              color: Color(0xFF382F00),
+              color: AppColors.sageText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -984,7 +987,7 @@ class _WorkItem extends StatelessWidget {
             type,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF6F5E00),
+              color: AppColors.sageText,
               fontWeight: FontWeight.w500,
             ),
           ),

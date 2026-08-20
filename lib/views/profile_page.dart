@@ -47,20 +47,20 @@ class ProfilePage extends StatelessWidget {
 
   // ── Page-specific colors (from Web Profile.tsx) ──
 
-  static const Color _pageBg = Color(0xFFFFFFFF);
-  static const Color _avatarRing = Color(0xFFEEEAD9);
-  static const Color _sectionTitle = Color(0xFF8B7500);
-  static const Color _statAchieve = Color(0xFF8B7500);
-  static const Color _statExplore = Color(0xFFA89840);
-  static const Color _statRoute = Color(0xFFA89840);
-  static const Color _logoutText = Color(0xFF8B7500);
-  static const Color _chevronColor = Color(0xFFDCD6B3);
-  static const Color _iconBg1 = Color(0xFFDCD6B3);
-  static const Color _iconFg1 = Color(0xFF8B7500);
-  static const Color _iconBg2 = Color(0xFFEEEAD9);
-  static const Color _iconFg2 = Color(0xFF8B7500);
+  static const Color _pageBg = AppColors.sageBg;
+  static const Color _avatarRing = AppColors.brandLight;
+  static const Color _sectionTitle = AppColors.sageAccent;
+  static const Color _statAchieve = AppColors.sageAccent;
+  static const Color _statExplore = AppColors.sageMuted;
+  static const Color _statRoute = AppColors.sageMuted;
+  static const Color _logoutText = AppColors.sageAccent;
+  static const Color _chevronColor = AppColors.sageBorder;
+  static const Color _iconBg1 = AppColors.sageBorder;
+  static const Color _iconFg1 = AppColors.sageAccent;
+  static const Color _iconBg2 = AppColors.brandLight;
+  static const Color _iconFg2 = AppColors.sageAccent;
   static const Color _iconBgLocked = Colors.white;
-  static const Color _iconFgLocked = Color(0xFFDCD6B3);
+  static const Color _iconFgLocked = AppColors.sageBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -118,8 +118,8 @@ class ProfilePage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-         border: const Border(bottom: BorderSide(color: AppColors.sageBorder)),
+        color: AppColors.sageCard,
+        border: const Border(bottom: BorderSide(color: AppColors.sageBorder)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -181,11 +181,7 @@ class ProfilePage extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: _avatarRing, width: 4),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
         ],
         color: AppColors.sageAccent,
       ),
@@ -208,23 +204,11 @@ class ProfilePage extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildStatColumn(
-          '${mockUser.achievementsCount}',
-          '解锁成就',
-          _statAchieve,
-        ),
+        _buildStatColumn('${mockUser.achievementsCount}', '解锁成就', _statAchieve),
         Container(width: 1, height: 40, color: AppColors.sageBorder),
-        _buildStatColumn(
-          '${mockUser.exploredLocations}',
-          '探索地点',
-          _statExplore,
-        ),
+        _buildStatColumn('${mockUser.exploredLocations}', '探索地点', _statExplore),
         Container(width: 1, height: 40, color: AppColors.sageBorder),
-        _buildStatColumn(
-          '${mockUser.completedRoutes}',
-          '完成路线',
-          _statRoute,
-        ),
+        _buildStatColumn('${mockUser.completedRoutes}', '完成路线', _statRoute),
       ],
     );
   }
@@ -245,10 +229,7 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.sageMuted,
-            ),
+            style: const TextStyle(fontSize: 12, color: AppColors.sageMuted),
           ),
         ],
       ),
@@ -340,10 +321,7 @@ class ProfilePage extends StatelessWidget {
             // Description
             Text(
               achievement.unlocked ? achievement.description : '未解锁',
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppColors.sageMuted,
-              ),
+              style: const TextStyle(fontSize: 10, color: AppColors.sageMuted),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -385,7 +363,7 @@ class ProfilePage extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         border: Border.all(color: AppColors.sageBorder),
         borderRadius: BorderRadius.circular(16),
       ),
@@ -464,17 +442,13 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) ...[
-                  trailing,
-                  const SizedBox(width: 8),
-                ],
+                if (trailing != null) ...[trailing, const SizedBox(width: 8)],
                 const Icon(Icons.chevron_right, size: 18, color: _chevronColor),
               ],
             ),
           ),
         ),
-        if (showDivider)
-          Container(height: 1, color: AppColors.sageBorder),
+        if (showDivider) Container(height: 1, color: AppColors.sageBorder),
       ],
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/color_schemes.dart';
+
 class DetailContentSection extends StatelessWidget {
   const DetailContentSection({
     super.key,
@@ -16,10 +18,10 @@ class DetailContentSection extends StatelessWidget {
   final String? actionText;
   final double headerGap;
 
-  static const _titleColor = Color(0xFF8B7500);
-  static const _dividerColor = Color(0xFFEEEAD9);
-  static const _mutedColor = Color(0xFFA89840);
-  static const _actionColor = Color(0xFF8B7500);
+  static const _titleColor = AppColors.sageAccent;
+  static const _dividerColor = AppColors.brandLight;
+  static const _mutedColor = AppColors.sageMuted;
+  static const _actionColor = AppColors.sageAccent;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +77,6 @@ class DetailStatDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 30, color: const Color(0xFFEEEAD9));
+    return Container(width: 1, height: 30, color: AppColors.brandLight);
   }
 }

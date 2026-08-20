@@ -50,7 +50,7 @@ class _TheatreTicketCard extends StatelessWidget {
                   color: _ticketLeft,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x0F382F00),
+                      color: Color(0x0F332E24),
                       blurRadius: 36,
                       offset: Offset(0, 12),
                     ),
@@ -153,11 +153,11 @@ class _TheatreTicketCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFA89840),
+                      color: AppColors.sageMuted,
                       height: 1.2,
                     ),
                   ),
-                  Icon(Icons.public, size: 13, color: Color(0xFFA89840)),
+                  Icon(Icons.public, size: 13, color: AppColors.sageMuted),
                 ],
               ),
               SizedBox(height: 10),
@@ -320,10 +320,10 @@ class _PanelFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEEAD9)),
+        border: Border.all(color: AppColors.brandLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x10382F00),
+            color: Color(0x10332E24),
             blurRadius: 30,
             offset: Offset(0, 12),
           ),

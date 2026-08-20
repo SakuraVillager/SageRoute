@@ -18,18 +18,18 @@ class LandingPage extends StatelessWidget {
   final VoidCallback? onLogin;
 
   // Brand colours extracted from the Web landing page.
-  static const Color _scaffoldBg = Color(0xFFF8F7F0);
-  static const Color _badgeBg = Color(0xFFEEEAD9);
-  static const Color _badgeText = Color(0xFF8B7500);
-  static const Color _sageText = Color(0xFF382F00);
-  static const Color _mutedText = Color(0xFFA89840);
-  static const Color _borderColor = Color(0xFFDCD6B3);
-  static const Color _ctaBg = Color(0xFF1C1700);
-  static const Color _ctaText = Color(0xFFEEEAD9);
+  static const Color _scaffoldBg = AppColors.sageBg;
+  static const Color _badgeBg = AppColors.brandLight;
+  static const Color _badgeText = AppColors.sageAccent;
+  static const Color _sageText = AppColors.sageText;
+  static const Color _mutedText = AppColors.sageMuted;
+  static const Color _borderColor = AppColors.sageBorder;
+  static const Color _ctaBg = AppColors.sageDeep;
+  static const Color _ctaText = AppColors.brandLight;
   // Web 版主按钮箭头圆圈使用 sage-accent (#B96144 / 陶土红)，
   // 之前误用了浅褐色 #BDA88A，这里修正为品牌强调色。
   static const Color _accentColor = AppColors.sageAccent;
-  static const Color _secondaryText = Color(0xFF8B7500);
+  static const Color _secondaryText = AppColors.sageAccent;
 
   static const String _bgImageUrl =
       'https://images.unsplash.com/photo-1574227492706-f65b24c3688a?auto=format&fit=crop&q=80&w=1200';
@@ -342,7 +342,7 @@ class _TitleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(
-      color: Color(0xFF382F00),
+      color: AppColors.sageText,
       fontSize: 44,
       height: 1.0,
       fontWeight: FontWeight.w700,
@@ -357,7 +357,7 @@ class _TitleRow extends StatelessWidget {
           width: 32,
           height: 1,
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF382F00)),
+            decoration: BoxDecoration(color: AppColors.sageText),
           ),
         ),
         SizedBox(width: 12),

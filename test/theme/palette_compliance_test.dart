@@ -6,16 +6,15 @@ void main() {
   test('all application colors belong to the approved brand palette', () {
     const allowedRgb = <String>{
       '000000',
-      '1C1700',
-      '382F00',
-      '534600',
-      '6F5E00',
-      '8B7500',
-      'A89840',
-      'C5BA80',
-      'DCD6B3',
-      'EEEAD9',
-      'F8F7F0',
+      '332E24',
+      '665B48',
+      '99896D',
+      'CCB691',
+      'FFE4B5',
+      'FFEBC8',
+      'FFF2DA',
+      'FFF8ED',
+      'FFFCF6',
       'FFFFFF',
     };
     const allowedNamedColors = <String>{'black', 'white', 'transparent'};
@@ -40,6 +39,6 @@ void main() {
       }
     }
 
-    expect(violations, isEmpty, reason: '发现未使用黑、白、#8B7500 或其明暗衍生色的颜色');
+    expect(violations, isEmpty, reason: '发现未使用黑、白、#FFE4B5 或其明暗衍生色的颜色');
   });
 }
