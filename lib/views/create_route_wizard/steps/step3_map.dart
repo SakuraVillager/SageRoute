@@ -125,7 +125,7 @@ class _Step3MapState extends State<Step3Map> {
     final places = <RoutePlace>[];
     for (var i = 0; i < raw.length; i++) {
       final loc = raw[i];
-      if (loc.coordinates.length >= 2) {
+      if (_hasValidCoordinates(loc)) {
         final id = loc.id > 0 ? loc.id : 100000 + i;
         places.add(
           RoutePlace(
@@ -142,6 +142,19 @@ class _Step3MapState extends State<Step3Map> {
     }
     places.sort((a, b) => a.name.compareTo(b.name));
     return places;
+  }
+
+  bool _hasValidCoordinates(LocationRecord location) {
+    if (location.coordinates.length < 2) return false;
+    final longitude = location.coordinates[0];
+    final latitude = location.coordinates[1];
+    return latitude.isFinite &&
+        longitude.isFinite &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180 &&
+        !(latitude == 0 && longitude == 0);
   }
 
   List<RoutePlace> _mergeVisiblePlaces(
@@ -249,7 +262,7 @@ class _Step3MapState extends State<Step3Map> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFF8B7500)),
             child: const Text('删除'),
           ),
         ],
@@ -273,7 +286,7 @@ class _Step3MapState extends State<Step3Map> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Color(0xFF8B7500)),
             child: const Text('清空'),
           ),
         ],
@@ -285,7 +298,8 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   void _dragPanel(DragUpdateDetails details) {
-    final availableHeight = context.size?.height ?? MediaQuery.sizeOf(context).height;
+    final availableHeight =
+        context.size?.height ?? MediaQuery.sizeOf(context).height;
     if (availableHeight <= 0) return;
     final next = _panelFraction - details.delta.dy / availableHeight;
     setState(() {
@@ -448,7 +462,7 @@ class _Step3MapState extends State<Step3Map> {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x1A2B2724),
+                      color: Color(0x1A382F00),
                       blurRadius: 16,
                       offset: Offset(0, -4),
                     ),
@@ -518,7 +532,9 @@ class _Step3MapState extends State<Step3Map> {
                     ),
                     const SizedBox(width: 3),
                     Icon(
-                      compact ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                      compact
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
                       size: 18,
                       color: AppColors.sageMuted,
                     ),
@@ -531,7 +547,7 @@ class _Step3MapState extends State<Step3Map> {
         Container(height: 0.5, color: AppColors.sageBorder),
         Expanded(
           child: _selected.isEmpty
-              ? _EmptyHint(
+              ? const _EmptyHint(
                   icon: Icons.add_location_alt_outlined,
                   text: '点击地图上的“添加地点”开始选择',
                 )
@@ -587,12 +603,16 @@ class _Step3MapState extends State<Step3Map> {
         if (!compact && _selected.isNotEmpty)
           TextButton.icon(
             onPressed: _confirmClearAll,
-            icon: Icon(Icons.delete_outline, size: 16, color: Colors.red.shade300),
+            icon: Icon(
+              Icons.delete_outline,
+              size: 16,
+              color: Color(0xFF8B7500),
+            ),
             label: Text(
               '清空全部地点',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.red.shade300,
+                color: Color(0xFF8B7500),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -619,13 +639,10 @@ class _Step3MapState extends State<Step3Map> {
     final result = await showModalBottomSheet<List<RoutePlace>>(
       context: context,
       isScrollControlled: true,
-      useSafeArea: false,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.28),
-      builder: (context) => AddPlacePage(
-        figure: widget.figure,
-        currentSelectedPlaces: _selected,
-      ),
+      builder: (context) =>
+          AddPlacePage(figure: widget.figure, currentSelectedPlaces: _selected),
     );
 
     if (result == null) return;
@@ -667,10 +684,7 @@ class _EmptyHint extends StatelessWidget {
 }
 
 class _MapAddPlaceButton extends StatelessWidget {
-  const _MapAddPlaceButton({
-    required this.selectedCount,
-    required this.onTap,
-  });
+  const _MapAddPlaceButton({required this.selectedCount, required this.onTap});
 
   final int selectedCount;
   final VoidCallback onTap;
@@ -690,7 +704,7 @@ class _MapAddPlaceButton extends StatelessWidget {
             border: Border.all(color: AppColors.sageBorder),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x242B2724),
+                color: Color(0x24382F00),
                 blurRadius: 14,
                 offset: Offset(0, 5),
               ),
@@ -832,7 +846,7 @@ class _SelectedPlaceTile extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: Colors.red.shade400,
+          color: Color(0xFF6F5E00),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 22),
@@ -851,7 +865,7 @@ class _SelectedPlaceTile extends StatelessWidget {
           border: Border.all(color: AppColors.sageBorder),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1A2B2724),
+              color: Color(0x1A382F00),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),

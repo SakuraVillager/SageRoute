@@ -27,20 +27,20 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
   static const _tabs = ['生平', '遗址', '名言', '地图', '作品'];
 
   // ── Colors ──
-  static const _bg = Color(0xFFFAF7F2);
-  static const _accent = Color(0xFFCD6642);
-  static const _green = Color(0xFF528265);
-  static const _gold = Color(0xFFB08550);
-  static const _star = Color(0xFFD4AF37);
-  static const _text1 = Color(0xFF1A1A1A);
-  static const _text2 = Color(0xFF4A4A4A);
-  static const _muted = Color(0xFF8E8A82);
-  static const _tagPoet = Color(0xFFE6F3EB);
-  static const _tagPoetText = Color(0xFF4A8260);
-  static const _tagOfficial = Color(0xFFF9F1E6);
-  static const _tagOfficialText = Color(0xFFB08550);
-  static const _tagPhilosopher = Color(0xFFFBF0ED);
-  static const _tagPhilosopherText = Color(0xFFB36B5C);
+  static const _bg = Color(0xFFF8F7F0);
+  static const _accent = Color(0xFF8B7500);
+  static const _green = Color(0xFF6F5E00);
+  static const _gold = Color(0xFF8B7500);
+  static const _star = Color(0xFFA89840);
+  static const _text1 = Color(0xFF1C1700);
+  static const _text2 = Color(0xFF534600);
+  static const _muted = Color(0xFFA89840);
+  static const _tagPoet = Color(0xFFEEEAD9);
+  static const _tagPoetText = Color(0xFF6F5E00);
+  static const _tagOfficial = Color(0xFFF8F7F0);
+  static const _tagOfficialText = Color(0xFF8B7500);
+  static const _tagPhilosopher = Color(0xFFF8F7F0);
+  static const _tagPhilosopherText = Color(0xFF8B7500);
 
   @override
   void initState() {
@@ -133,7 +133,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFFd6cebf), Color(0xFFe8e2d5), _bg],
+                    colors: [Color(0xFFDCD6B3), Color(0xFFDCD6B3), _bg],
                     stops: [0.0, 0.5, 1.0],
                   ),
                 ),
@@ -149,7 +149,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                           gradient: RadialGradient(
                             center: Alignment.bottomRight,
                             radius: 1.0,
-                            colors: [Color(0x1F5A5446), Colors.transparent],
+                            colors: [Color(0x1F534600), Colors.transparent],
                           ),
                         ),
                       ),
@@ -326,10 +326,10 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE6E1D8), width: 0.5),
+        border: Border.all(color: const Color(0xFFDCD6B3), width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D8C826E),
+            color: Color(0x0D8B7500),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -393,7 +393,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF171717),
+                  backgroundColor: const Color(0xFF1C1700),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -420,7 +420,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: _text1,
-                  side: const BorderSide(color: Color(0xFFE6E1D8)),
+                  side: const BorderSide(color: Color(0xFFDCD6B3)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(
@@ -571,9 +571,9 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
             final h = constraints.maxHeight;
             return Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE6E1D6),
+                color: const Color(0xFFDCD6B3),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD6CFC1), width: 0.5),
+                border: Border.all(color: const Color(0xFFDCD6B3), width: 0.5),
               ),
               child: Stack(
                 children: [
@@ -693,7 +693,7 @@ class _StatItem extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF2A2A2A),
+                  color: Color(0xFF382F00),
                 ),
               ),
             ],
@@ -703,7 +703,7 @@ class _StatItem extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFFA09B90),
+              color: Color(0xFFA89840),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -733,10 +733,10 @@ class _SiteCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8E3DA), width: 0.5),
+          border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x088C826E),
+              color: Color(0x088B7500),
               blurRadius: 14,
               offset: Offset(0, 4),
             ),
@@ -748,7 +748,7 @@ class _SiteCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFEFEBE4),
+                color: const Color(0xFFEEEAD9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Center(
@@ -757,7 +757,7 @@ class _SiteCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF6E6659),
+                    color: Color(0xFF6F5E00),
                   ),
                 ),
               ),
@@ -772,7 +772,7 @@ class _SiteCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1A1A1A),
+                      color: Color(0xFF1C1700),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -781,7 +781,7 @@ class _SiteCard extends StatelessWidget {
                     location.region,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8E8A82),
+                      color: Color(0xFFA89840),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -796,7 +796,7 @@ class _SiteCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAE6DF),
+                  color: const Color(0xFFEEEAD9),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -804,7 +804,7 @@ class _SiteCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF7A756C),
+                    color: Color(0xFF8B7500),
                   ),
                 ),
               ),
@@ -830,12 +830,12 @@ class _QuoteBox extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
       decoration: const BoxDecoration(
-        color: Color(0xFFF4EFE6),
+        color: Color(0xFFEEEAD9),
         borderRadius: BorderRadius.only(
           topRight: Radius.circular(16),
           bottomRight: Radius.circular(16),
         ),
-        border: Border(left: BorderSide(color: Color(0xFFCD6642), width: 3.5)),
+        border: Border(left: BorderSide(color: Color(0xFF8B7500), width: 3.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +845,7 @@ class _QuoteBox extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1F1F1F),
+              color: Color(0xFF1C1700),
               height: 1.5,
               letterSpacing: 0.5,
             ),
@@ -857,7 +857,7 @@ class _QuoteBox extends StatelessWidget {
               source,
               style: const TextStyle(
                 fontSize: 12,
-                color: Color(0xFF8E8A82),
+                color: Color(0xFFA89840),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -890,7 +890,7 @@ class _DashedLinePainter extends CustomPainter {
     const dashWidth = 6.0;
     const dashSpace = 4.0;
     final paint = Paint()
-      ..color = const Color(0xFF938B7C)
+      ..color = const Color(0xFFA89840)
       ..strokeWidth = 2;
     double x = 0;
     while (x < size.width) {
@@ -924,7 +924,7 @@ class _MapDot extends StatelessWidget {
             width: 9,
             height: 9,
             decoration: BoxDecoration(
-              color: const Color(0xFFCD6642),
+              color: const Color(0xFF8B7500),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 2),
               boxShadow: const [
@@ -941,7 +941,7 @@ class _MapDot extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFF4A463F),
+              color: Color(0xFF534600),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -966,7 +966,7 @@ class _WorkItem extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 2),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFFE6E1D8), width: 0.5),
+          bottom: BorderSide(color: Color(0xFFDCD6B3), width: 0.5),
         ),
       ),
       child: Row(
@@ -976,7 +976,7 @@ class _WorkItem extends StatelessWidget {
             name,
             style: const TextStyle(
               fontSize: 15,
-              color: Color(0xFF2C2C2C),
+              color: Color(0xFF382F00),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -984,7 +984,7 @@ class _WorkItem extends StatelessWidget {
             type,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF528265),
+              color: Color(0xFF6F5E00),
               fontWeight: FontWeight.w500,
             ),
           ),

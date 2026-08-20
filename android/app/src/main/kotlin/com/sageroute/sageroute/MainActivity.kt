@@ -2,14 +2,21 @@ package com.sageroute.sageroute
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
-import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    private var routePlanningHandler: RoutePlanningHandler? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        MethodChannel(
+        routePlanningHandler = RoutePlanningHandler(
+            applicationContext,
             flutterEngine.dartExecutor.binaryMessenger,
-            RoutePlanningHandler.CHANNEL,
-        ).setMethodCallHandler(RoutePlanningHandler(applicationContext))
+        )
+    }
+
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        routePlanningHandler?.dispose()
+        routePlanningHandler = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 }

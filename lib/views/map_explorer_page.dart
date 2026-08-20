@@ -331,7 +331,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                     colors: [
-                      Color(0xFFF0DED3),
+                      Color(0xFFDCD6B3),
                       Colors.transparent,
                     ],
                     stops: [0.0, 1.0],

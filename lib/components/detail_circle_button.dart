@@ -13,9 +13,9 @@ class DetailCircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  static const _background = Color(0xFFFAF7F2);
-  static const _border = Color(0xFFE8E2D9);
-  static const _foreground = Color(0xFF2D2825);
+  static const _background = Color(0xFFF8F7F0);
+  static const _border = Color(0xFFEEEAD9);
+  static const _foreground = Color(0xFF382F00);
 
   @override
   Widget build(BuildContext context) {

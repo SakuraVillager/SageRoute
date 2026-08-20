@@ -6,7 +6,7 @@ import '../theme/color_schemes.dart';
 /// Landing style guide page matching the Web version's Landing.tsx.
 ///
 /// Displays a full-screen hero image with gradient overlay, brand badge,
-/// title, description, CTA buttons, and social login placeholders.
+/// title, description, and CTA buttons.
 /// Navigation is handled via callbacks — no built-in routing.
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key, this.onStartJourney, this.onLogin});
@@ -18,20 +18,18 @@ class LandingPage extends StatelessWidget {
   final VoidCallback? onLogin;
 
   // Brand colours extracted from the Web landing page.
-  static const Color _scaffoldBg = Color(0xFFF5F0EA);
-  static const Color _badgeBg = Color(0xFFEBE5DA);
-  static const Color _badgeText = Color(0xFF8A8376);
-  static const Color _sageText = Color(0xFF2C2624);
-  static const Color _mutedText = Color(0xFFA8A195);
-  static const Color _borderColor = Color(0xFFDCD6C8);
-  static const Color _ctaBg = Color(0xFF1C1A1A);
-  static const Color _ctaText = Color(0xFFF3EFE9);
+  static const Color _scaffoldBg = Color(0xFFF8F7F0);
+  static const Color _badgeBg = Color(0xFFEEEAD9);
+  static const Color _badgeText = Color(0xFF8B7500);
+  static const Color _sageText = Color(0xFF382F00);
+  static const Color _mutedText = Color(0xFFA89840);
+  static const Color _borderColor = Color(0xFFDCD6B3);
+  static const Color _ctaBg = Color(0xFF1C1700);
+  static const Color _ctaText = Color(0xFFEEEAD9);
   // Web 版主按钮箭头圆圈使用 sage-accent (#B96144 / 陶土红)，
   // 之前误用了浅褐色 #BDA88A，这里修正为品牌强调色。
   static const Color _accentColor = AppColors.sageAccent;
-  static const Color _socialBtnBg = Color(0xFFFAF7F2);
-  static const Color _socialBtnBorder = Color(0xFFE8E2D9);
-  static const Color _secondaryText = Color(0xFF8A8376);
+  static const Color _secondaryText = Color(0xFF8B7500);
 
   static const String _bgImageUrl =
       'https://images.unsplash.com/photo-1574227492706-f65b24c3688a?auto=format&fit=crop&q=80&w=1200';
@@ -201,14 +199,6 @@ class LandingPage extends StatelessWidget {
         _buildSecondaryButton(),
         const SizedBox(height: 32),
 
-        // ── "或" divider ──
-        _buildDividerWithText(),
-        const SizedBox(height: 24),
-
-        // ── Social login row ──
-        _buildSocialButtons(),
-        const SizedBox(height: 32),
-
         // ── Terms text ──
         _buildTermsText(),
       ],
@@ -309,81 +299,6 @@ class LandingPage extends StatelessWidget {
     );
   }
 
-  // ── "或" divider ──
-  Widget _buildDividerWithText() {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: _borderColor, thickness: 1)),
-        Container(
-          color: _scaffoldBg,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: const Text(
-            '或',
-            style: TextStyle(
-              color: _mutedText,
-              fontSize: 12,
-              letterSpacing: 2,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        const Expanded(child: Divider(color: _borderColor, thickness: 1)),
-      ],
-    );
-  }
-
-  // ── Social login: Google, Apple, WeChat ──
-  // Web 版用 SVG 品牌图标；Flutter 这里用 Material Icons 近似替代。
-  Widget _buildSocialButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSocialButton(label: '谷歌', icon: const _GoogleGlyph()),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildSocialButton(
-            label: '苹果',
-            icon: const Icon(Icons.apple, size: 18, color: Color(0xFF1C1A1A)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildSocialButton(
-            label: '微信',
-            icon: const Icon(
-              Icons.chat_bubble,
-              size: 14,
-              color: Color(0xFF09B83E),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton({required String label, required Widget icon}) {
-    return OutlinedButton(
-      onPressed: onLogin,
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _sageText,
-        backgroundColor: _socialBtnBg,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        side: const BorderSide(color: _socialBtnBorder),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 14)),
-        ],
-      ),
-    );
-  }
-
   // ── Terms & Privacy text ──
   Widget _buildTermsText() {
     return const Padding(
@@ -427,7 +342,7 @@ class _TitleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(
-      color: Color(0xFF2C2624),
+      color: Color(0xFF382F00),
       fontSize: 44,
       height: 1.0,
       fontWeight: FontWeight.w700,
@@ -442,41 +357,12 @@ class _TitleRow extends StatelessWidget {
           width: 32,
           height: 1,
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF2C2624)),
+            decoration: BoxDecoration(color: Color(0xFF382F00)),
           ),
         ),
         SizedBox(width: 12),
         Text('Route', style: style),
       ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Private helper: Google "G" glyph in brand colors
-// ─────────────────────────────────────────────────────────────
-
-/// A simple stylized "G" glyph approximating the Google brand mark,
-/// since the project does not depend on flutter_svg.
-class _GoogleGlyph extends StatelessWidget {
-  const _GoogleGlyph();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      width: 18,
-      height: 18,
-      child: Center(
-        child: Text(
-          'G',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF4285F4), // Google blue
-            height: 1,
-          ),
-        ),
-      ),
     );
   }
 }

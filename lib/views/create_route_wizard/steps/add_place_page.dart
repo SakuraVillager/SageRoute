@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../data/location_repository.dart';
 import '../../../data/topic_repository.dart';
@@ -55,6 +55,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
       final locations = List<LocationRecord>.from(
         await locationRepo.fetchLocations(),
       );
+      locations.removeWhere((location) => !_hasValidCoordinates(location));
       final topics = widget.figure == null
           ? <TopicRecord>[]
           : await const TopicRepository().fetchTopicsByCelebrity(
@@ -77,6 +78,19 @@ class _AddPlacePageState extends State<AddPlacePage> {
   }
 
   int get _selectedCount => _selectedPlaceNames.length;
+
+  bool _hasValidCoordinates(LocationRecord location) {
+    if (location.coordinates.length < 2) return false;
+    final longitude = location.coordinates[0];
+    final latitude = location.coordinates[1];
+    return latitude.isFinite &&
+        longitude.isFinite &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180 &&
+        !(latitude == 0 && longitude == 0);
+  }
 
   void _togglePlace(String placeName) {
     setState(() {
@@ -109,9 +123,9 @@ class _AddPlacePageState extends State<AddPlacePage> {
   bool _matchesTopic(LocationRecord location) {
     final topic = _selectedTopic;
     if (topic == null) return true;
-    return _parseLocationTopics(location.topic).contains(
-      _normalizeTopicName(topic),
-    );
+    return _parseLocationTopics(
+      location.topic,
+    ).contains(_normalizeTopicName(topic));
   }
 
   bool _matchesSearch(LocationRecord location) {
@@ -125,16 +139,11 @@ class _AddPlacePageState extends State<AddPlacePage> {
   }
 
   List<LocationRecord> get _visibleLocations {
-    final visible = _allLocations
-        .where((location) => _matchesTopic(location) && _matchesSearch(location))
+    return _allLocations
+        .where(
+          (location) => _matchesTopic(location) && _matchesSearch(location),
+        )
         .toList();
-    visible.sort((a, b) {
-      final aSelected = _selectedPlaceNames.contains(a.nameModern);
-      final bSelected = _selectedPlaceNames.contains(b.nameModern);
-      if (aSelected != bSelected) return aSelected ? -1 : 1;
-      return a.nameModern.compareTo(b.nameModern);
-    });
-    return visible;
   }
 
   List<RoutePlace> _buildSelectedPlaces() {
@@ -146,15 +155,14 @@ class _AddPlacePageState extends State<AddPlacePage> {
     var fallbackId = 900000;
 
     RoutePlace fromLocation(LocationRecord location) {
+      if (!_hasValidCoordinates(location)) {
+        throw FormatException('地点“${location.nameModern}”缺少有效经纬度');
+      }
       return RoutePlace(
         id: location.id > 0 ? location.id : fallbackId++,
         name: location.nameModern,
-        latitude: location.coordinates.length >= 2
-            ? location.coordinates[1].toDouble()
-            : 0,
-        longitude: location.coordinates.isNotEmpty
-            ? location.coordinates[0].toDouble()
-            : 0,
+        latitude: location.coordinates[1],
+        longitude: location.coordinates[0],
         averageVisitDurationMin: location.averageVisitDurationMin,
         topic: location.topic,
         categories: location.categories.join(', '),
@@ -205,7 +213,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
         child: SizedBox(
           height: sheetHeight,
           child: Material(
-            color: const Color(0xFFFDFBF7),
+            color: const Color(0xFFFFFFFF),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -270,30 +278,17 @@ class _AddPlacePageState extends State<AddPlacePage> {
       child: Row(
         children: [
           const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '添加地点',
-                  style: TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.sageText,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  '搜索或按主题筛选，点击整行即可选择',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.sageMuted),
-                ),
-              ],
+            child: Text(
+              '添加地点',
+              style: TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                color: AppColors.sageText,
+              ),
             ),
           ),
           if (_selectedCount > 0)
-            TextButton(
-              onPressed: _clearSelected,
-              child: const Text('清空'),
-            ),
+            TextButton(onPressed: _clearSelected, child: const Text('清空')),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
             icon: const Icon(Icons.close, color: AppColors.sageText),
@@ -348,31 +343,39 @@ class _AddPlacePageState extends State<AddPlacePage> {
   Widget _buildTopicFilters() {
     if (_topics.isEmpty) return const SizedBox(height: 2);
     return SizedBox(
-      height: 38,
+      height: 40,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _topics.length + 1,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 18),
         itemBuilder: (context, index) {
           final topicName = index == 0 ? null : _topics[index - 1].name;
           final selected = _selectedTopic == topicName;
-          return ChoiceChip(
-            label: Text(topicName ?? '全部'),
-            selected: selected,
-            showCheckmark: false,
-            visualDensity: VisualDensity.compact,
-            side: BorderSide(
-              color: selected ? AppColors.primaryLight : AppColors.sageBorder,
+          return InkWell(
+            onTap: () => setState(() => _selectedTopic = topicName),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              padding: const EdgeInsets.fromLTRB(2, 7, 2, 2),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: selected
+                        ? AppColors.primaryLight
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                ),
+              ),
+              child: Text(
+                topicName ?? '全部',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                  color: selected ? AppColors.primaryLight : AppColors.sageText,
+                ),
+              ),
             ),
-            selectedColor: AppColors.primaryLight.withValues(alpha: 0.12),
-            backgroundColor: Colors.white,
-            labelStyle: TextStyle(
-              fontSize: 12,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: selected ? AppColors.primaryLight : AppColors.sageText,
-            ),
-            onSelected: (_) => setState(() => _selectedTopic = topicName),
           );
         },
       ),
@@ -428,7 +431,8 @@ class _PlaceListTile extends StatelessWidget {
     final metadata = <String>[
       if ((location.averageVisitDurationMin ?? 0) > 0)
         '${location.averageVisitDurationMin} 分钟',
-      if (location.categories.isNotEmpty) location.categories.take(2).join(' · '),
+      if (location.categories.isNotEmpty)
+        location.categories.take(2).join(' · '),
     ].join('  ·  ');
 
     return Padding(
@@ -444,14 +448,7 @@ class _PlaceListTile extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: isSelected
-                    ? AppColors.primaryLight
-                    : AppColors.sageBorder,
-              ),
-            ),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14)),
             child: Row(
               children: [
                 AnimatedContainer(
@@ -567,9 +564,9 @@ class _BottomActionBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(13),
                 ),
               ),
-              child: Text(
-                selectedCount == 0 ? '完成' : '完成选择',
-                style: const TextStyle(fontWeight: FontWeight.w600),
+              child: const Text(
+                '完成',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),
           ),

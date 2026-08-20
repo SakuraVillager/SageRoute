@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sageroute/data/supabase_table_repository.dart';
 import 'package:sageroute/services/database_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'test_helpers/env_loader.dart';
 import 'test_helpers/integration_test_skip.dart';
@@ -9,6 +12,7 @@ void main() {
   group('DatabaseService', () {
     setUp(() {
       DatabaseService.debugResetForTest();
+      SharedPreferences.setMockInitialValues({});
     });
 
     test('initialize uses values loaded from assets/env.env', () async {
@@ -38,6 +42,38 @@ void main() {
         ),
         throwsException,
       );
+    });
+
+    test('persists and clears auth session in durable storage', () async {
+      await DatabaseService.initialize(
+        env: const {
+          'SUPABASE_URL': 'https://example.supabase.co',
+          'SUPABASE_ANON_KEY': 'publishable-test-key',
+        },
+        initializer: (url, publishableKey) async {},
+      );
+      final session = Session(
+        accessToken: 'test-access-token',
+        refreshToken: 'test-refresh-token',
+        tokenType: 'bearer',
+        user: const User(
+          id: 'test-user',
+          appMetadata: {},
+          userMetadata: {},
+          aud: 'authenticated',
+          createdAt: '2026-08-06T00:00:00Z',
+        ),
+      );
+
+      await DatabaseService.persistAuthSession(session);
+
+      final preferences = await SharedPreferences.getInstance();
+      final stored = preferences.getString('sb-example-auth-token');
+      expect(stored, isNotNull);
+      expect(jsonDecode(stored!)['refresh_token'], 'test-refresh-token');
+
+      await DatabaseService.clearPersistedAuthSession();
+      expect(preferences.containsKey('sb-example-auth-token'), isFalse);
     });
 
     test('testConnection invokes query with given table', () async {

@@ -2,25 +2,25 @@ import 'package:flutter/foundation.dart';
 
 import 'amap_gateway.dart';
 import 'deterministic_amap_gateway.dart';
-import 'models/amap_route_types.dart';
 import 'models/route_place.dart';
 import 'models/route_preference_type.dart';
 import 'models/route_recommendation.dart';
 import 'models/transport_type.dart';
+import 'multi_stop_route_planner.dart';
 
 class EditableRouteController extends ChangeNotifier {
   EditableRouteController(
     RouteRecommendationBundle bundle, {
     AmapGateway? gateway,
     TransportType transportType = TransportType.driving,
-  })  : _gateway = gateway ?? const DeterministicAmapGateway(),
-        _transportType = transportType,
-        _routesByPreference = {
-          for (final route in bundle.routes) route.preference: route,
-        },
-        _selectedPreference = bundle.routes.isEmpty
-            ? RoutePreferenceType.shortest
-            : bundle.routes.first.preference;
+  }) : _gateway = gateway ?? const DeterministicAmapGateway(),
+       _transportType = transportType,
+       _routesByPreference = {
+         for (final route in bundle.routes) route.preference: route,
+       },
+       _selectedPreference = bundle.routes.isEmpty
+           ? RoutePreferenceType.shortest
+           : bundle.routes.first.preference;
 
   final AmapGateway _gateway;
   final TransportType _transportType;
@@ -82,19 +82,11 @@ class EditableRouteController extends ChangeNotifier {
     List<RoutePlace> updatedPlaces,
   ) async {
     try {
-      final interiorPlaces = updatedPlaces.length <= 2
-          ? const <RoutePlace>[]
-          : updatedPlaces.sublist(1, updatedPlaces.length - 1);
-      final draftRequest = AmapRouteDraftRequest(
-        origin: updatedPlaces.first,
-        destination: updatedPlaces.last,
-        waypoints: interiorPlaces,
+      final result = await MultiStopRoutePlanner(gateway: _gateway).plan(
+        places: updatedPlaces,
         transportType: _transportType,
-        optimizeOrder: true,
         preferenceKey: preference.name,
       );
-
-      final result = await _gateway.fetchRoute(draftRequest);
       final stayDuration = _estimateStayDuration(updatedPlaces);
       final totalDuration = result.travelDuration + stayDuration;
 

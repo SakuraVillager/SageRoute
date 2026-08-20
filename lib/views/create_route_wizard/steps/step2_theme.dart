@@ -156,12 +156,12 @@ class _Step2ThemeState extends State<Step2Theme> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFCFAF8) : Colors.white,
+          color: isSelected ? const Color(0xFFFFFFFF) : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFC37153)
-                : const Color(0xFFE8E2D9),
+                ? const Color(0xFF8B7500)
+                : const Color(0xFFEEEAD9),
             width: 2,
           ),
         ),
@@ -212,11 +212,11 @@ class _Step2ThemeState extends State<Step2Theme> {
       height: 24,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isSelected ? const Color(0xFFC37153) : Colors.transparent,
+        color: isSelected ? const Color(0xFF8B7500) : Colors.transparent,
         border: Border.all(
           color: isSelected
-              ? const Color(0xFFC37153)
-              : const Color(0xFFDCD6C8),
+              ? const Color(0xFF8B7500)
+              : const Color(0xFFDCD6B3),
           width: 2,
         ),
       ),
@@ -246,9 +246,9 @@ class _Step2ThemeState extends State<Step2Theme> {
         key: ValueKey(widget.selectedTopicId),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAF7F2),
+          color: const Color(0xFFF8F7F0),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE8E2D9)),
+          border: Border.all(color: const Color(0xFFEEEAD9)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,7 +258,7 @@ class _Step2ThemeState extends State<Step2Theme> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF8A8376),
+                color: Color(0xFF8B7500),
                 letterSpacing: 1,
               ),
             ),

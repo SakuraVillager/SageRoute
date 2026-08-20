@@ -391,7 +391,7 @@ class _RouteCard extends StatelessWidget {
                           children: [
                             _StatRow(
                               Icons.route,
-                              const Color(0xFFA38D64),
+                              const Color(0xFFA89840),
                               route.totalDistance,
                             ),
                             const SizedBox(height: 6),
@@ -447,7 +447,7 @@ class _RouteCard extends StatelessWidget {
                           width: 32,
                           height: 32,
                           decoration: const BoxDecoration(
-                            color: Color(0xFFEBE5DA),
+                            color: Color(0xFFEEEAD9),
                             shape: BoxShape.circle,
                           ),
                           child: const Center(

@@ -18,6 +18,8 @@ import 'views/create_route_wizard/create_route_wizard.dart';
 import 'views/saved_routes_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
+import 'auth/auth_gate.dart';
+import 'auth/login_page.dart';
 import 'utils/slide_route.dart';
 
 /// 高德地图 Android Key，通过 --dart-define 或 --dart-define-from-file 注入。
@@ -61,6 +63,7 @@ Future<ResolvedAmapKey> _resolveAmapKey() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  debugPrint('[SageRoute] app starting...');
 
   // 高德 SDK 隐私合规声明需在调用任何地图接口前设置。
   AMapInitializer.updatePrivacyAgree(
@@ -74,6 +77,7 @@ Future<void> main() async {
   // 不要在此处 await 任何耗时操作——先渲染 UI，再异步初始化。
   // 调试模式下 JIT + 网络初始化若阻塞 runApp，会触发 Android ANR。
   runApp(const SageRouteApp());
+  debugPrint('[SageRoute] runApp called, first frame should appear shortly');
 }
 
 class SageRouteApp extends StatefulWidget {
@@ -94,8 +98,19 @@ class _SageRouteAppState extends State<SageRouteApp> {
   }
 
   Future<ResolvedAmapKey> _initialize() async {
-    await DatabaseService.initialize();
-    return _resolveAmapKey();
+    debugPrint('[SageRoute] initializing DatabaseService...');
+    try {
+      await DatabaseService.initialize();
+      debugPrint('[SageRoute] DatabaseService initialized');
+    } catch (e) {
+      debugPrint('[SageRoute] DatabaseService init failed: $e');
+      rethrow;
+    }
+    final key = await _resolveAmapKey();
+    debugPrint(
+      '[SageRoute] AMap key resolved (source=${key.source}, length=${key.key.length})',
+    );
+    return key;
   }
 
   void _onInitDone(ResolvedAmapKey key) {
@@ -122,7 +137,10 @@ class _SageRouteAppState extends State<SageRouteApp> {
       title: 'SageRoute',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      routes: {'/main': (context) => const MainScreen()},
+      routes: {
+        '/main': (context) =>
+            AuthGate(authenticatedBuilder: (_) => const MainScreen()),
+      },
       home: FutureBuilder<ResolvedAmapKey>(
         future: _initFuture,
         builder: (context, snapshot) {
@@ -131,6 +149,23 @@ class _SageRouteAppState extends State<SageRouteApp> {
               backgroundColor: Theme.of(context).colorScheme.surface,
               body: const Center(child: CircularProgressIndicator()),
             );
+          }
+
+          if (snapshot.hasError) {
+            debugPrint('[SageRoute] init error: ${snapshot.error}');
+            // 初始化失败也继续进入应用，不阻塞用户
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('初始化失败：${snapshot.error}'),
+                    backgroundColor: Theme.of(context).colorScheme.error,
+                    duration: const Duration(seconds: 5),
+                  ),
+                );
+              }
+            });
+            return const AppLaunchDecider();
           }
 
           if (snapshot.hasData) {
@@ -161,8 +196,11 @@ class _AppLaunchDeciderState extends State<AppLaunchDecider> {
   }
 
   Future<bool> _hasSeenOnboarding() async {
+    debugPrint('[SageRoute] checking onboarding status...');
     final preferences = await SharedPreferences.getInstance();
-    return preferences.getBool('hasSeenOnboarding') ?? false;
+    final hasSeen = preferences.getBool('hasSeenOnboarding') ?? false;
+    debugPrint('[SageRoute] onboarding status: hasSeen=$hasSeen');
+    return hasSeen;
   }
 
   @override
@@ -177,19 +215,44 @@ class _AppLaunchDeciderState extends State<AppLaunchDecider> {
           );
         }
 
-        final hasSeenOnboarding = snapshot.data ?? false;
-        if (hasSeenOnboarding) {
-          return const MainScreen();
+        if (snapshot.hasError) {
+          debugPrint('[SageRoute] onboarding check error: ${snapshot.error}');
+          // 读取失败时直接进入鉴权入口，避免卡在加载页
+          return AuthGate(authenticatedBuilder: (_) => const MainScreen());
         }
 
+        final hasSeenOnboarding = snapshot.data ?? false;
+        // Authentication takes precedence over onboarding. A restored local
+        // session should always enter the app without asking the user to log in
+        // or tap through the landing page again.
+        if (DatabaseService.client.auth.currentSession != null) {
+          debugPrint('[SageRoute] restored persisted auth session');
+          return AuthGate(authenticatedBuilder: (_) => const MainScreen());
+        }
+        if (hasSeenOnboarding) {
+          debugPrint(
+            '[SageRoute] navigating to AuthGate -> MainScreen or Login',
+          );
+          return AuthGate(authenticatedBuilder: (_) => const MainScreen());
+        }
+
+        debugPrint('[SageRoute] showing LandingPage');
         return LandingPage(
           onStartJourney: () async {
             final preferences = await SharedPreferences.getInstance();
             await preferences.setBool('hasSeenOnboarding', true);
             if (!context.mounted) return;
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const MainScreen()),
+              MaterialPageRoute(
+                builder: (_) =>
+                    AuthGate(authenticatedBuilder: (_) => const MainScreen()),
+              ),
             );
+          },
+          onLogin: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LoginPage()));
           },
         );
       },
@@ -239,9 +302,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _pushCreateRouteWizard() async {
-    final draft = await Navigator.of(context).push<NewRouteDraft>(
-      slideFromRightRoute(const CreateRouteWizard()),
-    );
+    final draft = await Navigator.of(
+      context,
+    ).push<NewRouteDraft>(slideFromRightRoute(const CreateRouteWizard()));
     if (draft == null || !mounted) return;
     _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
     setState(() {

@@ -33,23 +33,23 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
   static const _tabs = ['故事', '背景', '意义', '图像', '旅行'];
 
   // ── Colors ──
-  static const _bg = Color(0xFFFAF7F2);
-  static const _accent = Color(0xFFCD6642);
-  static const _green = Color(0xFF5A6B54);
-  static const _teal = Color(0xFF547278);
-  static const _warm = Color(0xFFA2804E);
-  static const _rose = Color(0xFFB85C48);
-  static const _text1 = Color(0xFF1A1A1A);
-  static const _text2 = Color(0xFF4A4A4A);
-  static const _star = Color(0xFFD4AF37);
-  static const _muted = Color(0xFF8E8A82);
+  static const _bg = Color(0xFFF8F7F0);
+  static const _accent = Color(0xFF8B7500);
+  static const _green = Color(0xFF6F5E00);
+  static const _teal = Color(0xFF6F5E00);
+  static const _warm = Color(0xFF8B7500);
+  static const _rose = Color(0xFF8B7500);
+  static const _text1 = Color(0xFF1C1700);
+  static const _text2 = Color(0xFF534600);
+  static const _star = Color(0xFFA89840);
+  static const _muted = Color(0xFFA89840);
 
   // Tag color presets
   static const _tagStyles = [
-    (Color(0xFFEAECE6), Color(0xFF5A6B54)), // landmark
-    (Color(0xFFF9ECE8), Color(0xFFB85C48)), // associated
-    (Color(0xFFF6EFE0), Color(0xFFA2804E)), // heritage
-    (Color(0xFFE9EFF0), Color(0xFF547278)), // free
+    (Color(0xFFEEEAD9), Color(0xFF6F5E00)), // landmark
+    (Color(0xFFEEEAD9), Color(0xFF8B7500)), // associated
+    (Color(0xFFEEEAD9), Color(0xFF8B7500)), // heritage
+    (Color(0xFFEEEAD9), Color(0xFF6F5E00)), // free
   ];
 
   @override
@@ -143,7 +143,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                     fit: BoxFit.cover,
                     cacheWidth: 800,
                     errorBuilder: (_, __, ___) =>
-                        Container(color: const Color(0xFFE8E2D9)),
+                        Container(color: const Color(0xFFEEEAD9)),
                   ),
                   // Gradient fade to bg
                   Positioned.fill(
@@ -217,7 +217,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                             ' > ',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFBCB8B0),
+                              color: Color(0xFFC5BA80),
                             ),
                           ),
                           const Text(
@@ -232,7 +232,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                             ' > ',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFBCB8B0),
+                              color: Color(0xFFC5BA80),
                             ),
                           ),
                           Text(
@@ -340,7 +340,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                       fontSize: 30,
                       fontFamily: 'Georgia',
                       fontStyle: FontStyle.italic,
-                      color: Color(0xFF222222),
+                      color: Color(0xFF1C1700),
                     ),
                   ),
                 const SizedBox(height: 10),
@@ -382,12 +382,12 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: const Color(0xFFE6E1D8),
+                    color: const Color(0xFFDCD6B3),
                     width: 0.4,
                   ),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0F8C826E),
+                      color: Color(0x0F8B7500),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -415,7 +415,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   l.years,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFBCB8B0),
+                    color: Color(0xFFC5BA80),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -472,10 +472,10 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8E3DA), width: 0.5),
+        border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A8C826E),
+            color: Color(0x0A8B7500),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -539,7 +539,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF171615),
+                  backgroundColor: const Color(0xFF1C1700),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -565,8 +565,8 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF333333),
-                  side: const BorderSide(color: Color(0xFFE6E1D8)),
+                  foregroundColor: const Color(0xFF382F00),
+                  side: const BorderSide(color: Color(0xFFDCD6B3)),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(
@@ -641,7 +641,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
           height: 110,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8E3DA), width: 0.5),
+            border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
             image: DecorationImage(
               image: NetworkImage(images[i]),
               fit: BoxFit.cover,
@@ -714,7 +714,7 @@ class _DashStat extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF222222),
+                  color: Color(0xFF1C1700),
                 ),
               ),
             ],
@@ -724,7 +724,7 @@ class _DashStat extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFFA09B90),
+              color: Color(0xFFA89840),
               fontWeight: FontWeight.w500,
             ),
           ),

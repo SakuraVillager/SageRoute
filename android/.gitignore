@@ -12,5 +12,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
-# 项目 dev keystore 需要共享给团队以保持 SHA1 一致（非生产签名）
+# Shared non-production certificate; passwords remain in ignored key.properties.
 !app/keystore/sageroute-dev.jks

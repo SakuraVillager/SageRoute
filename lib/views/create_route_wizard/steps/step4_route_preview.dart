@@ -29,6 +29,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
   String? _error;
   bool _planning = false;
   Timer? _routeDebounce;
+  int _routeGeneration = 0;
   AMapController? _mapController;
 
   // 诊断信息 — 当 polyline 为空时向用户展示更多细节
@@ -50,6 +51,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
 
   @override
   void dispose() {
+    _routeGeneration++;
     _routeDebounce?.cancel();
     super.dispose();
   }
@@ -69,12 +71,16 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
   }
 
   void _scheduleRoute() {
+    final generation = ++_routeGeneration;
     _routeDebounce?.cancel();
-    _routeDebounce = Timer(const Duration(milliseconds: 240), _computeRoute);
+    _routeDebounce = Timer(
+      const Duration(milliseconds: 240),
+      () => _computeRoute(generation),
+    );
   }
 
-  Future<void> _computeRoute() async {
-    final selected = widget.places;
+  Future<void> _computeRoute(int generation) async {
+    final selected = List<RoutePlace>.unmodifiable(widget.places);
     if (selected.length < 2) {
       if (mounted) {
         setState(() {
@@ -99,7 +105,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
       places: selected,
       constraints: RoutePlanConstraints(
         minPlaces: 2,
-        maxPlaces: 16,
+        maxPlaces: selected.length,
         transportType: _transportType,
       ),
       preferences: const [RoutePreferenceType.shortest],
@@ -116,6 +122,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
         );
       }
       final bundle = await engine.plan(command);
+      if (!mounted || generation != _routeGeneration) return;
       final route = bundle.routes.isNotEmpty ? bundle.routes.first : null;
       debugPrint(
         '[DEBUG step4] 路线数=${bundle.routes.length} '
@@ -126,13 +133,12 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
           .toList();
       debugPrint('[DEBUG step4] clean点数=${clean?.length ?? 0}');
 
-      if (!mounted) return;
-
       // 构建诊断信息
       final stats = route?.stats;
       final diagParts = <String>[
         if (route == null) '路线对象为空',
-        if (route != null && (route.polyline == null || route.polyline!.isEmpty))
+        if (route != null &&
+            (route.polyline == null || route.polyline!.isEmpty))
           'polyline 为空',
         if (stats?.distanceMeters != null)
           '距离=${(stats!.distanceMeters! / 1000).toStringAsFixed(1)}km',
@@ -166,7 +172,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
         if (mounted) _fitMap();
       });
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || generation != _routeGeneration) return;
       setState(() {
         _polyline = [];
         _routeSummary = '';
@@ -187,9 +193,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
   void _fitMap() {
     final points = _polyline.isNotEmpty
         ? _polyline
-        : widget.places
-            .map((p) => <double>[p.latitude, p.longitude])
-            .toList();
+        : widget.places.map((p) => <double>[p.latitude, p.longitude]).toList();
     if (points.isEmpty || _mapController == null) return;
 
     double minLat = double.infinity;
@@ -270,8 +274,7 @@ class _Step4RoutePreviewState extends State<Step4RoutePreview> {
                     },
               markers: widget.places.asMap().entries.map((entry) {
                 final marker = Marker(
-                  position:
-                      LatLng(entry.value.latitude, entry.value.longitude),
+                  position: LatLng(entry.value.latitude, entry.value.longitude),
                   infoWindow: InfoWindow(
                     title: '${entry.key + 1}. ${entry.value.name}',
                   ),
@@ -331,12 +334,12 @@ class _TransportSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
-        color: const Color(0xF7FAF8F3),
+        color: const Color(0xF7F8F7F0),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.sageBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x182B2724),
+            color: Color(0x18382F00),
             blurRadius: 16,
             offset: Offset(0, 6),
           ),
@@ -443,7 +446,7 @@ class _RoutePreviewPanel extends StatelessWidget {
         border: Border.all(color: AppColors.sageBorder),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x202B2724),
+            color: Color(0x20382F00),
             blurRadius: 20,
             offset: Offset(0, 8),
           ),
@@ -504,7 +507,7 @@ class _RoutePreviewPanel extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0x1AC44536),
+                color: const Color(0x1A8B7500),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Column(
@@ -514,7 +517,7 @@ class _RoutePreviewPanel extends StatelessWidget {
                     error!,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFC44536),
+                      color: Color(0xFF8B7500),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -524,7 +527,7 @@ class _RoutePreviewPanel extends StatelessWidget {
                       diagInfo!,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xCCC44536),
+                        color: Color(0xCC8B7500),
                       ),
                     ),
                   ],

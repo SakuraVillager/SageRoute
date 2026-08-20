@@ -14,13 +14,13 @@ class SageRouteBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _bgColor = Color(0xFFF4F0E8);
-  static const Color _borderColor = Color(0xFFE6E0D4);
-  static const Color _activeBg = Color(0xFFEAE4D8);
-  static const Color _inactiveColor = Color(0xFF9A9386);
-  static const Color _activeColor = Color(0xFF2D2825);
-  static const Color _specialBg = Color(0xFFC37153);
-  static const Color _specialBorder = Color(0xFFFDFBF7);
+  static const Color _bgColor = Color(0xFFEEEAD9);
+  static const Color _borderColor = Color(0xFFDCD6B3);
+  static const Color _activeBg = Color(0xFFEEEAD9);
+  static const Color _inactiveColor = Color(0xFFA89840);
+  static const Color _activeColor = Color(0xFF382F00);
+  static const Color _specialBg = Color(0xFF8B7500);
+  static const Color _specialBorder = Color(0xFFFFFFFF);
 
   @override
   Widget build(BuildContext context) {

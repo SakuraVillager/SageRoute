@@ -47,5 +47,17 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>需要获取你的位置，以在地图上标注当前位置。</string>
+	<!-- Deep link / URL scheme for Supabase auth callbacks -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sageroute</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

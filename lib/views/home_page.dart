@@ -146,7 +146,7 @@ class _HomePageState extends State<HomePage> {
             width: 40,
             height: 40,
             decoration: const BoxDecoration(
-              color: Color(0xFFEBE5DA),
+              color: Color(0xFFEEEAD9),
               shape: BoxShape.circle,
             ),
             child: IconButton(

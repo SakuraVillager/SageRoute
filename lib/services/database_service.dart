@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -14,6 +15,7 @@ typedef QueryFieldFn = Future<dynamic> Function(String table, String field);
 /// 其他代码只需调用这一层，不必直接 new SupabaseClient。
 class DatabaseService {
   static bool _initialized = false;
+  static SharedPreferencesLocalStorage? _authStorage;
   static const Duration _queryTimeout = Duration(seconds: 25);
   static const int _maxRetryCount = 2;
 
@@ -40,9 +42,19 @@ class DatabaseService {
       throw Exception('SUPABASE_URL 或 SUPABASE_ANON_KEY 未配置');
     }
 
-    final init = initializer ??
-        (String url, String publishableKey) =>
-            Supabase.initialize(url: url, publishableKey: publishableKey);
+    final authStorage = SharedPreferencesLocalStorage(
+      persistSessionKey:
+          'sb-${Uri.parse(supabaseUrl).host.split('.').first}-auth-token',
+    );
+    await authStorage.initialize();
+    _authStorage = authStorage;
+    final init =
+        initializer ??
+        (String url, String publishableKey) => Supabase.initialize(
+          url: url,
+          publishableKey: publishableKey,
+          authOptions: FlutterAuthClientOptions(localStorage: authStorage),
+        );
     try {
       await init(supabaseUrl, supabaseKey);
       _initialized = true;
@@ -56,14 +68,27 @@ class DatabaseService {
     }
   }
 
+  /// Explicitly flushes a successful session to the same durable storage used
+  /// by supabase_flutter. This removes the small race between navigation and
+  /// the SDK's asynchronous auth-state persistence listener.
+  static Future<void> persistAuthSession(Session session) async {
+    final storage = _authStorage;
+    if (storage == null) return;
+    await storage.persistSession(jsonEncode(session.toJson()));
+  }
+
+  /// Clears the durable session only for an explicit user sign-out.
+  static Future<void> clearPersistedAuthSession() async {
+    await _authStorage?.removePersistedSession();
+  }
+
   static Future<void> testConnection({
     String table = 'Celebrity',
     QueryTableFn? query,
   }) async {
     // 通过 Supabase Client 检查 Celebrity 表是否可访问。
     final executeQuery =
-        query ??
-        (String tableName) => client.from(tableName).select().limit(1);
+        query ?? (String tableName) => client.from(tableName).select().limit(1);
     final response = await runQueryWithRetry(
       () => executeQuery(table).timeout(_queryTimeout),
       operationName: 'testConnection($table)',
@@ -88,10 +113,7 @@ class DatabaseService {
       operationName: 'getFieldList($table.$field)',
     );
     final rows = normalizeRows(response);
-    return rows
-        .map<Object?>((row) => row[field])
-        .whereType<Object>()
-        .toList();
+    return rows.map<Object?>((row) => row[field]).whereType<Object>().toList();
   }
 
   static Future<T> runQueryWithRetry<T>(
@@ -130,14 +152,13 @@ class DatabaseService {
 
     return response
         .whereType<Map>()
-        .map<Map<String, dynamic>>(
-          (row) => Map<String, dynamic>.from(row),
-        )
+        .map<Map<String, dynamic>>((row) => Map<String, dynamic>.from(row))
         .toList(growable: false);
   }
 
   @visibleForTesting
   static void debugResetForTest() {
     _initialized = false;
+    _authStorage = null;
   }
 }

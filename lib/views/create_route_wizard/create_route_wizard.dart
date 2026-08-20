@@ -24,15 +24,15 @@ class CreateRouteWizard extends StatefulWidget {
 
 class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Colours shared with theatre widget part file ──
-  static const _bgPage = Color(0xFFF5F3EC);
+  static const _bgPage = Color(0xFFF8F7F0);
   static const _ticketLeft = Colors.white;
-  static const _ticketRight = Color(0xFFEAE3DB);
-  static const _textMain = Color(0xFF2D2926);
-  static const _textSub = Color(0xFF8C8275);
-  static const _accent = Color(0xFF926B62);
-  static const _lineColor = Color(0xFFD6CFC7);
-  static const _skeletonColor = Color(0xFFEDE9E0);
-  static const _calendarRangeBg = Color(0x29926B62);
+  static const _ticketRight = Color(0xFFEEEAD9);
+  static const _textMain = Color(0xFF382F00);
+  static const _textSub = Color(0xFF8B7500);
+  static const _accent = Color(0xFF8B7500);
+  static const _lineColor = Color(0xFFDCD6B3);
+  static const _skeletonColor = Color(0xFFEEEAD9);
+  static const _calendarRangeBg = Color(0x298B7500);
 
   // ── Step titles ──
   static const _stepTitles = ['行程规划', '选择人物', '地点选择', '路线预览'];
@@ -108,7 +108,11 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     _later(const Duration(milliseconds: 1750), () {
       if (!mounted) return;
       setState(() => _showTheatrePanel = true);
-      _titleFocusNode.requestFocus();
+      // Let the card and panel finish compositing before the keyboard changes
+      // the viewport. Overlapping those animations causes a visible frame drop.
+      _later(const Duration(milliseconds: 450), () {
+        if (mounted) _titleFocusNode.requestFocus();
+      });
     });
   }
 
@@ -284,7 +288,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         if (!didPop) _handleBack();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFDFBF7),
+        backgroundColor: const Color(0xFFFFFFFF),
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -325,7 +329,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       child: Row(
         children: [
           Material(
-            color: const Color(0xFFFAF7F2),
+            color: const Color(0xFFF8F7F0),
             shape: const CircleBorder(
               side: BorderSide(color: AppColors.sageBorder),
             ),
@@ -344,15 +348,18 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0x14C37153),
+                    color: const Color(0x148B7500),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
                     '$_currentStep / 4',
                     style: const TextStyle(
-                      color: Color(0xFFC37153),
+                      color: Color(0xFF8B7500),
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -367,7 +374,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF2D2825),
+                      color: Color(0xFF382F00),
                     ),
                   ),
                 ),
@@ -389,8 +396,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         child: LinearProgressIndicator(
           minHeight: 3,
           value: _currentStep / 4,
-          backgroundColor: const Color(0xFFE8E2D9),
-          valueColor: const AlwaysStoppedAnimation(Color(0xFFC37153)),
+          backgroundColor: const Color(0xFFEEEAD9),
+          valueColor: const AlwaysStoppedAnimation(Color(0xFF8B7500)),
         ),
       ),
     );
@@ -400,6 +407,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   Widget _buildStepContent() {
     final goingForward = _currentStep > _previousStep;
+    final involvesMap = _currentStep >= 3 || _previousStep >= 3;
 
     final allSteps = <Widget>[
       _buildTheatreStep(),
@@ -416,13 +424,30 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       Step4RoutePreview(places: _selectedLocations),
     ];
 
+    final currentChild = KeyedSubtree(
+      key: ValueKey(_currentStep),
+      child: allSteps[_currentStep - 1],
+    );
+
+    // Never animate two Android platform map views at the same time. Hybrid
+    // composition plus a slide transform is substantially more expensive than
+    // swapping the map surface directly.
+    if (_currentStep != _previousStep &&
+        _currentStep >= 3 &&
+        _previousStep >= 3) {
+      return Align(alignment: Alignment.topCenter, child: currentChild);
+    }
+
     return Align(
       alignment: Alignment.topCenter,
       child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 350),
-        switchInCurve: Curves.easeInOut,
-        switchOutCurve: Curves.easeInOut,
+        duration: Duration(milliseconds: involvesMap ? 180 : 300),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
         transitionBuilder: (child, animation) {
+          if (involvesMap) {
+            return FadeTransition(opacity: animation, child: child);
+          }
           final isOld = child.key != ValueKey(_currentStep);
           final Offset begin;
           if (isOld) {
@@ -435,10 +460,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             child: child,
           );
         },
-        child: KeyedSubtree(
-          key: ValueKey(_currentStep),
-          child: allSteps[_currentStep - 1],
-        ),
+        child: currentChild,
       ),
     );
   }
@@ -446,25 +468,11 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Theatre step (step 1) ──
 
   Widget _buildTheatreStep() {
-    final isFirstTime =
-        _previousStep == _currentStep && _theatrePhase != _TheatrePhase.hidden;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: KeyedSubtree(
-            key: ValueKey('theatre_$isFirstTime'),
-            child: Stack(
-              children: [
-                _buildTheatreCard(size),
-                _buildTheatreInputPanel(size),
-              ],
-            ),
-          ),
+        return Stack(
+          children: [_buildTheatreCard(size), _buildTheatreInputPanel(size)],
         );
       },
     );
@@ -472,25 +480,32 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   Widget _buildTheatreCard(Size size) {
     final geometry = _cardGeometry(size);
-    return AnimatedPositioned(
-      duration: geometry.duration,
-      curve: geometry.curve,
+    return Positioned(
       left: 20,
       right: 20,
-      top: geometry.top,
+      top: 0,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 450),
         opacity: geometry.opacity,
-        child: AnimatedScale(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: geometry.top, end: geometry.top),
           duration: geometry.duration,
           curve: geometry.curve,
-          scale: geometry.scale,
-          child: _TheatreTicketCard(
-            title: _title,
-            dateRange: _dateRange,
-            duration: _duration,
-            distance: _distance,
+          child: AnimatedScale(
+            duration: geometry.duration,
+            curve: geometry.curve,
+            scale: geometry.scale,
+            child: RepaintBoundary(
+              child: _TheatreTicketCard(
+                title: _title,
+                dateRange: _dateRange,
+                duration: _duration,
+                distance: _distance,
+              ),
+            ),
           ),
+          builder: (context, top, child) =>
+              Transform.translate(offset: Offset(0, top), child: child),
         ),
       ),
     );
@@ -536,24 +551,29 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   Widget _buildTheatreInputPanel(Size size) {
     final top = _showCalendar ? size.height * 0.5 - 38 : size.height * 0.5 + 35;
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 650),
-      curve: Curves.easeOutCubic,
-      top: top,
+    return Positioned(
+      top: 0,
       left: 20,
       right: 20,
-      child: AnimatedSlide(
-        duration: const Duration(milliseconds: 450),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween<double>(begin: top, end: top),
+        duration: const Duration(milliseconds: 650),
         curve: Curves.easeOutCubic,
-        offset: _showTheatrePanel ? Offset.zero : const Offset(0, 0.05),
-        child: AnimatedOpacity(
+        child: AnimatedSlide(
           duration: const Duration(milliseconds: 450),
-          opacity: _showTheatrePanel ? 1 : 0,
-          child: IgnorePointer(
-            ignoring: !_showTheatrePanel,
-            child: _showCalendar ? _buildCalendarPanel() : _buildTitlePanel(),
+          curve: Curves.easeOutCubic,
+          offset: _showTheatrePanel ? Offset.zero : const Offset(0, 0.05),
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 450),
+            opacity: _showTheatrePanel ? 1 : 0,
+            child: IgnorePointer(
+              ignoring: !_showTheatrePanel,
+              child: _showCalendar ? _buildCalendarPanel() : _buildTitlePanel(),
+            ),
           ),
         ),
+        builder: (context, animatedTop, child) =>
+            Transform.translate(offset: Offset(0, animatedTop), child: child),
       ),
     );
   }
@@ -574,7 +594,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             decoration: const InputDecoration(
               hintText: '请输入行程短标题...',
               filled: true,
-              fillColor: Color(0xFFFAFAFA),
+              fillColor: Color(0xFFFFFFFF),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 14,
                 vertical: 12,
@@ -663,16 +683,16 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       decoration: const BoxDecoration(
-        color: Color(0xFFFDFBF7),
-        border: Border(top: BorderSide(color: Color(0x80E8E2D9))),
+        color: Color(0xFFFFFFFF),
+        border: Border(top: BorderSide(color: Color(0x80EEEAD9))),
       ),
       child: ElevatedButton(
         onPressed: _isNextDisabled ? null : buttonHandler,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1C1A1A),
+          backgroundColor: const Color(0xFF1C1700),
           foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFE8E2D9),
-          disabledForegroundColor: const Color(0xFFA8A195),
+          disabledBackgroundColor: const Color(0xFFEEEAD9),
+          disabledForegroundColor: const Color(0xFFA89840),
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
@@ -703,7 +723,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       duration: const Duration(milliseconds: 400),
       opacity: _archiving ? 1 : 0,
       child: Container(
-        color: const Color(0xCCF5F3EC),
+        color: const Color(0xCCF8F7F0),
         child: Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.8, end: 1.0),
@@ -723,7 +743,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0x20926B62),
+                            color: Color(0x208B7500),
                             blurRadius: 24,
                             offset: Offset(0, 8),
                           ),

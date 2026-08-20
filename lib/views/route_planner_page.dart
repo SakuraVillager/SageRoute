@@ -22,15 +22,15 @@ class _RoutePlannerPageState extends State<RoutePlannerPage> {
 
 
   // ── Colors (matching HTML design) ──
-  static const _bg = Color(0xFFF6F4EF);
-  static const _cardBg = Color(0xFFFCFBF9);
-  static const _textMain = Color(0xFF3D3935);
-  static const _textSecondary = Color(0xFF9B9690);
-  static const _accent = Color(0xFF926B62);
-  static const _accentBg = Color(0xFFF5EAE6);
-  static const _border = Color(0xFFE6E1DA);
-  static const _greenIcon = Color(0xFFA4B29E);
-  static const _brownRedIcon = Color(0xFFC38B74);
+  static const _bg = Color(0xFFF8F7F0);
+  static const _cardBg = Color(0xFFFFFFFF);
+  static const _textMain = Color(0xFF382F00);
+  static const _textSecondary = Color(0xFFA89840);
+  static const _accent = Color(0xFF8B7500);
+  static const _accentBg = Color(0xFFEEEAD9);
+  static const _border = Color(0xFFEEEAD9);
+  static const _greenIcon = Color(0xFFC5BA80);
+  static const _brownRedIcon = Color(0xFFA89840);
 
   static const _paces = ['悠闲', '适中', '紧凑'];
   static const _paceDescriptions = ['每天2-3处', '每天3-4处', '每天5处以上'];
@@ -95,7 +95,7 @@ class _RoutePlannerPageState extends State<RoutePlannerPage> {
       children: [
         Expanded(child: _buildDateCard('出发日期', '10月12日', '2025', _accent)),
         const SizedBox(width: 12),
-        Expanded(child: _buildDateCard('返程日期', '10月15日', '2025', const Color(0xFF8BA8A1))),
+        Expanded(child: _buildDateCard('返程日期', '10月15日', '2025', const Color(0xFFA89840))),
       ],
     );
   }
@@ -158,7 +158,7 @@ class _RoutePlannerPageState extends State<RoutePlannerPage> {
                     Icon(
                       _paceIcons[i],
                       size: 20,
-                      color: selected ? _accent : const Color(0xFFA39B92),
+                      color: selected ? _accent : const Color(0xFFA89840),
                     ),
                     const SizedBox(height: 8),
                     Text(

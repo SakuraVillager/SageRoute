@@ -7,24 +7,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// 从 key.properties 加载项目专用签名配置（所有开发者共用同一 keystore，保证 SHA1 一致）
-fun loadKeystoreProperties(): Properties? {
-    val propsFile = rootProject.file("key.properties")
-    if (!propsFile.exists()) {
-        println("WARNING: key.properties not found at ${propsFile.absolutePath}, falling back to default debug keystore")
-        return null
-    }
-    val props = Properties()
-    propsFile.inputStream().use { props.load(it) }
-    return props
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use(keystoreProperties::load)
 }
-
-val keystoreProps = loadKeystoreProperties()
 
 android {
     namespace = "com.sageroute.sageroute"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "28.2.13676358"
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -46,23 +38,26 @@ android {
         versionName = flutter.versionName
     }
 
-    // 项目专用签名配置：使用 android/app/keystore/sageroute-dev.jks
-    // 所有开发者共享同一 keystore，确保高德 SHA1 指纹一致
-    val projectSigningConfig = signingConfigs.create("project").apply {
-        if (keystoreProps != null) {
-            storeFile = rootProject.file(keystoreProps!!.getProperty("storeFile"))
-            storePassword = keystoreProps!!.getProperty("storePassword")
-            keyAlias = keystoreProps!!.getProperty("keyAlias")
-            keyPassword = keystoreProps!!.getProperty("keyPassword")
+    // Use the shared team development certificate when android/key.properties
+    // is present. Keeping one certificate makes AMap's SHA1 binding stable
+    // across developer machines.
+    if (keystorePropertiesFile.exists()) {
+        signingConfigs {
+            getByName("debug") {
+                storeFile = rootProject.file(
+                    keystoreProperties.getProperty("storeFile"),
+                )
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
-        debug {
-            signingConfig = if (keystoreProps != null) projectSigningConfig else signingConfigs.getByName("debug")
-        }
         release {
-            signingConfig = if (keystoreProps != null) projectSigningConfig else signingConfigs.getByName("debug")
+            // This is a team development certificate, not the production key.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
@@ -72,7 +67,7 @@ flutter {
 }
 
 dependencies {
-    // 与 amap_map Flutter 插件使用同一统一 SDK，仅提供编译期可见性
-    // （运行时已由 amap_map 的 implementation 依赖提供）
-    compileOnly("com.amap.api:3dmap-location-search:10.1.200_loc6.4.9_sea9.7.4")
+    // 路径规划由 app 自己的 RoutePlanningHandler 调用搜索 SDK，因此这里必须
+    // 是运行时依赖，不能依赖另一个 Flutter 插件间接把它带进 APK。
+    implementation("com.amap.api:3dmap-location-search:10.1.200_loc6.4.9_sea9.7.4")
 }

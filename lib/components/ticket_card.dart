@@ -26,14 +26,14 @@ class TicketCard extends StatelessWidget {
 
   // ── Colors ──
   static const _ticketLeftBg = Colors.white;
-  static const _ticketRightBg = Color(0xFFEAE3DB);
-  static const _textMain = Color(0xFF2D2926);
-  static const _textSub = Color(0xFF8C8275);
-  static const _accent = Color(0xFF926B62);
-  static const _lineColor = Color(0xFFD6CFC7);
-  static const _stampColor = Color(0x1F926B62); // accent @ 12%
-  static const _stubSlogan = Color(0xFFA3998E);
-  static const _punchBg = Color(0xFFF5F3EC);
+  static const _ticketRightBg = Color(0xFFEEEAD9);
+  static const _textMain = Color(0xFF382F00);
+  static const _textSub = Color(0xFF8B7500);
+  static const _accent = Color(0xFF8B7500);
+  static const _lineColor = Color(0xFFDCD6B3);
+  static const _stampColor = Color(0x1F8B7500); // accent @ 12%
+  static const _stubSlogan = Color(0xFFA89840);
+  static const _punchBg = Color(0xFFF8F7F0);
 
   @override
   Widget build(BuildContext context) {

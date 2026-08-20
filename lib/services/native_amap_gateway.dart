@@ -42,12 +42,13 @@ class NativeAmapGateway implements AmapGateway {
     try {
       raw = await _channel
           .invokeMethod<Map<dynamic, dynamic>>(methodName, {
-        'originLat': request.origin.latitude,
-        'originLon': request.origin.longitude,
-        'destLat': request.destination.latitude,
-        'destLon': request.destination.longitude,
-        'waypoints': waypoints,
-      }).timeout(timeout);
+            'originLat': request.origin.latitude,
+            'originLon': request.origin.longitude,
+            'destLat': request.destination.latitude,
+            'destLon': request.destination.longitude,
+            'waypoints': waypoints,
+          })
+          .timeout(timeout);
     } on TimeoutException {
       debugPrint('[GW] ⏱ 调用超时 (${timeout.inSeconds}s)');
       throw Exception(
@@ -56,9 +57,24 @@ class NativeAmapGateway implements AmapGateway {
       );
     } on MissingPluginException catch (e) {
       debugPrint('[GW] ⚠ MethodChannel 未注册: $e');
-      throw Exception(
-        '原生路由模块未注册，请确保 RoutePlanningHandler 已正确初始化',
+      throw Exception('原生路由模块未注册，请确保 RoutePlanningHandler 已正确初始化');
+    } on PlatformException catch (e) {
+      debugPrint(
+        '[GW] 高德路径规划失败: code=${e.code}, '
+        'message=${e.message}, details=${e.details}',
       );
+      final details = e.details;
+      final amapErrorCode = details is Map
+          ? (details['amapErrorCode'] as num?)?.toInt()
+          : null;
+      if (e.code == 'AMAP_AUTH_ERROR' || amapErrorCode == 1008) {
+        throw Exception(
+          '高德 Android Key 签名校验失败（1008）。'
+          '请在高德开放平台中将该 Key 绑定到当前 APK 的 SHA1，'
+          '包名必须为 com.sageroute.sageroute。',
+        );
+      }
+      throw Exception(e.message ?? '高德路径规划失败（${e.code}）');
     }
 
     debugPrint('[GW] ← raw keys=${raw?.keys}');

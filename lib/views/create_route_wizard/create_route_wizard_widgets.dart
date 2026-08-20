@@ -50,7 +50,7 @@ class _TheatreTicketCard extends StatelessWidget {
                   color: _ticketLeft,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x0F2B2724),
+                      color: Color(0x0F382F00),
                       blurRadius: 36,
                       offset: Offset(0, 12),
                     ),
@@ -153,11 +153,11 @@ class _TheatreTicketCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFA3998E),
+                      color: Color(0xFFA89840),
                       height: 1.2,
                     ),
                   ),
-                  Icon(Icons.public, size: 13, color: Color(0xFFA3998E)),
+                  Icon(Icons.public, size: 13, color: Color(0xFFA89840)),
                 ],
               ),
               SizedBox(height: 10),
@@ -320,10 +320,10 @@ class _PanelFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEAE5DB)),
+        border: Border.all(color: const Color(0xFFEEEAD9)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x102B2724),
+            color: Color(0x10382F00),
             blurRadius: 30,
             offset: Offset(0, 12),
           ),
@@ -447,31 +447,68 @@ class _DayCell extends StatelessWidget {
     final inRange =
         startDay != null && endDay != null && day > startDay! && day < endDay!;
     final isSelected = isStart || isEnd;
+    final hasConnectedRange =
+        startDay != null && endDay != null && startDay != endDay;
+
+    Widget? rangeBackground;
+    if (hasConnectedRange && inRange) {
+      rangeBackground = const Positioned.fill(
+        child: ColoredBox(color: _CreateRouteWizardState._calendarRangeBg),
+      );
+    } else if (hasConnectedRange && isStart) {
+      rangeBackground = const Positioned.fill(
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            heightFactor: 1,
+            alignment: Alignment.centerRight,
+            child: ColoredBox(color: _CreateRouteWizardState._calendarRangeBg),
+          ),
+        ),
+      );
+    } else if (hasConnectedRange && isEnd) {
+      rangeBackground = const Positioned.fill(
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: 0.5,
+            heightFactor: 1,
+            alignment: Alignment.centerLeft,
+            child: ColoredBox(color: _CreateRouteWizardState._calendarRangeBg),
+          ),
+        ),
+      );
+    }
 
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: isSelected
-              ? _CreateRouteWizardState._accent
-              : inRange
-                  ? _CreateRouteWizardState._calendarRangeBg
-                  : Colors.transparent,
-          shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
-        ),
-        child: Center(
-          child: Text(
-            '$day',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (rangeBackground != null) rangeBackground,
+          DecoratedBox(
+            decoration: BoxDecoration(
               color: isSelected
-                  ? Colors.white
-                  : _CreateRouteWizardState._textMain,
+                  ? _CreateRouteWizardState._accent
+                  : Colors.transparent,
+              shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
+            ),
+            child: Center(
+              child: Text(
+                '$day',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? Colors.white
+                      : _CreateRouteWizardState._textMain,
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

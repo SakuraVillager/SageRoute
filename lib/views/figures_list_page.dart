@@ -98,7 +98,7 @@ class FiguresListPage extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: const BoxDecoration(
-                  color: Color(0xFFEBE5DA),
+                  color: Color(0xFFEEEAD9),
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
@@ -114,7 +114,7 @@ class FiguresListPage extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFEBE5DA), width: 2),
+                  border: Border.all(color: const Color(0xFFEEEAD9), width: 2),
                   image: const DecorationImage(
                     image: NetworkImage('https://i.pravatar.cc/150?img=47'),
                     fit: BoxFit.cover,
@@ -729,7 +729,7 @@ class FiguresListPage extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            side: const BorderSide(color: Color(0xFFDCD6C8)),
+            side: const BorderSide(color: Color(0xFFDCD6B3)),
             elevation: 0,
           ),
           child: const Row(

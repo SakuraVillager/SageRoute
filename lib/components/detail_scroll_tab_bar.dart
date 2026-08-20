@@ -16,11 +16,11 @@ class DetailScrollTabBar extends StatelessWidget {
   final ValueChanged<int> onTabTap;
   final double itemRightPadding;
 
-  static const _background = Color(0xFFFAF7F2);
-  static const _activeText = Color(0xFF111111);
-  static const _inactiveText = Color(0xFF8E8A82);
-  static const _indicator = Color(0xFFCD6642);
-  static const _bottomBorder = Color(0xFFEFEBE4);
+  static const _background = Color(0xFFF8F7F0);
+  static const _activeText = Color(0xFF1C1700);
+  static const _inactiveText = Color(0xFFA89840);
+  static const _indicator = Color(0xFF8B7500);
+  static const _bottomBorder = Color(0xFFEEEAD9);
 
   @override
   Widget build(BuildContext context) {

@@ -1,44 +1,64 @@
 import 'package:flutter/material.dart';
 
-/// Centralizes brand colors and derived tones.
+/// The application palette is intentionally limited to black, white and the
+/// brand color #8B7500. Every other tone below is produced by mixing the brand
+/// color with either white or black; alpha variants remain valid derivatives.
 class AppColors {
   AppColors._();
 
-  // Web brand colors as extension
-  static const Color sageBg = Color(0xFFF5EFEB);
-  static const Color sageCard = Color(0xFFFAF7F2);
-  static const Color sageText = Color(0xFF2D2825);
-  static const Color sageMuted = Color(0xFF857F75);
-  static const Color sageAccent = Color(0xFFB96144);
-  static const Color sageBorder = Color(0xFFE8E2D9);
-  static const Color sageDeep = Color(0xFF1C1A1A);
-  static const Color sageGreen = Color(0xFF84A98C);
-  static const Color sageGold = Color(0xFFD4AF37);
+  static const Color black = Color(0xFF000000);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color brand = Color(0xFF8B7500);
 
-  // Light mode colors
-  static const Color primaryLight = Color(0xFFC37153);
-  static const Color secondaryLight = Color(0xFF857F75);
-  static const Color tertiaryLight = Color(0xFF84A98C);
-  static const Color errorLight = Color(0xFFBA1A1A);
-  static const Color neutralLight = Color(0xFFF5EFEB);
-  static const Color neutralVariantLight = Color(0xFFE8E2D9);
+  // Brand mixed with black (increasing depth).
+  static const Color brandDark = Color(0xFF6F5E00);
+  static const Color brandDeeper = Color(0xFF534600);
+  static const Color brandInk = Color(0xFF382F00);
+  static const Color brandNearBlack = Color(0xFF1C1700);
 
-  // Dark mode colors
-  static const Color primaryDark = Color(0xFFD48A6F);
-  static const Color secondaryDark = Color(0xFFA0988E);
-  static const Color tertiaryDark = Color(0xFF6B8C70);
-  static const Color errorDark = Color(0xFFFFB4AB);
-  static const Color neutralDark = Color(0xFF1D1B19);
-  static const Color neutralVariantDark = Color(0xFF4A4642);
+  // Brand mixed with white (increasing lightness).
+  static const Color brandLight = Color(0xFFA89840);
+  static const Color brandSoft = Color(0xFFC5BA80);
+  static const Color brandPale = Color(0xFFDCD6B3);
+  static const Color brandWash = Color(0xFFEEEAD9);
+  static const Color brandSurface = Color(0xFFF8F7F0);
 
-  // Surface / on colors (shared defaults)
-  static const Color surfaceLight = Color(0xFFF5EFEB);
-  static const Color onPrimaryLight = Colors.white;
-  static const Color onSurfaceLight = Color(0xFF2D2825);
+  // Semantic aliases used throughout the existing UI.
+  static const Color sageBg = brandSurface;
+  static const Color sageCard = white;
+  static const Color sageText = brandInk;
+  static const Color sageMuted = brand;
+  static const Color sageAccent = brand;
+  static const Color sageBorder = brandPale;
+  static const Color sageDeep = brandNearBlack;
 
-  static const Color surfaceDark = Color(0xFF1D1B19);
-  static const Color onPrimaryDark = Color(0xFF1D1B19);
-  static const Color onSurfaceDark = Color(0xFFEDEBE9);
+  // Compatibility aliases: formerly green/gold, now brand-derived by design.
+  static const Color sageGreen = brandLight;
+  static const Color sageGold = brandLight;
+
+  // Light mode colors.
+  static const Color primaryLight = brand;
+  static const Color secondaryLight = brandDark;
+  static const Color tertiaryLight = brandLight;
+  static const Color errorLight = brandDark;
+  static const Color neutralLight = brandSurface;
+  static const Color neutralVariantLight = brandPale;
+
+  // Dark mode colors.
+  static const Color primaryDark = brandLight;
+  static const Color secondaryDark = brandSoft;
+  static const Color tertiaryDark = brand;
+  static const Color errorDark = brandSoft;
+  static const Color neutralDark = brandNearBlack;
+  static const Color neutralVariantDark = brandDeeper;
+
+  static const Color surfaceLight = brandSurface;
+  static const Color onPrimaryLight = white;
+  static const Color onSurfaceLight = brandInk;
+
+  static const Color surfaceDark = brandNearBlack;
+  static const Color onPrimaryDark = brandNearBlack;
+  static const Color onSurfaceDark = brandWash;
 
   static ColorScheme buildLightScheme() {
     return const ColorScheme(
@@ -46,23 +66,23 @@ class AppColors {
       primary: primaryLight,
       onPrimary: onPrimaryLight,
       secondary: secondaryLight,
-      onSecondary: onPrimaryLight,
+      onSecondary: white,
       tertiary: tertiaryLight,
-      onTertiary: Color(0xFF1C1A1A),
+      onTertiary: brandNearBlack,
       error: errorLight,
-      onError: Colors.white,
+      onError: white,
       surface: surfaceLight,
       onSurface: onSurfaceLight,
-      inversePrimary: Color(0xFFD48A6F),
-      shadow: Color(0xFF1C1A1A),
+      inversePrimary: brandLight,
+      shadow: brandNearBlack,
       outline: neutralVariantLight,
       surfaceTint: primaryLight,
-      surfaceContainerHighest: Color(0xFFE8E2D9),
-      surfaceContainerHigh: Color(0xFFEFE9E3),
-      surfaceContainer: Color(0xFFF5F0EA),
-      surfaceContainerLow: Color(0xFFFAF7F2),
-      surfaceContainerLowest: Colors.white,
-      outlineVariant: Color(0xFFD4CEC8),
+      surfaceContainerHighest: brandPale,
+      surfaceContainerHigh: brandWash,
+      surfaceContainer: brandSurface,
+      surfaceContainerLow: brandSurface,
+      surfaceContainerLowest: white,
+      outlineVariant: brandPale,
     );
   }
 
@@ -72,23 +92,23 @@ class AppColors {
       primary: primaryDark,
       onPrimary: onPrimaryDark,
       secondary: secondaryDark,
-      onSecondary: onPrimaryDark,
+      onSecondary: brandNearBlack,
       tertiary: tertiaryDark,
-      onTertiary: onPrimaryDark,
+      onTertiary: white,
       error: errorDark,
-      onError: Colors.black,
+      onError: brandNearBlack,
       surface: surfaceDark,
       onSurface: onSurfaceDark,
       inversePrimary: primaryLight,
-      shadow: Colors.black,
+      shadow: black,
       outline: neutralVariantDark,
       surfaceTint: primaryDark,
-      surfaceContainerHighest: Color(0xFF4A4642),
-      surfaceContainerHigh: Color(0xFF3D3A36),
-      surfaceContainer: Color(0xFF33302C),
-      surfaceContainerLow: Color(0xFF2A2725),
-      surfaceContainerLowest: Color(0xFF1D1B19),
-      outlineVariant: Color(0xFF5C5955),
+      surfaceContainerHighest: brandDeeper,
+      surfaceContainerHigh: brandInk,
+      surfaceContainer: brandInk,
+      surfaceContainerLow: brandInk,
+      surfaceContainerLowest: brandNearBlack,
+      outlineVariant: brandDark,
     );
   }
 }

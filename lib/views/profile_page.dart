@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../data/mock_user.dart';
+import '../services/auth_service.dart';
 import '../theme/color_schemes.dart';
 
 /// Profile / personal page matching the Web version's Profile.tsx layout.
@@ -21,6 +23,7 @@ class ProfilePage extends StatelessWidget {
     this.onSettingItemTap,
     this.onLogout,
     this.onDebugRouteTap,
+    this.authService,
   });
 
   /// Callback when the settings icon is tapped.
@@ -33,67 +36,84 @@ class ProfilePage extends StatelessWidget {
   final void Function(int index)? onSettingItemTap;
 
   /// Callback when the logout button is tapped.
+  /// 若不提供，默认调用 [AuthService.signOut]。
   final VoidCallback? onLogout;
 
   /// Callback when the debug route item is tapped.
   final VoidCallback? onDebugRouteTap;
 
+  /// 可选的 AuthService 实例，便于测试注入。
+  final AuthService? authService;
+
   // ── Page-specific colors (from Web Profile.tsx) ──
 
-  static const Color _pageBg = Color(0xFFFDFBF7);
-  static const Color _avatarRing = Color(0xFFEBE5DA);
-  static const Color _sectionTitle = Color(0xFF8A8376);
-  static const Color _statAchieve = Color(0xFFC37153);
-  static const Color _statExplore = Color(0xFF84A98C);
-  static const Color _statRoute = Color(0xFFA38D64);
-  static const Color _logoutText = Color(0xFFC37153);
-  static const Color _chevronColor = Color(0xFFDCD6C8);
-  static const Color _iconBg1 = Color(0xFFF0DED3);
-  static const Color _iconFg1 = Color(0xFFA65B40);
-  static const Color _iconBg2 = Color(0xFFEBE5DA);
-  static const Color _iconFg2 = Color(0xFF8A8376);
+  static const Color _pageBg = Color(0xFFFFFFFF);
+  static const Color _avatarRing = Color(0xFFEEEAD9);
+  static const Color _sectionTitle = Color(0xFF8B7500);
+  static const Color _statAchieve = Color(0xFF8B7500);
+  static const Color _statExplore = Color(0xFFA89840);
+  static const Color _statRoute = Color(0xFFA89840);
+  static const Color _logoutText = Color(0xFF8B7500);
+  static const Color _chevronColor = Color(0xFFDCD6B3);
+  static const Color _iconBg1 = Color(0xFFDCD6B3);
+  static const Color _iconFg1 = Color(0xFF8B7500);
+  static const Color _iconBg2 = Color(0xFFEEEAD9);
+  static const Color _iconFg2 = Color(0xFF8B7500);
   static const Color _iconBgLocked = Colors.white;
-  static const Color _iconFgLocked = Color(0xFFDCD6C8);
+  static const Color _iconFgLocked = Color(0xFFDCD6B3);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _pageBg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 24),
-                    _buildSectionTitle('我的文史成就'),
-                    const SizedBox(height: 12),
-                    _buildAchievementsRow(),
-                    const SizedBox(height: 32),
-                    _buildSectionTitle('偏好设置'),
-                    const SizedBox(height: 12),
-                    _buildSettingsList(),
-                    const SizedBox(height: 24),
-                    _buildLogoutButton(),
-                    // Bottom clearance for BottomNav
-                    const SizedBox(height: 100),
-                  ],
-                ),
+    final auth = authService ?? AuthService();
+
+    return StreamBuilder<AuthState>(
+      stream: auth.authStateChanges,
+      builder: (context, snapshot) {
+        final user = snapshot.data?.session?.user ?? auth.currentUser;
+        final displayName = AuthService.displayNameOf(user);
+        final email = user?.email ?? '';
+        // 用昵称首字母作为头像占位（没有头像 URL 时）
+        final avatarLetter = displayName.isNotEmpty ? displayName[0] : '旅';
+
+        return Scaffold(
+          backgroundColor: _pageBg,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  _buildHeader(displayName, email, avatarLetter),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        _buildSectionTitle('我的文史成就'),
+                        const SizedBox(height: 12),
+                        _buildAchievementsRow(),
+                        const SizedBox(height: 32),
+                        _buildSectionTitle('偏好设置'),
+                        const SizedBox(height: 12),
+                        _buildSettingsList(),
+                        const SizedBox(height: 24),
+                        _buildLogoutButton(auth),
+                        // Bottom clearance for BottomNav
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   // ── Header ──
 
-  Widget _buildHeader() {
+  Widget _buildHeader(String displayName, String email, String avatarLetter) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
@@ -114,10 +134,10 @@ class ProfilePage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 28),
-              _buildAvatar(),
+              _buildAvatar(avatarLetter),
               const SizedBox(height: 16),
               Text(
-                mockUser.name,
+                displayName,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -126,7 +146,7 @@ class ProfilePage extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                mockUser.bio,
+                email.isNotEmpty ? email : mockUser.bio,
                 style: const TextStyle(
                   fontSize: 14,
                   color: AppColors.sageMuted,
@@ -153,7 +173,7 @@ class ProfilePage extends StatelessWidget {
 
   // ── Avatar with decorative ring ──
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(String letter) {
     return Container(
       width: 96,
       height: 96,
@@ -167,9 +187,16 @@ class ProfilePage extends StatelessWidget {
             offset: Offset(0, 2),
           ),
         ],
-        image: DecorationImage(
-          image: NetworkImage(mockUser.avatarUrl),
-          fit: BoxFit.cover,
+        color: AppColors.sageAccent,
+      ),
+      child: Center(
+        child: Text(
+          letter,
+          style: const TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -454,11 +481,21 @@ class ProfilePage extends StatelessWidget {
 
   // ── Logout Button ──
 
-  Widget _buildLogoutButton() {
+  Widget _buildLogoutButton(AuthService auth) {
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(
-        onPressed: onLogout,
+        onPressed: () async {
+          if (onLogout != null) {
+            onLogout!.call();
+            return;
+          }
+          try {
+            await auth.signOut();
+          } catch (_) {
+            // 忽略退出错误，AuthGate 会根据本地状态决定显示
+          }
+        },
         style: OutlinedButton.styleFrom(
           backgroundColor: AppColors.sageCard,
           foregroundColor: _logoutText,
@@ -468,12 +505,12 @@ class ProfilePage extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.logout, size: 16, color: _logoutText),
-            SizedBox(width: 8),
-            Text(
+            const SizedBox(width: 8),
+            const Text(
               '退出登录',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
