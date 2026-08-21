@@ -32,7 +32,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   static const _accent = AppColors.sageAccent;
   static const _lineColor = AppColors.sageBorder;
   static const _skeletonColor = AppColors.brandLight;
-  static const _calendarRangeBg = Color(0x29665B48);
+  static const _calendarRangeBg = Color(0x2996615A);
 
   // ── Step titles ──
   static const _stepTitles = ['行程规划', '选择人物', '路线规划'];
@@ -379,7 +379,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0x14665B48),
+                    color: const Color(0x1496615A),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
@@ -708,7 +708,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       decoration: const BoxDecoration(
         color: AppColors.sageCard,
-        border: Border(top: BorderSide(color: Color(0x80FFEBC8))),
+        border: Border(top: BorderSide(color: Color(0x80D8D8DC))),
       ),
       child: SizedBox(
         height: 48,
@@ -750,7 +750,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       duration: const Duration(milliseconds: 400),
       opacity: _archiving ? 1 : 0,
       child: Container(
-        color: const Color(0xCCFFF2DA),
+        color: const Color(0xCCF0F0F2),
         child: Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.8, end: 1.0),
@@ -770,7 +770,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0x20665B48),
+                            color: Color(0x2096615A),
                             blurRadius: 24,
                             offset: Offset(0, 8),
                           ),

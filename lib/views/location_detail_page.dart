@@ -385,7 +385,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   border: Border.all(color: AppColors.sageBorder, width: 0.4),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0F665B48),
+                      color: Color(0x0F96615A),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -473,7 +473,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
         border: Border.all(color: AppColors.brandLight, width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A665B48),
+            color: Color(0x0A96615A),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),

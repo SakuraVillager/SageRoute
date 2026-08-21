@@ -150,7 +150,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                           gradient: RadialGradient(
                             center: Alignment.bottomRight,
                             radius: 1.0,
-                            colors: [Color(0x1F665B48), Colors.transparent],
+                            colors: [Color(0x1F96615A), Colors.transparent],
                           ),
                         ),
                       ),
@@ -330,7 +330,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
         border: Border.all(color: AppColors.sageBorder, width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0D665B48),
+            color: Color(0x0D96615A),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -737,7 +737,7 @@ class _SiteCard extends StatelessWidget {
           border: Border.all(color: AppColors.brandLight, width: 0.5),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x08665B48),
+              color: Color(0x0896615A),
               blurRadius: 14,
               offset: Offset(0, 4),
             ),

@@ -33,7 +33,7 @@ class TicketCard extends StatelessWidget {
   static const _textSub = AppColors.sageAccent;
   static const _accent = AppColors.sageAccent;
   static const _lineColor = AppColors.sageBorder;
-  static const _stampColor = Color(0x1F665B48); // accent @ 12%
+  static const _stampColor = Color(0x1F96615A); // accent @ 12%
   static const _stubSlogan = AppColors.sageMuted;
   static const _punchBg = AppColors.sageBg;
 

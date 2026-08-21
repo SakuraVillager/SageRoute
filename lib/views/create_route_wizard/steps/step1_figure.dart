@@ -289,7 +289,7 @@ class _FigureCard extends StatelessWidget {
             ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0D332E24),
+                color: Color(0x0D202124),
                 blurRadius: 8,
                 offset: Offset(0, 3),
               ),

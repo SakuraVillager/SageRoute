@@ -78,9 +78,9 @@
 | 代码区域 | 功能 |
 |-------------------------------------------|-----------------------------|
 | 5-tab 布局 | 5 个导航项: 首页 / 人物 / **规划(中间)** / 收藏 / 我的 |
-| `_buildCenterTab()` | 中间 `规划` 按钮: 46px 圆形品牌深色 `#665B48` + 白色 `+` 图标 |
-| 激活态 | 选中 tab 使用品牌浅色 `#FFEBC8` |
-| 视觉风格 | 半透明品牌背景 `#FFF2DA`, 顶部品牌色边框线 |
+| `_buildCenterTab()` | 中间 `规划` 按钮: 46px 圆形主题色 `#96615A` + 白色 `+` 图标 |
+| 激活态 | 选中 tab 使用品牌浅色 `#EADFDE` |
+| 视觉风格 | 冷灰背景 `#F0F0F2`，顶部使用中性边框线 |
 
 ------------------------------------------------------------------------
 
@@ -357,7 +357,7 @@
 
 | 文件 | 内容 |
 |------------------------------------|------------------------------------|
-| `color_schemes.dart` | `AppColors` 单一品牌源色 `#FFE4B5`，其余 App 色彩由该颜色与黑/白线性混合生成 |
+| `color_schemes.dart` | `AppColors` 使用 `#F0F0F2` 冷灰表面色板与 `#96615A` 暖棕红品牌色板 |
 | `app_theme.dart` | Material 3 `lightTheme` / `darkTheme` 构建 |
 | `typography.dart` | 自定义字体配置 |
 | `components.dart` | 组件主题覆盖 (Card/Button/Input 等) |
@@ -365,14 +365,15 @@
 ### 品牌色定义
 
 ```         
-brand         #FFE4B5   — 品牌原色/边框/选中浅底
-sageBg        #FFF2DA   — 页面背景
-sageCard      #FFF8ED   — 卡片背景
-sageText      #332E24   — 主要文字/深色按钮
-sageMuted     #665B48   — 次要文字
-sageAccent    #665B48   — 主控件与强调文字
-brandLight    #FFEBC8   — 禁用态/浅装饰
-brandWash     #FFFCF6   — 最浅容器
+brand         #96615A   — 品牌原色/主控件/路线
+sageBg        #F0F0F2   — 页面背景
+sageCard      #FFFFFF   — 卡片背景
+sageText      #202124   — 主要文字
+sageMuted     #6F6D72   — 次要文字
+sageAccent    #96615A   — 主控件与强调文字
+sageBorder    #D8D8DC   — 中性边框
+brandLight    #EADFDE   — 品牌浅底/禁用态
+brandWash     #F5EFEF   — 最浅品牌容器
 ```
 
 ------------------------------------------------------------------------

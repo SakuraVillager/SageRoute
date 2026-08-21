@@ -50,7 +50,7 @@ class _TheatreTicketCard extends StatelessWidget {
                   color: _ticketLeft,
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x0F332E24),
+                      color: Color(0x0F202124),
                       blurRadius: 36,
                       offset: Offset(0, 12),
                     ),
@@ -323,7 +323,7 @@ class _PanelFrame extends StatelessWidget {
         border: Border.all(color: AppColors.brandLight),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x10332E24),
+            color: Color(0x10202124),
             blurRadius: 30,
             offset: Offset(0, 12),
           ),

@@ -513,7 +513,7 @@ class _Step3MapState extends State<Step3Map> {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x1A332E24),
+                      color: Color(0x1A202124),
                       blurRadius: 16,
                       offset: Offset(0, -4),
                     ),
