@@ -55,7 +55,8 @@ broken.txt
 
 .sisyphus/
 
-sageroute/
+/sageroute/
 # claude
 CLAUDE.md
 .claude
+.gitignore

@@ -6,12 +6,12 @@
 # 2. 向团队获取 keystore 密码（所有开发者使用同一密码）
 # 3. 运行 flutter build apk --debug 验证
 
-storeFile=android/app/keystore/sageroute-dev.jks
+storeFile=app/keystore/sageroute-dev.jks
 storePassword=<向团队获取密码>
 keyAlias=sageroute-dev
 keyPassword=<向团队获取密码>
 
-debugStoreFile=android/app/keystore/sageroute-dev.jks
+debugStoreFile=app/keystore/sageroute-dev.jks
 debugStorePassword=<向团队获取密码>
 debugKeyAlias=sageroute-dev
 debugKeyPassword=<向团队获取密码>

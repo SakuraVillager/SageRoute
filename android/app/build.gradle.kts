@@ -13,6 +13,23 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use(keystoreProperties::load)
 }
 
+fun isUsableKeystoreValue(value: String?): Boolean =
+    !value.isNullOrBlank() &&
+        !value.startsWith("REPLACE_WITH") &&
+        !value.startsWith("<")
+
+val keystoreStoreFile = keystoreProperties.getProperty("storeFile")
+val keystoreStorePassword = keystoreProperties.getProperty("storePassword")
+val keystoreKeyAlias = keystoreProperties.getProperty("keyAlias")
+val keystoreKeyPassword = keystoreProperties.getProperty("keyPassword")
+
+val hasValidDebugSigning = keystorePropertiesFile.exists() &&
+    isUsableKeystoreValue(keystoreStoreFile) &&
+    isUsableKeystoreValue(keystoreStorePassword) &&
+    isUsableKeystoreValue(keystoreKeyAlias) &&
+    isUsableKeystoreValue(keystoreKeyPassword) &&
+    rootProject.file(keystoreStoreFile!!).isFile
+
 android {
     namespace = "com.sageroute.sageroute"
     compileSdk = flutter.compileSdkVersion
@@ -39,17 +56,17 @@ android {
     }
 
     // Use the shared team development certificate when android/key.properties
-    // is present. Keeping one certificate makes AMap's SHA1 binding stable
-    // across developer machines.
-    if (keystorePropertiesFile.exists()) {
+    // contains a valid, non-placeholder keystore. Keeping one certificate makes
+    // AMap's SHA1 binding stable across developer machines. If the file is
+    // missing or still contains placeholder values, fall back to the normal
+    // Android debug keystore so `flutter run` works out of the box.
+    if (hasValidDebugSigning) {
         signingConfigs {
             getByName("debug") {
-                storeFile = rootProject.file(
-                    keystoreProperties.getProperty("storeFile"),
-                )
-                storePassword = keystoreProperties.getProperty("storePassword")
-                keyAlias = keystoreProperties.getProperty("keyAlias")
-                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(keystoreStoreFile!!)
+                storePassword = keystoreStorePassword!!
+                keyAlias = keystoreKeyAlias!!
+                keyPassword = keystoreKeyPassword!!
             }
         }
     }
