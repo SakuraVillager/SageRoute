@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../services/credential_storage.dart';
 import '../theme/color_schemes.dart';
+import 'forgot_password_page.dart';
 import 'register_page.dart';
 
 /// 登录页，匹配 SageRoute 文人风格设计语言。
@@ -12,10 +14,14 @@ import 'register_page.dart';
 /// - 跳转注册页
 /// - 错误提示（邮箱格式、密码错误、网络异常等）
 /// - 加载状态
+/// - 7 天内登录过则自动填充邮箱与密码（记住密码）
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.authService});
+  const LoginPage({super.key, this.authService, this.credentialStorage});
 
   final AuthService? authService;
+
+  /// 可选的凭据存储，便于测试注入。
+  final CredentialStorage? credentialStorage;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -23,6 +29,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   late final AuthService _auth;
+  late final CredentialStorage _credentials;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _emailFocus = FocusNode();
@@ -38,14 +45,24 @@ class _LoginPageState extends State<LoginPage> {
   static const _mutedColor = AppColors.sageMuted;
   static const _borderColor = AppColors.sageBorder;
   static const _accentColor = AppColors.sageAccent;
-  static const _buttonBg = Color(0xFF1C1700);
+  static const _buttonBg = AppColors.sageDeep;
   static const _buttonText = Colors.white;
-  static const _errorColor = Color(0xFF6F5E00);
+  static const _errorColor = AppColors.sageText;
 
   @override
   void initState() {
     super.initState();
     _auth = widget.authService ?? AuthService();
+    _credentials = widget.credentialStorage ?? CredentialStorage();
+    _restoreSavedCredentials();
+  }
+
+  /// 同一设备 7 天内登录过 -> 自动填充邮箱与密码。
+  Future<void> _restoreSavedCredentials() async {
+    final saved = await _credentials.load();
+    if (saved == null || !mounted) return;
+    _emailController.text = saved.email;
+    _passwordController.text = saved.password;
   }
 
   @override
@@ -59,7 +76,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> _handleLogin() async {
     final email = _emailController.text.trim();
-    // Passwords may legitimately start or end with whitespace.
+    // 密码不做本地 trim 校验，但 AuthService 提交前会 trim；
+    // 记住的密码也按提交值（trim 后）保存。
     final password = _passwordController.text;
 
     if (email.isEmpty || !email.contains('@')) {
@@ -89,6 +107,10 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _errorMessage = '登录成功但未获取到有效会话，请重试');
         return;
       }
+      // 登录成功后记住账号密码，供 7 天内自动填充。
+      // 保存的是 AuthService 实际提交的凭据（两侧均已 trim）。
+      await _rememberCredentials(email: email, password: password);
+      if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
     } on AuthException catch (e) {
       debugPrint(
@@ -126,6 +148,18 @@ class _LoginPageState extends State<LoginPage> {
           return '邮箱或密码错误，请重试';
         }
         return message.isEmpty ? '登录失败，请重试' : message;
+    }
+  }
+
+  /// 持久化记住的凭据；存储失败不影响登录结果。
+  Future<void> _rememberCredentials({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _credentials.save(email: email, password: password.trim());
+    } catch (error) {
+      debugPrint('[Auth] persist credentials failed: $error');
     }
   }
 
@@ -287,15 +321,11 @@ class _LoginPageState extends State<LoginPage> {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () {
-          // TODO: 忘记密码功能后续迭代
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('功能开发中，敬请期待'),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ForgotPasswordPage(authService: _auth),
+          ),
+        ),
         style: TextButton.styleFrom(
           foregroundColor: _mutedColor,
           padding: EdgeInsets.zero,
@@ -378,7 +408,7 @@ class _BrandTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const style = TextStyle(
-      color: Color(0xFF382F00),
+      color: AppColors.sageText,
       fontSize: 36,
       height: 1.0,
       fontWeight: FontWeight.w700,
@@ -393,7 +423,7 @@ class _BrandTitle extends StatelessWidget {
           width: 28,
           height: 1,
           child: DecoratedBox(
-            decoration: BoxDecoration(color: Color(0xFF382F00)),
+            decoration: BoxDecoration(color: AppColors.sageText),
           ),
         ),
         SizedBox(width: 12),
