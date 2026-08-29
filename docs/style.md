@@ -97,52 +97,60 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
 
 ### 3.1 主色调
 
+App 自有界面使用冷灰中性色板搭配暖棕红品牌色。`#F0F0F2` 承担大面积页面背景，`#96615A` 用于主按钮、路线、进度、选中态和关键图标；白色与浅灰用于卡片分层。
+
+| 层级 | 色值 | 用途 |
+|------|------|------|
+| 品牌原色 | `#96615A` | 主控件、路线、编号节点、主题识别 |
+| 品牌衍生 | `#784E48` / `#AB817B` / `#D5C0BD` / `#EADFDE` / `#F5EFEF` | 深色交互、次级强调、禁用态、选中浅底 |
+| 中性色板 | `#202124` / `#6F6D72` / `#D8D8DC` / `#F0F0F2` / `#F8F8F9` / `#FFFFFF` | 文字、边框、页面和卡片 |
+
 #### 背景色系
 ```css
---bg-primary: #F5F1E8;        /* 主背景 - 米黄色/宣纸色 */
---bg-secondary: #FAF8F3;      /* 卡片/模块背景 - 浅米色 */
---bg-tertiary: #FFFFFF;       /* 纯白 - 特殊卡片 */
---bg-dark: #1A1A1A;           /* 深色背景 - 主按钮 */
+--bg-primary: #F0F0F2;        /* 主背景 - 冷灰色 */
+--bg-secondary: #F8F8F9;      /* 浅灰模块背景 */
+--bg-tertiary: #FFFFFF;       /* 卡片背景 */
+--bg-dark: #96615A;           /* 品牌按钮 */
 --bg-overlay: rgba(0,0,0,0.4); /* 遮罩层 */
 ```
 
 #### 文字色系
 ```css
---text-primary: #2C2C2C;      /* 主文字 - 深灰色（非纯黑，更柔和）*/
---text-secondary: #6B6B6B;    /* 辅助文字 - 中灰色 */
---text-tertiary: #999999;     /* 占位符/提示 - 浅灰色 */
+--text-primary: #202124;      /* 主文字 */
+--text-secondary: #6F6D72;    /* 辅助文字 */
+--text-tertiary: #AB817B;     /* 品牌提示文字 */
 --text-inverse: #FFFFFF;      /* 反色文字 - 白色 */
---text-disabled: #CCCCCC;     /* 禁用状态 - 浅灰 */
+--text-disabled: #AB817B;     /* 禁用状态 */
 ```
 
-### 3.2 强调色（传统中国色）
+### 3.2 强调色（品牌衍生色）
 
 ```css
---accent-brown: #A67C52;      /* 赭石色 - 用于标签、重要标记 */
---accent-gold: #D4AF37;       /* 金色 - 星级评分、图标强调 */
---accent-red: #C44536;        /* 朱砂红 - 特殊标记、警示 */
---accent-green: #4A7C59;      /* 墨绿色 - 正向指标、成功状态 */
---accent-blue: #5B7FA3;       /* 青灰色 - 信息提示、链接 */
+--accent-brown: #96615A;      /* 主强调 - 标签、重要标记 */
+--accent-gold: #AB817B;       /* 浅强调 - 评分、装饰 */
+--accent-red: #784E48;        /* 错误语义通过图标与文案共同表达 */
+--accent-green: #96615A;      /* 正向语义统一使用品牌色 */
+--accent-blue: #96615A;       /* 信息语义统一使用品牌色 */
 ```
 
 ### 3.3 功能色
 
 ```css
 /* 成功/正向 */
---color-success: #4A7C59;
---color-success-bg: rgba(74, 124, 89, 0.15);
+--color-success: #96615A;
+--color-success-bg: rgba(150, 97, 90, 0.15);
 
 /* 警告/注意 */
---color-warning: #D4AF37;
---color-warning-bg: rgba(212, 175, 55, 0.15);
+--color-warning: #AB817B;
+--color-warning-bg: rgba(171, 129, 123, 0.15);
 
 /* 错误/危险 */
---color-error: #C44536;
---color-error-bg: rgba(196, 69, 54, 0.15);
+--color-error: #784E48;
+--color-error-bg: rgba(120, 78, 72, 0.15);
 
 /* 信息/中性 */
---color-info: #5B7FA3;
---color-info-bg: rgba(91, 127, 163, 0.15);
+--color-info: #96615A;
+--color-info-bg: rgba(150, 97, 90, 0.15);
 ```
 
 ### 3.4 渐变与透明度
@@ -151,10 +159,10 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
 /* 背景图片渐变遮罩（从上到下淡入背景色）*/
 --overlay-gradient: linear-gradient(
   to bottom,
-  rgba(245, 241, 232, 0.2) 0%,      /* 顶部几乎透明 */
-  rgba(245, 241, 232, 0.7) 50%,     /* 中间半透明 */
-  rgba(245, 241, 232, 0.95) 80%,    /* 下部接近不透明 */
-  rgba(245, 241, 232, 1) 100%       /* 底部完全覆盖 */
+  rgba(240, 240, 242, 0.2) 0%,      /* 顶部几乎透明 */
+  rgba(240, 240, 242, 0.7) 50%,     /* 中间半透明 */
+  rgba(240, 240, 242, 0.95) 80%,    /* 下部接近不透明 */
+  rgba(240, 240, 242, 1) 100%       /* 底部完全覆盖 */
 );
 
 /* 卡片阴影 */
@@ -490,13 +498,13 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
   
   /* 棕色标签 - 主要分类 */
   &.tag-brown {
-    background: rgba(166, 124, 82, 0.15);
+    background: rgba(102, 91, 72, 0.15);
     color: var(--accent-brown);
   }
   
   /* 绿色标签 - 正向属性 */
   &.tag-green {
-    background: rgba(74, 124, 89, 0.15);
+    background: rgba(153, 137, 109, 0.15);
     color: var(--accent-green);
   }
   
@@ -508,7 +516,7 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
   
   /* 金色标签 - 特殊标记 */
   &.tag-gold {
-    background: rgba(212, 175, 55, 0.15);
+    background: rgba(204, 182, 145, 0.15);
     color: var(--accent-gold);
   }
 }
@@ -650,7 +658,7 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
   &:focus {
     outline: none;
     border-color: var(--accent-brown);
-    box-shadow: 0 0 0 3px rgba(166, 124, 82, 0.1);
+    box-shadow: 0 0 0 3px rgba(102, 91, 72, 0.1);
   }
   
   /* 占位符 */
@@ -897,18 +905,18 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
 
 /* 已验证的配对 */
 .text-on-bg-primary {            /* 4.8:1 ✓ */
-  color: #2C2C2C;
-  background: #F5F1E8;
+  color: #202124;
+  background: #F0F0F2;
 }
 
 .text-secondary-on-bg {          /* 4.2:1 ✓ */
-  color: #6B6B6B;
-  background: #F5F1E8;
+  color: #6F6D72;
+  background: #F0F0F2;
 }
 
 .text-inverse-on-dark {          /* 15.3:1 ✓ */
   color: #FFFFFF;
-  background: #1A1A1A;
+  background: #96615A;
 }
 ```
 
@@ -980,15 +988,13 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
 
 | 用途 | 色值 | 色块预览 |
 |------|------|----------|
-| **主背景** | `#F5F1E8` | 🟨 米黄色 |
-| **卡片背景** | `#FAF8F3` | 🟨 浅米色 |
-| **深色按钮** | `#1A1A1A` | ⚫ 近黑色 |
-| **主文字** | `#2C2C2C` | ⚫ 深灰 |
-| **辅助文字** | `#6B6B6B` | ⚫ 中灰 |
-| **浅色文字** | `#999999` | ⚪ 浅灰 |
-| **赭石色** | `#A67C52` | 🟤 棕色 |
-| **金色** | `#D4AF37` | 🟡 金色 |
-| **墨绿色** | `#4A7C59` | 🟢 绿色 |
+| **主背景** | `#F0F0F2` | 冷灰色 |
+| **卡片背景** | `#FFFFFF` | 白色 |
+| **浅层容器** | `#F8F8F9` | 浅灰色 |
+| **主文字** | `#202124` | 深灰 |
+| **辅助文字** | `#6F6D72` | 中灰 |
+| **主题色** | `#96615A` | 暖棕红 |
+| **主题浅色** | `#EADFDE` | 浅棕红 |
 
 ---
 
@@ -1025,23 +1031,23 @@ paragraph-spacing: 24px;     /* 段落之间留出足够空间 */
 ```css
 :root {
   /* === 背景色 === */
-  --bg-primary: #F5F1E8;
-  --bg-secondary: #FAF8F3;
+  --bg-primary: #F0F0F2;
+  --bg-secondary: #F8F8F9;
   --bg-tertiary: #FFFFFF;
-  --bg-dark: #1A1A1A;
+  --bg-dark: #96615A;
   
   /* === 文字色 === */
-  --text-primary: #2C2C2C;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #999999;
+  --text-primary: #202124;
+  --text-secondary: #6F6D72;
+  --text-tertiary: #AB817B;
   --text-inverse: #FFFFFF;
   
   /* === 强调色 === */
-  --accent-brown: #A67C52;
-  --accent-gold: #D4AF37;
-  --accent-red: #C44536;
-  --accent-green: #4A7C59;
-  --accent-blue: #5B7FA3;
+  --accent-brown: #96615A;
+  --accent-gold: #AB817B;
+  --accent-red: #784E48;
+  --accent-green: #96615A;
+  --accent-blue: #96615A;
   
   /* === 间距 === */
   --space-xs: 8px;

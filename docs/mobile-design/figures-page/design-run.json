@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "0.1.0",
+  "runId": "sageroute-figures-page-20260826",
+  "productName": "SageRoute 人物页",
+  "requestedOutcome": "full-design-package",
+  "platform": "cross-platform",
+  "runStatus": "complete-with-device-validation-pending",
+  "stages": [
+    {
+      "id": "product-brief",
+      "skill": "mobile-product-brief",
+      "status": "complete",
+      "inputs": ["user-stated interaction and audience requirements", "selected static visual direction"],
+      "outputs": ["product-brief.md", "product-brief.json"],
+      "validation": {
+        "status": "pass",
+        "command": "python C:/Users/importme/.codex/skills/mobile-product-brief/scripts/validate_product_brief.py product-brief.json",
+        "evidence": "Validated on 2026-08-26."
+      },
+      "notes": "Feature brief refined on 2026-08-26: theme directory shows push articles, figure directory opens figure pages, the two filter groups are independent, and search is three Supabase/Postgres ILIKE '%query%' substring queries over figure names, article titles, and topic names."
+    },
+    {
+      "id": "reference-research",
+      "skill": "mobile-reference-research",
+      "status": "not-required",
+      "inputs": ["user-selected prior visual exploration"],
+      "outputs": [],
+      "validation": {"status": "not-run", "command": "", "evidence": ""},
+      "notes": "No additional external reference comparison is required for the currently selected visual direction."
+    },
+    {
+      "id": "design-dna",
+      "skill": "analyze-mobile-ui",
+      "status": "not-required",
+      "inputs": ["prior visual exploration"],
+      "outputs": [],
+      "validation": {"status": "not-run", "command": "", "evidence": ""},
+      "notes": "The visual direction is captured as a user decision and will be formalized during UI design; no separate screenshot analysis is requested."
+    },
+    {
+      "id": "ux-architecture",
+      "skill": "mobile-ux-architect",
+      "status": "complete",
+      "inputs": ["product-brief.json"],
+      "outputs": ["ux-flow.md", "screen-map.md", "ux-architecture.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-ux-architect/scripts/validate_ux_architecture.py ux-architecture.json", "evidence": "Validated on 2026-08-26."},
+      "notes": "Defines independent topic-article and dynasty-figure filtering flows, a bounded three-field ILIKE global search, recovery, and platform back behavior."
+    },
+    {
+      "id": "wireframe",
+      "skill": "mobile-wireframe",
+      "status": "complete",
+      "inputs": ["ux-architecture.json", "product-brief.json"],
+      "outputs": ["wireframe.md", "wireframe.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-wireframe/scripts/validate_wireframe.py wireframe.json --source-ux ux-architecture.json", "evidence": "Validated on 2026-08-26."},
+      "notes": "Low-fidelity regions and all upstream screen/state coverage are complete without adding visual tokens."
+    },
+    {
+      "id": "ui-design",
+      "skill": "mobile-ui-design",
+      "status": "complete",
+      "inputs": ["ux-architecture.json", "wireframe.json", "visual-baseline.md", "visual-direction.md"],
+      "outputs": ["visual-direction.md", "visual-baseline.md", "ui-spec.md", "ui-design.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-ui-design/scripts/validate_ui_design.py ui-design.json", "evidence": "Validated on 2026-08-26; user accepted existing HTML previews as visual evidence and explicitly skipped new ImageGen renders."},
+      "notes": "Selected visual direction was user-locked before this structured package; no additional image preview was requested."
+    },
+    {
+      "id": "design-system",
+      "skill": "mobile-design-system",
+      "status": "complete",
+      "inputs": ["ui-design.json", "visual-baseline.md"],
+      "outputs": ["design-system.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-design-system/scripts/validate_design_system.py design-system.json --source-ui ui-design.json", "evidence": "Validated on 2026-08-26."},
+      "notes": "Locked 博物馆展签 visual system is formalized with semantic tokens and UI component coverage."
+    },
+    {
+      "id": "prototype",
+      "skill": "mobile-prototype",
+      "status": "complete",
+      "inputs": ["ux-architecture.json", "ui-design.json", "design-system.json"],
+      "outputs": ["prototype-map.md", "prototype.json", "prototype-test-plan.md", "prototype-runner/index.html", "prototype-runner/runner-report.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-prototype/scripts/validate_prototype.py prototype.json; python C:/Users/importme/.codex/skills/mobile-prototype/scripts/validate_ui_prototype_alignment.py --ui-design ui-design.json --prototype prototype.json; python C:/Users/importme/.codex/skills/mobile-prototype/scripts/validate_prototype_runner.py --html prototype-runner/index.html --prototype prototype.json --design-system design-system.json", "evidence": "Validated on 2026-08-26. Browser runner structurally exercised search query, empty, failure, and close-to-context contract states; runtime/device evidence remains not-tested."},
+      "notes": "Defines bounded three-field ILIKE search, independent directory filtering, saved-context navigation, deterministic recovery hooks, a browser review runner, and a device test matrix."
+    },
+    {
+      "id": "platform-guidelines",
+      "skill": "mobile-platform-guidelines",
+      "status": "complete",
+      "inputs": ["prototype.json", "ui-design.json", "ux-architecture.json"],
+      "outputs": ["platform-review.md", "platform-guidelines.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-platform-guidelines/scripts/validate_platform_guidelines.py platform-guidelines.json", "evidence": "Validated on 2026-08-26; all runtime-dependent checks remain not-tested."},
+      "notes": "Cross-platform review records outcome parity and pending device checks for system Back, insets, accessibility, lifecycle, and optional notification deep links."
+    },
+    {
+      "id": "design-review",
+      "skill": "mobile-design-review",
+      "status": "complete",
+      "inputs": ["product-brief.json", "ux-architecture.json", "wireframe.json", "ui-design.json", "design-system.json", "prototype.json", "platform-guidelines.json"],
+      "outputs": ["review-report.md", "review.json"],
+      "validation": {"status": "pass", "command": "python C:/Users/importme/.codex/skills/mobile-design-review/scripts/validate_review.py review.json", "evidence": "Validated on 2026-08-26. Conditional pass, score 87/100; user resolved I1 with a bounded three-field ILIKE search scope."},
+      "notes": "No blockers. I1 is fixed in the design contract; I2-I4 remain implementation and device-validation conditions."
+    },
+    {
+      "id": "code-handoff",
+      "skill": "mobile-design-to-code",
+      "status": "not-required",
+      "inputs": [],
+      "outputs": [],
+      "validation": {"status": "not-run", "command": "", "evidence": ""},
+      "notes": "Flutter implementation is the approved next stage after the conditional design review."
+    },
+    {
+      "id": "flutter-implementation",
+      "skill": "flutter-implementation",
+      "status": "complete",
+      "inputs": ["ui-spec.md", "prototype.json", "platform-guidelines.json"],
+      "outputs": ["lib/models/article_record.dart", "lib/data/article_repository.dart", "lib/views/figures_list_page.dart", "lib/views/article_detail_page.dart", "test/views/figures_list_page_test.dart"],
+      "validation": {
+        "status": "pass-with-device-validation-pending",
+        "command": "D:/flutter/flutter/bin/flutter.bat analyze <affected-files>; D:/flutter/flutter/bin/flutter.bat test",
+        "evidence": "Targeted analyzer reported no issues and the full suite passed on 2026-08-26. Widget evidence covers independent filters, seven-item expansion, bounded typed search, loading error recovery, semantic labels, and 2x text scaling. No iOS or Android device/emulator was connected."
+      },
+      "notes": "Initial Article model uses id, created_at, topic, title, summary, content, and cover_image_url. Search uses three Supabase/Postgres ILIKE '%query%' queries over Celebrity.name, Article.title, and Topic.name. Person routes continue to use FigureDetailPage."
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D1",
+      "decision": "Use the '博物馆展签' visual direction as the locked static basis for the figures page.",
+      "source": "user",
+      "date": "2026-08-26",
+      "affectedStages": ["ui-design", "design-system", "prototype"],
+      "rationale": "User selected the second visual direction after iterative exploration."
+    },
+    {
+      "id": "D2",
+      "decision": "Search figure names, article titles, and topic names with three Supabase/Postgres ILIKE '%query%' substring queries, merging typed results. Do not support typo tolerance, pinyin, aliases, simplified/traditional conversion, or complex ranking in the first release. The topic directory lists push articles filtered by topic; the figure directory opens figure pages and filters only by dynasty. Each directory defaults to seven entries and each filter affects only its own directory.",
+      "source": "user",
+      "date": "2026-08-26",
+      "affectedStages": ["product-brief", "ux-architecture", "wireframe", "ui-design", "prototype", "design-review"],
+      "rationale": "User defined the discovery, bounded first-release search behavior, and truncation requirements."
+    },
+    {
+      "id": "D3",
+      "decision": "Article navigation moves left on entry and right on return; an in-page centered circular indicator represents loading.",
+      "source": "user",
+      "date": "2026-08-26",
+      "affectedStages": ["ux-architecture", "prototype", "platform-guidelines"],
+      "rationale": "User defined the navigation motion and loading treatment."
+    }
+  ],
+  "openRisks": [
+    {
+      "id": "R1",
+      "risk": "The Article table has no content records yet, so the reading surface will initially show no featured or directory articles.",
+      "mitigation": "The verified public.\"Article\" table now matches the initial app model and permits anonymous/authenticated SELECT access through RLS; seed article records before production use."
+    },
+    {
+      "id": "R3",
+      "risk": "Push authorization and deep-link behavior are undecided.",
+      "mitigation": "Keep push as a secondary entry assumption until its separate policy is defined."
+    }
+  ],
+  "nextAction": "Seed Article records, then complete iOS and Android device validation for system Back, insets, text scaling, assistive technology, and reduced motion."
+}

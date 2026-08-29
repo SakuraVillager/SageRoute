@@ -27,4 +27,23 @@ class CelebrityRepository {
       mapper: CelebrityProfile.fromMap,
     );
   }
+
+  Future<List<CelebrityProfile>> searchByName(String query) async {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) return const <CelebrityProfile>[];
+
+    final fetcher = _fetcher;
+    if (fetcher != null) {
+      final celebrities = await fetcher();
+      return celebrities
+          .where((celebrity) => celebrity.name.contains(normalizedQuery))
+          .toList(growable: false);
+    }
+
+    return _tableRepository.fetchWhereIlike<CelebrityProfile>(
+      column: 'name',
+      pattern: '%$normalizedQuery%',
+      mapper: CelebrityProfile.fromMap,
+    );
+  }
 }

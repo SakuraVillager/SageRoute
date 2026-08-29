@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import '../theme/color_schemes.dart';
+
 /// 行程票据卡片 — 左白主体 + 右侧存根 + 剪票缺口 + 文化印章。
 class TicketCard extends StatelessWidget {
   const TicketCard({
@@ -26,14 +28,14 @@ class TicketCard extends StatelessWidget {
 
   // ── Colors ──
   static const _ticketLeftBg = Colors.white;
-  static const _ticketRightBg = Color(0xFFEEEAD9);
-  static const _textMain = Color(0xFF382F00);
-  static const _textSub = Color(0xFF8B7500);
-  static const _accent = Color(0xFF8B7500);
-  static const _lineColor = Color(0xFFDCD6B3);
-  static const _stampColor = Color(0x1F8B7500); // accent @ 12%
-  static const _stubSlogan = Color(0xFFA89840);
-  static const _punchBg = Color(0xFFF8F7F0);
+  static const _ticketRightBg = AppColors.brandLight;
+  static const _textMain = AppColors.sageText;
+  static const _textSub = AppColors.sageAccent;
+  static const _accent = AppColors.sageAccent;
+  static const _lineColor = AppColors.sageBorder;
+  static const _stampColor = Color(0x1F96615A); // accent @ 12%
+  static const _stubSlogan = AppColors.sageMuted;
+  static const _punchBg = AppColors.sageBg;
 
   @override
   Widget build(BuildContext context) {
@@ -150,11 +152,7 @@ class TicketCard extends StatelessWidget {
                                 height: 1.2,
                               ),
                             ),
-                            Icon(
-                              Icons.public,
-                              size: 12,
-                              color: _stubSlogan,
-                            ),
+                            Icon(Icons.public, size: 12, color: _stubSlogan),
                           ],
                         ),
                         // 虚线分隔
@@ -184,10 +182,7 @@ class TicketCard extends StatelessWidget {
             Positioned(
               right: 64,
               bottom: 10,
-              child: _CulturalStamp(
-                line1: stampLine1,
-                line2: stampLine2,
-              ),
+              child: _CulturalStamp(line1: stampLine1, line2: stampLine2),
             ),
           ],
         ),
@@ -317,11 +312,7 @@ class _DashedLinePainter extends CustomPainter {
     const dashSpace = 4.0;
     double x = 0;
     while (x < size.width) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x + dashWidth, 0),
-        paint,
-      );
+      canvas.drawLine(Offset(x, 0), Offset(x + dashWidth, 0), paint);
       x += dashWidth + dashSpace;
     }
   }

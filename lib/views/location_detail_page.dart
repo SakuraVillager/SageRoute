@@ -4,6 +4,7 @@ import '../components/detail_content_section.dart';
 import '../components/detail_circle_button.dart';
 import '../components/detail_scroll_tab_bar.dart';
 import '../models/location.dart';
+import '../theme/color_schemes.dart';
 import '../utils/detail_scroll_spy_controller.dart';
 
 /// 景点详情页，与人物详情页统一风格。
@@ -33,23 +34,23 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
   static const _tabs = ['故事', '背景', '意义', '图像', '旅行'];
 
   // ── Colors ──
-  static const _bg = Color(0xFFF8F7F0);
-  static const _accent = Color(0xFF8B7500);
-  static const _green = Color(0xFF6F5E00);
-  static const _teal = Color(0xFF6F5E00);
-  static const _warm = Color(0xFF8B7500);
-  static const _rose = Color(0xFF8B7500);
-  static const _text1 = Color(0xFF1C1700);
-  static const _text2 = Color(0xFF534600);
-  static const _star = Color(0xFFA89840);
-  static const _muted = Color(0xFFA89840);
+  static const _bg = AppColors.sageBg;
+  static const _accent = AppColors.sageAccent;
+  static const _green = AppColors.sageText;
+  static const _teal = AppColors.sageText;
+  static const _warm = AppColors.sageAccent;
+  static const _rose = AppColors.sageAccent;
+  static const _text1 = AppColors.sageDeep;
+  static const _text2 = AppColors.sageText;
+  static const _star = AppColors.sageMuted;
+  static const _muted = AppColors.sageMuted;
 
   // Tag color presets
   static const _tagStyles = [
-    (Color(0xFFEEEAD9), Color(0xFF6F5E00)), // landmark
-    (Color(0xFFEEEAD9), Color(0xFF8B7500)), // associated
-    (Color(0xFFEEEAD9), Color(0xFF8B7500)), // heritage
-    (Color(0xFFEEEAD9), Color(0xFF6F5E00)), // free
+    (AppColors.brandLight, AppColors.sageText), // landmark
+    (AppColors.brandLight, AppColors.sageAccent), // associated
+    (AppColors.brandLight, AppColors.sageAccent), // heritage
+    (AppColors.brandLight, AppColors.sageText), // free
   ];
 
   @override
@@ -143,7 +144,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                     fit: BoxFit.cover,
                     cacheWidth: 800,
                     errorBuilder: (_, __, ___) =>
-                        Container(color: const Color(0xFFEEEAD9)),
+                        Container(color: AppColors.brandLight),
                   ),
                   // Gradient fade to bg
                   Positioned.fill(
@@ -217,7 +218,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                             ' > ',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFC5BA80),
+                              color: AppColors.brandDeeper,
                             ),
                           ),
                           const Text(
@@ -232,7 +233,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                             ' > ',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFFC5BA80),
+                              color: AppColors.brandDeeper,
                             ),
                           ),
                           Text(
@@ -340,7 +341,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                       fontSize: 30,
                       fontFamily: 'Georgia',
                       fontStyle: FontStyle.italic,
-                      color: Color(0xFF1C1700),
+                      color: AppColors.sageDeep,
                     ),
                   ),
                 const SizedBox(height: 10),
@@ -379,15 +380,12 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.sageCard,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: const Color(0xFFDCD6B3),
-                    width: 0.4,
-                  ),
+                  border: Border.all(color: AppColors.sageBorder, width: 0.4),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0F8B7500),
+                      color: Color(0x0F96615A),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -415,7 +413,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   l.years,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFC5BA80),
+                    color: AppColors.brandDeeper,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -470,12 +468,12 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
+        border: Border.all(color: AppColors.brandLight, width: 0.5),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A8B7500),
+            color: Color(0x0A96615A),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -539,7 +537,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1C1700),
+                  backgroundColor: AppColors.sageDeep,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -565,8 +563,8 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                   ),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF382F00),
-                  side: const BorderSide(color: Color(0xFFDCD6B3)),
+                  foregroundColor: AppColors.sageText,
+                  side: const BorderSide(color: AppColors.sageBorder),
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   shape: RoundedRectangleBorder(
@@ -641,7 +639,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
           height: 110,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFEEEAD9), width: 0.5),
+            border: Border.all(color: AppColors.brandLight, width: 0.5),
             image: DecorationImage(
               image: NetworkImage(images[i]),
               fit: BoxFit.cover,
@@ -714,7 +712,7 @@ class _DashStat extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1C1700),
+                  color: AppColors.sageDeep,
                 ),
               ),
             ],
@@ -724,7 +722,7 @@ class _DashStat extends StatelessWidget {
             label,
             style: const TextStyle(
               fontSize: 11,
-              color: Color(0xFFA89840),
+              color: AppColors.sageMuted,
               fontWeight: FontWeight.w500,
             ),
           ),

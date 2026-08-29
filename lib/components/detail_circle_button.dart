@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/color_schemes.dart';
+
 class DetailCircleButton extends StatelessWidget {
   const DetailCircleButton({
     super.key,
@@ -13,9 +15,9 @@ class DetailCircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  static const _background = Color(0xFFF8F7F0);
-  static const _border = Color(0xFFEEEAD9);
-  static const _foreground = Color(0xFF382F00);
+  static const _background = AppColors.sageBg;
+  static const _border = AppColors.brandLight;
+  static const _foreground = AppColors.sageText;
 
   @override
   Widget build(BuildContext context) {

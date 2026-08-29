@@ -1,0 +1,917 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SageRoute 人物页 · Prototype Runner</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --margin-canvas: #f4f0e6;
+      --margin-paper: #fffdf8;
+      --margin-paper-muted: #eee9dd;
+      --margin-ink: #1e1f22;
+      --margin-muted: #625f59;
+      --margin-line: #d7d0c3;
+      --margin-rust: #b94f35;
+      --margin-rust-dark: #873a28;
+      --margin-green: #2f6a52;
+      --margin-amber: #8a5a20;
+      --margin-danger: #a23d32;
+      --margin-accent-lavender: #b8a5ff;
+      --margin-accent-mint: #b9e7d1;
+      --margin-accent-yellow: #f5d65a;
+      --margin-accent-coral: #ff9b7b;
+      --margin-radius: 14px;
+      --margin-control-radius: 14px;
+      --margin-grid: 4px;
+      --margin-space-1: 4px;
+      --margin-space-2: 8px;
+      --margin-space-3: 12px;
+      --margin-space-4: 16px;
+      --margin-space-5: 20px;
+      --margin-space-6: 24px;
+      --margin-space-8: 32px;
+      --margin-writing-font: Georgia, "Times New Roman", serif;
+      --margin-interface-font: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --margin-shadow: 0 16px 40px rgba(50, 43, 32, .12);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: #ddd6c9; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--margin-canvas);
+      color: var(--margin-ink);
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      line-height: 1.45;
+    }
+
+    button, input, select, textarea { font: inherit; }
+
+    button, select { min-height: 44px; }
+
+    button {
+      border: 1px solid var(--margin-line);
+      border-radius: var(--margin-control-radius);
+      padding: 10px 15px;
+      background: var(--margin-paper);
+      color: var(--margin-ink);
+      cursor: pointer;
+      transition: background .16s ease, border-color .16s ease, color .16s ease, transform .16s ease;
+    }
+
+    button:hover { border-color: var(--margin-rust); background: #fff8ef; }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: 3px solid rgba(185, 79, 53, .32);
+      outline-offset: 3px;
+    }
+
+    button.primary { border-color: var(--margin-rust); background: var(--margin-rust); color: #fffdf8; }
+    button.primary:hover { background: var(--margin-rust-dark); border-color: var(--margin-rust-dark); }
+    button.quiet { border-color: transparent; background: transparent; padding-inline: 8px; }
+    button.danger { color: var(--margin-danger); border-color: #d8aaa1; }
+    button:disabled { cursor: not-allowed; opacity: .48; transform: none; }
+
+    .app-shell { max-width: 1440px; margin: 0 auto; padding: var(--margin-space-6); }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 5px;
+      color: var(--margin-rust-dark);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, .phone-heading, .prose, .prompt-copy {
+      font-family: var(--margin-writing-font, Georgia, "Times New Roman", serif);
+      font-weight: 500;
+    }
+
+    h1 { margin: 0; font-size: clamp(26px, 4vw, 42px); letter-spacing: -.035em; }
+
+    .topbar-copy { max-width: 760px; }
+    .topbar-copy p:last-child { margin: 8px 0 0; color: var(--margin-muted); }
+
+    .evidence-badge {
+      flex: 0 0 auto;
+      border: 1px solid var(--margin-line);
+      border-radius: 999px;
+      padding: 9px 13px;
+      background: rgba(255, 253, 248, .72);
+      color: var(--margin-muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(350px, 480px) minmax(0, 1fr);
+      align-items: start;
+      gap: 24px;
+    }
+
+    .phone-stage, .inspector {
+      border: 1px solid var(--margin-line);
+      background: rgba(255, 253, 248, .56);
+      box-shadow: var(--margin-shadow);
+    }
+
+    .phone-stage { display: grid; place-items: center; min-height: 820px; padding: var(--margin-space-8); }
+
+    .phone-frame {
+      width: min(100%, 390px);
+      overflow: hidden;
+      border: 8px solid #242326;
+      border-radius: 34px;
+      background: var(--margin-paper);
+      box-shadow: 0 18px 32px rgba(33, 28, 22, .2);
+    }
+
+    .phone-chrome {
+      height: 26px;
+      background: #242326;
+      color: #fffdf8;
+      font-size: 10px;
+      letter-spacing: .04em;
+      text-align: center;
+    }
+
+    .phone-body {
+      position: relative;
+      min-height: 720px;
+      background:
+        radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--margin-rust) 10%, transparent), transparent 24%),
+        var(--margin-paper);
+    }
+    .phone-screen { min-height: 720px; padding: var(--margin-space-5) var(--margin-space-4) var(--margin-space-3); }
+
+    .phone-nav {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 56px;
+      padding-inline: 2px;
+    }
+
+    .phone-nav > :first-child { justify-self: start; }
+    .phone-nav > :last-child { justify-self: end; }
+    .nav-title { font-size: 16px; font-weight: 650; letter-spacing: -.01em; text-align: left; }
+    .phone-nav button { min-height: 44px; border-color: transparent; background: transparent; padding-inline: 5px; color: var(--margin-muted); font-size: 13px; }
+
+    .phone-content { display: flex; min-height: calc(720px - 56px); flex-direction: column; padding: var(--margin-space-8) var(--margin-grid) var(--margin-space-5); }
+    .today-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--margin-space-4); }
+    .today-hero-copy { min-width: 0; }
+    .today-mark {
+      position: relative;
+      display: grid;
+      flex: 0 0 62px;
+      place-items: center;
+      width: 62px;
+      height: 62px;
+      margin-top: 2px;
+      border: 1px solid var(--margin-rust);
+      border-radius: 50%;
+      color: var(--margin-rust-dark);
+      transform: rotate(-9deg);
+    }
+    .today-mark::before {
+      position: absolute;
+      inset: 6px -5px 6px 5px;
+      border: 1px solid var(--margin-rust);
+      border-left-color: transparent;
+      border-radius: 50%;
+      content: "";
+      opacity: .55;
+    }
+    .today-mark span { font-family: var(--margin-writing-font, Georgia, "Times New Roman", serif); font-size: 20px; }
+    .phone-heading { margin: 0; font-size: clamp(36px, 9vw, 50px); line-height: .98; letter-spacing: -.055em; text-wrap: balance; }
+    .phone-heading.compact { font-size: 28px; }
+    .phone-kicker { margin: 0 0 10px; color: var(--margin-rust-dark); font-size: 12px; font-weight: 650; letter-spacing: .02em; }
+    .phone-lede { max-width: 31ch; margin: 16px 0 0; color: var(--margin-muted); font-size: 16px; line-height: 1.48; }
+
+    .surface-block {
+      margin-top: var(--margin-space-6);
+      border: 1px solid var(--margin-line);
+      border-radius: var(--margin-radius);
+      padding: var(--margin-space-4);
+      background: var(--margin-paper);
+    }
+
+    .surface-block.muted { background: var(--margin-paper-muted); }
+    .surface-block h3 { margin: 0; font-size: 22px; line-height: 1.12; }
+    .surface-block p { margin: 8px 0 0; color: var(--margin-muted); font-size: 13px; }
+    .surface-block p.prose { color: var(--margin-ink); font-size: 20px; line-height: 1.44; }
+
+    .prompt-sheet {
+      position: relative;
+      border-top: 1px solid var(--margin-line);
+      border-bottom: 1px solid var(--margin-line);
+      border-radius: 0;
+      padding: var(--margin-space-4) 0 var(--margin-space-5) var(--margin-space-4);
+      background: transparent;
+    }
+    .prompt-sheet::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 3px;
+      background: var(--margin-rust);
+      content: "";
+      opacity: .78;
+    }
+    .prompt-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--margin-muted); font-size: 12px; }
+    .prompt-meta strong { color: var(--margin-rust-dark); font-weight: 700; }
+    .prompt-copy { max-width: 23ch; margin: 12px 0 0; font-size: 25px; line-height: 1.18; text-wrap: pretty; }
+    .button-stack { display: grid; gap: var(--margin-space-2); margin-top: var(--margin-space-4); }
+    .prompt-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .prompt-actions button { width: auto; }
+    .prompt-actions button.primary { flex: 0 1 auto; min-width: 148px; box-shadow: 0 6px 16px color-mix(in srgb, var(--margin-rust) 24%, transparent); }
+    .prompt-actions button:not(.primary) { border-color: transparent; padding-inline: 0; background: transparent; text-decoration: underline; text-decoration-color: var(--margin-line); text-underline-offset: 5px; }
+    .prompt-actions button:not(.primary):hover { border-color: transparent; background: transparent; color: var(--margin-rust-dark); text-decoration-color: var(--margin-rust); }
+    .button-row { display: flex; flex-wrap: wrap; gap: var(--margin-space-2); margin-top: var(--margin-space-4); }
+    .button-row > button { flex: 1 1 130px; }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-top: 16px;
+      border-left: 3px solid var(--margin-amber);
+      padding: 10px 0 10px 12px;
+      color: var(--margin-amber);
+      font-size: 13px;
+    }
+
+    .notice.success { border-left-color: var(--margin-green); color: var(--margin-green); }
+    .notice.failure { border-left-color: var(--margin-danger); color: var(--margin-danger); }
+    .notice strong { display: block; color: currentColor; }
+    .notice span { display: block; color: var(--margin-muted); }
+
+    .meta-line { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 14px; color: var(--margin-muted); font-size: 12px; }
+    .meta-line span + span { border-left: 1px solid var(--margin-line); padding-left: 12px; }
+    .writing-field { display: grid; gap: 9px; margin-top: 18px; }
+    .writing-field label { color: var(--margin-muted); font-size: 12px; font-weight: 700; }
+    .writing-field textarea { width: 100%; min-height: 260px; resize: vertical; border: 0; border-bottom: 1px solid var(--margin-line); border-radius: 0; padding: 4px 0 14px; background: transparent; color: var(--margin-ink); font-family: var(--margin-writing-font, Georgia, "Times New Roman", serif); font-size: 21px; line-height: 1.5; }
+    .writing-field textarea::placeholder { color: #9b958b; }
+    .writing-field textarea:focus { outline: none; border-bottom-color: var(--margin-rust); }
+    .small-copy { color: var(--margin-muted); font-size: 12px; }
+
+    .tab-bar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto; border-top: 1px solid var(--margin-line); padding-top: 12px; }
+    .tab-bar button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 58px; border-color: transparent; background: transparent; color: var(--margin-muted); font-size: 12px; }
+    .tab-bar button::after { width: 4px; height: 4px; border-radius: 50%; background: transparent; content: ""; }
+    .tab-bar button.active { color: var(--margin-rust-dark); font-weight: 700; }
+    .tab-bar button.active::after { background: var(--margin-rust); }
+    .tab-icon { display: inline-grid; place-items: center; width: 20px; height: 20px; }
+    .tab-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
+
+    .page-row { display: grid; gap: 4px; width: 100%; margin-top: 18px; border: 1px solid var(--margin-line); border-radius: var(--margin-radius); padding: 14px; background: var(--margin-paper); text-align: left; }
+    .page-row strong { font-family: var(--margin-writing-font, Georgia, "Times New Roman", serif); font-size: 19px; font-weight: 500; }
+    .page-row span { color: var(--margin-muted); font-size: 12px; }
+    .page-row:hover { border-color: var(--margin-rust); }
+    .detail-prose { margin-top: 22px; white-space: pre-wrap; font-family: var(--margin-writing-font, Georgia, "Times New Roman", serif); font-size: 20px; line-height: 1.56; }
+
+    .inspector { min-width: 0; padding: 22px; }
+    .inspector-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+    .inspector-head h2 { margin: 0; font-size: 27px; letter-spacing: -.03em; }
+    .inspector-head p { margin: 5px 0 0; color: var(--margin-muted); font-size: 13px; }
+    .reset-button { flex: 0 0 auto; }
+    .inspector-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 20px; }
+    .inspector-card { min-width: 0; border: 1px solid var(--margin-line); border-radius: var(--margin-radius); padding: 16px; background: rgba(255, 253, 248, .76); }
+    .inspector-card.full { grid-column: 1 / -1; }
+    .inspector-card h3 { margin: 0; font-size: 18px; }
+    .inspector-card > p { margin: 7px 0 0; color: var(--margin-muted); font-size: 12px; }
+    .state-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; border: 1px solid var(--margin-rust); border-radius: 999px; padding: 7px 10px; color: var(--margin-rust-dark); font-size: 12px; font-weight: 750; }
+    .state-chip::before { width: 7px; height: 7px; border-radius: 50%; background: var(--margin-rust); content: ""; }
+    .detail-list { display: grid; gap: 9px; margin: 14px 0 0; }
+    .detail-list dt { color: var(--margin-muted); font-size: 11px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+    .detail-list dd { margin: 2px 0 0; font-size: 13px; }
+    .contract-control { display: grid; gap: 8px; margin-top: 14px; }
+    .contract-control label { color: var(--margin-muted); font-size: 12px; font-weight: 750; }
+    .contract-control select { width: 100%; border: 1px solid var(--margin-line); border-radius: 10px; padding: 10px; background: var(--margin-paper); color: var(--margin-ink); }
+    .toggle-list { display: grid; gap: 8px; margin-top: 14px; }
+    .toggle { display: flex; align-items: flex-start; gap: 9px; color: var(--margin-ink); font-size: 13px; }
+    .toggle input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--margin-rust); }
+    .edge-list, .log-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+    .edge-list button { width: 100%; border-radius: 10px; padding: 10px 12px; text-align: left; }
+    .edge-list button span { display: block; color: var(--margin-muted); font-size: 11px; }
+    .log-list { max-height: 190px; overflow: auto; }
+    .log-list li { border-left: 2px solid var(--margin-line); padding-left: 9px; color: var(--margin-muted); font-size: 12px; }
+    .log-list li strong { color: var(--margin-ink); font-weight: 650; }
+    .metric-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 14px; }
+    .metric { border: 1px solid var(--margin-line); border-radius: 10px; padding: 10px; background: var(--margin-canvas); }
+    .metric strong { display: block; font-size: 20px; font-weight: 650; }
+    .metric span { display: block; margin-top: 3px; color: var(--margin-muted); font-size: 11px; }
+    .source-note { margin-top: 20px; color: var(--margin-muted); font-size: 11px; overflow-wrap: anywhere; }
+
+    .overlay-scrim { position: absolute; inset: 0; display: grid; align-items: end; background: rgba(30, 31, 34, .32); z-index: 3; }
+    .overlay-sheet { border-top: 1px solid var(--margin-line); border-radius: 20px 20px 0 0; padding: 22px 18px 26px; background: var(--margin-paper); box-shadow: 0 -12px 28px rgba(33, 28, 22, .16); }
+    .overlay-sheet h3 { margin: 0; font-size: 23px; }
+    .overlay-sheet p { margin: 8px 0 0; color: var(--margin-muted); font-size: 13px; }
+
+    .runner-footnote { margin-top: 18px; color: var(--margin-muted); font-size: 11px; }
+
+    @media (max-width: 920px) {
+      .workspace { grid-template-columns: 1fr; }
+      .phone-stage { min-height: 0; }
+    }
+
+    @media (max-width: 560px) {
+      .app-shell { padding: 14px; }
+      .topbar { display: block; }
+      .evidence-badge { display: inline-flex; margin-top: 13px; }
+      .phone-stage { padding: 12px; }
+      .phone-frame { border-width: 6px; border-radius: 26px; }
+      .phone-screen, .phone-body { min-height: 680px; }
+      .phone-screen { padding-inline: 14px; }
+      .phone-content { min-height: calc(680px - 56px); }
+      .inspector { padding: 16px; }
+      .inspector-grid { grid-template-columns: 1fr; }
+      .inspector-card.full { grid-column: auto; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+
+    .reduced-motion *, .reduced-motion *::before, .reduced-motion *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+
+    /* The product preview is intentionally free of the QA shell. Add ?inspect=1 for the bench. */
+    body.preview-mode { background: var(--margin-canvas); }
+    body.preview-mode .app-shell { max-width: none; min-height: 100dvh; padding: 0; }
+    body.preview-mode .topbar, body.preview-mode .inspector { display: none; }
+    body.preview-mode .workspace { display: block; width: 100%; }
+    body.preview-mode .phone-stage { min-height: 100dvh; border: 0; background: transparent; box-shadow: none; padding: var(--margin-space-8) var(--margin-space-4) var(--margin-space-6); }
+    body.preview-mode .phone-frame { width: min(100%, 390px); border: 1px solid var(--margin-line); border-radius: 28px; box-shadow: 0 24px 70px rgba(50, 43, 32, .16); }
+    body.preview-mode .phone-chrome { display: none; }
+    body.preview-mode .phone-body, body.preview-mode .phone-screen { min-height: 720px; }
+    body.preview-mode .preview-access { display: block; }
+    body.inspect-mode .preview-access { display: none; }
+    .preview-access { display: none; max-width: 390px; margin: 0 auto; padding: 0 16px 24px; text-align: center; }
+    .preview-access a, .mode-toggle { color: var(--margin-muted); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+    .mode-toggle { display: inline-block; margin-top: 11px; }
+
+    .button-stack button { width: 100%; border-radius: 0; border-width: 0 0 1px; border-color: var(--margin-line); padding-inline: 0; background: transparent; text-align: left; }
+    .button-stack button.primary { border-width: 1px; border-radius: var(--margin-control-radius); padding-inline: 15px; background: var(--margin-rust); color: var(--margin-paper); text-align: center; }
+    .button-stack button:not(.primary):hover { background: transparent; color: var(--margin-rust-dark); }
+    .prompt-sheet { margin-top: var(--margin-space-8); border-top: 1px solid var(--margin-line); border-bottom: 1px solid var(--margin-line); padding: var(--margin-space-4) 0 var(--margin-space-5) var(--margin-space-4); background: transparent; }
+    .prompt-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .prompt-actions button { width: auto; }
+    .prompt-actions button.primary { min-width: 148px; box-shadow: 0 6px 16px color-mix(in srgb, var(--margin-rust) 24%, transparent); }
+    .prompt-actions button:not(.primary) { border-color: transparent; padding-inline: 0; background: transparent; text-decoration: underline; text-decoration-color: var(--margin-line); text-underline-offset: 5px; }
+    .surface-block { border: 0; border-radius: 0; padding: 0; background: transparent; }
+    .surface-block.muted { border-top: 1px solid var(--margin-line); border-bottom: 1px solid var(--margin-line); border-radius: 0; padding: var(--margin-space-4) 0; background: transparent; }
+    .prompt-sheet { margin-top: var(--margin-space-8); border-top: 1px solid var(--margin-line); border-bottom: 1px solid var(--margin-line); border-radius: 0; padding: var(--margin-space-4) 0 var(--margin-space-5) var(--margin-space-4); background: transparent; }
+    .prompt-sheet::before { position: absolute; top: 0; bottom: 0; left: 0; width: 3px; background: var(--margin-rust); content: ""; opacity: .78; }
+    .prompt-actions button { width: auto; }
+    .phone-content > .surface-block:first-of-type { margin-top: var(--margin-space-8); }
+    .phone-content > .surface-block h3 { max-width: 28ch; }
+
+    /* Reference-rich modular direction: color and density are structural, not decoration. */
+    body.reference-rich .phone-body {
+      background: var(--margin-canvas);
+    }
+    body.reference-rich .phone-screen {
+      padding: 12px 12px 10px;
+    }
+    body.reference-rich .phone-nav {
+      min-height: 48px;
+      padding-inline: 4px;
+    }
+    body.reference-rich .phone-nav .nav-title {
+      font-size: 15px;
+      font-weight: 760;
+    }
+    body.reference-rich .phone-content {
+      gap: 12px;
+      padding: 14px 2px 8px;
+    }
+    body.reference-rich .today-hero {
+      align-items: stretch;
+      gap: 12px;
+      border-radius: 24px;
+      padding: 18px;
+      background: var(--margin-accent-lavender);
+    }
+    body.reference-rich .today-hero-copy {
+      display: grid;
+      align-content: space-between;
+      min-height: 150px;
+    }
+    body.reference-rich .phone-kicker {
+      color: var(--margin-ink);
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    body.reference-rich .phone-heading {
+      max-width: 7ch;
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: clamp(31px, 8vw, 44px);
+      font-weight: 780;
+      letter-spacing: -.065em;
+      line-height: .94;
+    }
+    body.reference-rich .phone-lede {
+      max-width: 27ch;
+      margin-top: 10px;
+      color: color-mix(in srgb, var(--margin-ink) 72%, transparent);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    body.reference-rich .today-mark {
+      flex-basis: 74px;
+      width: 74px;
+      height: 74px;
+      align-self: flex-start;
+      margin: -4px -4px 0 0;
+      border: 0;
+      border-radius: 24px;
+      background: var(--margin-accent-yellow);
+      color: var(--margin-ink);
+      transform: rotate(6deg);
+    }
+    body.reference-rich .today-mark::before { display: none; }
+    body.reference-rich .today-mark span {
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 25px;
+      font-weight: 800;
+    }
+    body.reference-rich .surface-block {
+      margin-top: 0;
+      border: 0;
+      border-radius: 22px;
+      padding: 16px;
+      background: var(--margin-paper);
+      box-shadow: 0 5px 0 color-mix(in srgb, var(--margin-ink) 10%, transparent);
+    }
+    body.reference-rich .surface-block h3 {
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 20px;
+      font-weight: 760;
+      letter-spacing: -.03em;
+    }
+    body.reference-rich .surface-block p.prose {
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+    body.reference-rich .prompt-sheet {
+      border: 0;
+      border-radius: 22px;
+      padding: 17px;
+      background: var(--margin-accent-yellow);
+    }
+    body.reference-rich .prompt-sheet::before { display: none; }
+    body.reference-rich .prompt-meta,
+    body.reference-rich .prompt-meta strong {
+      color: var(--margin-ink);
+    }
+    body.reference-rich .prompt-copy {
+      max-width: 18ch;
+      margin-top: 11px;
+      font-family: var(--margin-interface-font, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-size: 22px;
+      font-weight: 750;
+      letter-spacing: -.035em;
+    }
+    body.reference-rich .prompt-actions button.primary {
+      border-color: var(--margin-ink);
+      background: var(--margin-ink);
+      box-shadow: none;
+    }
+    body.reference-rich .prompt-actions button:not(.primary) {
+      color: var(--margin-ink);
+      text-decoration-color: color-mix(in srgb, var(--margin-ink) 40%, transparent);
+    }
+    body.reference-rich .surface-block.muted {
+      border: 0;
+      border-radius: 22px;
+      padding: 16px;
+      background: var(--margin-accent-mint);
+    }
+    body.reference-rich .tab-bar {
+      gap: 2px;
+      border: 0;
+      border-radius: 22px;
+      padding: 4px;
+      background: var(--margin-ink);
+    }
+    body.reference-rich .tab-bar button {
+      min-height: 48px;
+      border-radius: 17px;
+      color: rgba(255,255,255,.7);
+    }
+    body.reference-rich .tab-bar button.active {
+      background: var(--margin-paper);
+      color: var(--margin-ink);
+    }
+    body.reference-rich .tab-bar button.active::after { display: none; }
+</style>
+  <style id="contract-theme">:root {
+  --margin-canvas: #F4F0E6;
+  --margin-paper: #FFFDF8;
+  --margin-paper-muted: #F4F0E6;
+  --margin-ink: #3C2724;
+  --margin-rust: #B94F35;
+  --margin-muted: #625F59;
+  --margin-line: #D7D0C3;
+  --margin-green: #2F6A52;
+  --margin-amber: #8A5A20;
+  --margin-accent-lavender: #B8A5FF;
+  --margin-accent-mint: #B9E7D1;
+  --margin-accent-yellow: #F5D65A;
+  --margin-accent-coral: #FF9B7B;
+  --margin-radius: 14px;
+  --margin-control-radius: 14px;
+  --margin-grid: 4px;
+  --margin-space-1: 4px;
+  --margin-space-2: 8px;
+  --margin-space-3: 12px;
+  --margin-space-4: 16px;
+  --margin-space-5: 20px;
+  --margin-space-6: 24px;
+  --margin-space-8: 32px;
+  --margin-writing-font: Georgia, 'Times New Roman', serif;
+  --margin-interface-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}</style>
+</head>
+<body>
+  <main class="app-shell" data-prototype-runner="mobile-design-os">
+    <header class="topbar">
+      <div class="topbar-copy">
+        <p class="eyebrow">Mobile Design OS · Prototype bench</p>
+        <h1>SageRoute 人物页 / clickable behavior review</h1>
+        <p>Review the product surface on the left; inspect contract states, transitions, and deterministic failures on the right.</p>
+      </div>
+      <div class="evidence-badge">Structure only · runtime evidence not tested</div>
+    </header>
+
+    <section class="workspace" aria-label="Prototype review workspace">
+      <section class="phone-stage" aria-label="Phone prototype canvas">
+        <div class="phone-frame">
+          <div class="phone-chrome" aria-hidden="true">behavior review</div>
+          <div class="phone-body">
+            <div id="phone-screen" class="phone-screen"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="inspector" aria-label="Prototype contract inspector">
+        <div class="inspector-head">
+          <div>
+            <p class="eyebrow">Contract inspector</p>
+            <h2 id="inspector-title">Current UI state</h2>
+            <p id="inspector-subtitle">Choose a product action or jump to a contract node.</p>
+            <a id="mode-toggle" class="mode-toggle" href="?">Product preview</a>
+          </div>
+          <button id="reset-runner" class="reset-button" type="button">Reset</button>
+        </div>
+        <div id="inspector-content"></div>
+        <p class="source-note">Generated from <span id="source-paths"></span>. This runner demonstrates interaction intent and recovery boundaries; it is not a production app or device accessibility proof.</p>
+      </aside>
+    </section>
+    <p id="preview-access" class="preview-access"><a id="preview-mode-link" href="?inspect=1">Open behavior inspector</a></p>
+  </main>
+
+  <script id="prototype-data" type="application/json">{"schemaVersion":"0.1.0","meta":{"productName":"SageRoute 人物页","platform":"cross-platform","prototypeTarget":"behavior-prototype","evidenceStatus":"built","sourcePaths":["ux-architecture.json","ui-design.json","design-system.json"],"sourceUiPath":"ui-design.json","confidence":"medium"},"scope":{"criticalFlowIds":["F2","F3"],"highRiskStateIds":["ST2","ST5","ST6","ST8","ST9","ST10"],"implementationBoundary":"This contract defines observable behavior, state continuity, deterministic failure injection, and platform-facing outcomes. Search is three Supabase/Postgres ILIKE '%query%' substring queries over figure names, article titles, and topic names; it excludes typo tolerance, pinyin, aliases, simplified/traditional conversion, and complex ranking. It does not implement Flutter UI, notification authorization, or device evidence."},"nodes":[{"id":"P1","screenId":"S1","stateId":"ST1","kind":"loading","entry":"Enter People page or retry initial request.","primaryAction":"Wait for content or use retry after failure.","feedback":"Centered circular indicator with a readable loading announcement; Reduce Motion keeps text semantics.","exit":"Content becomes available or page failure is shown."},{"id":"P2","screenId":"S1","stateId":"ST2","kind":"failure","entry":"Initial People page load fails or times out.","primaryAction":"Retry loading.","feedback":"Page-level error text and an available retry action.","exit":"Retry returns to P1; the People page remains reachable."},{"id":"P3","screenId":"S1","stateId":"ST3","kind":"local-loading","entry":"A topic selection starts its article query.","primaryAction":"Clear the topic or wait for the topic article result.","feedback":"Only the topic article region announces loading.","exit":"Topic result, P5, a detail route, or search overlay."},{"id":"P4","screenId":"S1","stateId":"ST4","kind":"local-loading","entry":"A dynasty selection starts its figure query.","primaryAction":"Clear the dynasty or wait for the figure result.","feedback":"Only the figure directory announces loading.","exit":"Figure result, P6, or a figure detail route."},{"id":"P5","screenId":"S1","stateId":"ST5","kind":"local-recovery","entry":"Topic article query is empty or fails.","primaryAction":"Retry or clear only the topic filter.","feedback":"Inline topic-specific empty/error copy with recovery action.","exit":"Retry returns to P3; clearing returns the unfiltered topic article directory."},{"id":"P6","screenId":"S1","stateId":"ST6","kind":"local-recovery","entry":"Figure directory query is empty or fails.","primaryAction":"Retry or clear only the dynasty filter.","feedback":"Inline figure-specific empty/error copy with recovery action.","exit":"Retry returns to P4; clearing returns the unfiltered figure directory."},{"id":"P7","screenId":"S2","stateId":"ST7","kind":"search-loading","entry":"Search overlay opens and query is submitted or edited.","primaryAction":"Edit, cancel, or await the three ILIKE '%query%' result sets.","feedback":"Loading status is announced while input focus remains available.","exit":"Typed results, P8, P9, an article/figure route, or restored People page."},{"id":"P8","screenId":"S2","stateId":"ST8","kind":"empty","entry":"Search response has no fuzzy matches.","primaryAction":"Edit/clear query or close search.","feedback":"No-result message with visible recovery actions.","exit":"Editing returns to P7; close restores saved People page context."},{"id":"P9","screenId":"S2","stateId":"ST9","kind":"failure","entry":"Search request fails or times out.","primaryAction":"Retry the same query or close search.","feedback":"Search error is announced with retry; query is retained.","exit":"Retry returns to P7; close restores saved People page context."},{"id":"P10","screenId":"S3","stateId":"ST10","kind":"detail-failure","entry":"An identified article cannot load.","primaryAction":"Retry article load or return to People page.","feedback":"Article identity remains visible and failure is announced.","exit":"Retry preserves article identity; Back returns to saved People page context."},{"id":"P11","screenId":"S4","stateId":"ST10","kind":"detail-failure","entry":"An identified figure cannot load.","primaryAction":"Retry figure load or return to People page.","feedback":"Figure identity remains visible and failure is announced.","exit":"Retry preserves figure identity; Back returns to saved People page context."}],"transitions":[{"id":"TR1","fromNodeId":"P1","trigger":"initial request succeeds","systemResponse":"Render People page content and preserve default directory scope.","motion":"Spinner ends; content becomes available.","feedback":"Loading announcement completes.","toNodeId":"P3","recovery":"If a local topic query begins, only that directory enters P3."},{"id":"TR2","fromNodeId":"P1","trigger":"initial request fails","systemResponse":"Keep the People page reachable with a retry action.","motion":"No route change.","feedback":"Page failure is announced.","toNodeId":"P2","recovery":"Retry returns to P1 without claiming stale content is current."},{"id":"TR3","fromNodeId":"P3","trigger":"select topic","systemResponse":"Update only topic article data; retain dynasty and both expansion states.","motion":"Local progress only; no full-page reset.","feedback":"Topic-area loading is announced.","toNodeId":"P3","recovery":"Empty/failure uses P5; clear affects only the topic filter."},{"id":"TR4","fromNodeId":"P4","trigger":"select dynasty","systemResponse":"Update only figure data; retain topic and both expansion states.","motion":"Local progress only; no full-page reset.","feedback":"Figure-area loading is announced.","toNodeId":"P4","recovery":"Empty/failure uses P6; clear affects only the dynasty filter."},{"id":"TR5","fromNodeId":"P5","trigger":"retry or clear topic","systemResponse":"Retry same topic request or remove only topic constraint.","motion":"Inline region update.","feedback":"Topic recovery status is announced.","toNodeId":"P3","recovery":"Selected dynasty and figure list stay unchanged."},{"id":"TR6","fromNodeId":"P6","trigger":"retry or clear dynasty","systemResponse":"Retry same dynasty request or remove only dynasty constraint.","motion":"Inline region update.","feedback":"Figure recovery status is announced.","toNodeId":"P4","recovery":"Selected topic and topic article list stay unchanged."},{"id":"TR7","fromNodeId":"P3","trigger":"tap article","systemResponse":"Save People page context and push article route.","motion":"Article enters leftward; Reduce Motion uses a short fade.","feedback":"Article target is announced before activation.","toNodeId":"P10","recovery":"iOS edge Back and Android system/predictive Back restore saved context."},{"id":"TR8","fromNodeId":"P4","trigger":"tap figure","systemResponse":"Save People page context and push figure route.","motion":"Hierarchical transition; Reduce Motion uses a short fade.","feedback":"Figure target is announced before activation.","toNodeId":"P11","recovery":"Platform Back restores saved context."},{"id":"TR9","fromNodeId":"P3","trigger":"tap search","systemResponse":"Open global overlay above saved People page context and focus input.","motion":"Keyboard appears while input remains visible.","feedback":"Search input receives focus.","toNodeId":"P7","recovery":"Close/system Back dismisses overlay and restores original context."},{"id":"TR10","fromNodeId":"P7","trigger":"search has no matches","systemResponse":"Keep query and show empty state.","motion":"No route change.","feedback":"No-result announcement is polite.","toNodeId":"P8","recovery":"Edit/clear returns to P7; close restores context."},{"id":"TR11","fromNodeId":"P7","trigger":"search fails or times out","systemResponse":"Keep query and show retry.","motion":"No route change.","feedback":"Search failure is announced.","toNodeId":"P9","recovery":"Retry reuses query; close restores context."},{"id":"TR12","fromNodeId":"P7","trigger":"tap article result","systemResponse":"Save origin context and push article route.","motion":"Leftward entry; Reduce Motion uses fade.","feedback":"Result type and destination are exposed.","toNodeId":"P10","recovery":"Route Back restores original People page context."},{"id":"TR13","fromNodeId":"P7","trigger":"tap figure result","systemResponse":"Save origin context and push figure route.","motion":"Hierarchical transition; Reduce Motion uses fade.","feedback":"Result type and destination are exposed.","toNodeId":"P11","recovery":"Route Back restores original People page context."},{"id":"TR14","fromNodeId":"P7","trigger":"close search or system Back","systemResponse":"Dismiss overlay and restore focus to the invoking search control.","motion":"Keyboard dismisses, then focus returns.","feedback":"No selection/filter/scroll reset announcement occurs.","toNodeId":"P3","recovery":"Saved topic, dynasty, expansion, and scroll states return unchanged."},{"id":"TR15","fromNodeId":"P10","trigger":"retry article","systemResponse":"Retry identified article without losing identity.","motion":"Loading text or reduced-motion fade.","feedback":"Retry status is announced.","toNodeId":"P10","recovery":"Return remains available at all times."},{"id":"TR16","fromNodeId":"P11","trigger":"retry figure","systemResponse":"Retry identified figure without losing identity.","motion":"Loading text or reduced-motion fade.","feedback":"Retry status is announced.","toNodeId":"P11","recovery":"Return remains available at all times."}],"failureHooks":[{"id":"FH1","area":"initial content","trigger":"Force People page request to fail before first render (ST1/ST2).","injectedOutcome":"ST2 page-level failure replaces loading.","expectedTruth":"Retry is available; no stale content is represented as current."},{"id":"FH2","area":"topic directory","trigger":"Force topic query to return timeout or zero matches (ST3/ST5).","injectedOutcome":"ST5 local topic recovery appears.","expectedTruth":"Only topic articles change; clear/retry leaves dynasty state and figure list untouched."},{"id":"FH3","area":"figure directory","trigger":"Force dynasty query to return timeout or zero matches (ST4/ST6).","injectedOutcome":"ST6 local figure recovery appears.","expectedTruth":"Only figure directory changes; clear/retry leaves topic state and article list untouched."},{"id":"FH4","area":"search index","trigger":"Use deterministic query responses for timeout, zero matches, and success (ST7/ST8/ST9).","injectedOutcome":"ST8 empty or ST9 failure preserves entered query.","expectedTruth":"Retry, edit/clear, and close are available; close restores original People page context."},{"id":"FH5","area":"article detail","trigger":"Open an identified article then force detail fetch failure (ST10).","injectedOutcome":"Article ST10 failure keeps object identity visible.","expectedTruth":"Retry and return remain available; return restores saved context."},{"id":"FH6","area":"figure detail","trigger":"Open an identified figure then force detail fetch failure (ST10).","injectedOutcome":"Figure ST10 failure keeps object identity visible.","expectedTruth":"Retry and return remain available; return restores saved context."},{"id":"FH7","area":"notification deep link","trigger":"Open expired, missing, or unauthorized notification target.","injectedOutcome":"Target recovery is shown instead of a blank detail page.","expectedTruth":"User can continue to the People page without notification permission."}],"runtimeChecks":[{"id":"RC1","category":"search","case":"ILIKE '%query%' results identify figure, article, and topic result types and their destinations.","deviceOrSetting":"iOS and Android phone","expected":"Three substring result sets are distinguishable after merge and navigation targets are correct.","status":"not-tested","evidence":""},{"id":"RC2","category":"state-continuity","case":"Close search after a non-default topic, dynasty, expansion, and scroll state.","deviceOrSetting":"iOS and Android phone","expected":"All original People page context is restored.","status":"not-tested","evidence":""},{"id":"RC3","category":"accessibility","case":"Use VoiceOver/TalkBack for search input, typed results, selected filters, and recovery states.","deviceOrSetting":"iOS VoiceOver; Android TalkBack","expected":"Reading order, labels, state announcements, and focus restore are correct.","status":"not-tested","evidence":""},{"id":"RC4","category":"motion","case":"Enable Reduce Motion/reduced animation and open/return from article and figure routes.","deviceOrSetting":"iOS Reduce Motion; Android reduced animation","expected":"Fade/reduced motion keeps route and loading semantics perceptible.","status":"not-tested","evidence":""},{"id":"RC5","category":"system","case":"Use iOS edge Back and Android system/predictive Back from detail and search.","deviceOrSetting":"Current supported iOS and Android versions","expected":"Back closes search first or restores the saved People page context without an accidental exit.","status":"not-tested","evidence":""},{"id":"RC6","category":"lifecycle","case":"Background and resume/recreate while search or a detail route is open.","deviceOrSetting":"iOS background/resume; Android process recreation","expected":"No false restored state; persisted context restores when available.","status":"not-tested","evidence":""}],"testCases":[{"id":"TC1","flowId":"F2","preconditions":"People page uses non-default topic, dynasty, expansion, and scroll state.","actions":"Open search, enter a substring contained in a figure name, article title, or topic name, inspect typed results, and close.","expectedResult":"Three ILIKE '%query%' result sets are merged with explicit types; close restores all saved People page context.","status":"not-tested","evidence":""},{"id":"TC2","flowId":"F2","preconditions":"Search returns article and figure results.","actions":"Open each result and use platform Back.","expectedResult":"Article enters leftward/returns rightward; detail return restores original People page context.","status":"not-tested","evidence":""},{"id":"TC3","flowId":"F3","preconditions":"Both directories have more than seven records and deterministic empty/failure hooks.","actions":"Independently select/clear topic and dynasty, expand/collapse each list, then inject recovery states.","expectedResult":"Filters and expansion affect only their owning directory and each recovery is local.","status":"not-tested","evidence":""},{"id":"TC4","flowId":"F1","preconditions":"Deterministic article and figure detail failure hooks are available.","actions":"Open an object, force ST10 failure, retry, then return.","expectedResult":"Object identity remains visible; retry is idempotent; return restores context.","status":"not-tested","evidence":""},{"id":"TC5","flowId":"F4","preconditions":"Invalid notification deep link can be invoked.","actions":"Open invalid target and choose recovery.","expectedResult":"Reason is shown and People page remains a usable fallback.","status":"not-tested","evidence":""}],"coverage":[{"sourceScreenId":"S1","requiredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"prototypeNodeIds":["P1","P2","P3","P4","P5","P6"]},{"sourceScreenId":"S2","requiredStateIds":["ST7","ST8","ST9"],"prototypeNodeIds":["P7","P8","P9"]},{"sourceScreenId":"S3","requiredStateIds":["ST10"],"prototypeNodeIds":["P10"]},{"sourceScreenId":"S4","requiredStateIds":["ST10"],"prototypeNodeIds":["P11"]}],"interactionCoverage":[{"id":"S1-I1","screenId":"S1","action":"article -> S3","status":"mapped","transitionIds":["TR7"]},{"id":"S1-I2","screenId":"S1","action":"figure -> S4","status":"mapped","transitionIds":["TR8"]},{"id":"S1-I3","screenId":"S1","action":"search -> S2","status":"mapped","transitionIds":["TR9"]},{"id":"S2-I1","screenId":"S2","action":"close -> S1","status":"mapped","transitionIds":["TR14"]},{"id":"S2-I2","screenId":"S2","action":"result article -> S3","status":"mapped","transitionIds":["TR12"]},{"id":"S2-I3","screenId":"S2","action":"result figure -> S4","status":"mapped","transitionIds":["TR13"]},{"id":"S3-I1","screenId":"S3","action":"back -> S1","status":"mapped","transitionIds":["TR15"]},{"id":"S4-I1","screenId":"S4","action":"back -> S1","status":"mapped","transitionIds":["TR16"]}],"deliverables":["prototype-map.md","prototype.json","prototype-test-plan.md","prototype-runner/index.html","prototype-runner/runner-report.json"],"openQuestions":["Confirm the exact database column mapping and result merge order for the three ILIKE queries during implementation.","The app's exact supported OS range and notification authorization policy remain unconfirmed.","The browser runner structurally exercised ST7, ST8, ST9, and the close-to-P3 contract on 2026-08-26; it is not evidence of production search, device accessibility, interruption, or system Back behavior, so runtime checks remain not-tested."]}</script>
+  <script id="ui-design-data" type="application/json">{"schemaVersion":"0.1.0","meta":{"productName":"SageRoute 人物页","platform":"cross-platform","generatedAt":"2026-08-26"},"sources":{"uxArchitecture":{"path":"ux-architecture.json","schemaVersion":"0.1.0"},"wireframe":{"path":"wireframe.json"},"visualBaseline":{"path":"visual-baseline.md"},"visualLock":{"path":"visual-direction.md","status":"locked","directionId":"VD2","selectionSource":"user"}},"designThesis":{"statement":"博物馆展签式摄影阅读入口：图片建立内容身份，暖白纸面承载高频检索，酒红只表达选择与重点。","status":"user-selected"},"decisions":["D1 博物馆展签为锁定方向。","主题文章筛选与人物朝代筛选独立。","用户接受现有 HTML 预览作为视觉证据，跳过额外 ImageGen 渲染。"],"tokens":[{"id":"T1","role":"surface-primary","value":"#FFFFFF","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"内容面"},{"id":"T2","role":"surface-directory","value":"#D3D3D3","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"分割线与推荐主题背景"},{"id":"T3","role":"text-primary","value":"#3C2724","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"主要文字"},{"id":"T4","role":"text-muted","value":"#6F6D72","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"描述"},{"id":"T5","role":"action-selected","value":"#96615A","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"选中筛选与重点"},{"id":"T6","role":"space-page-inset","value":"15px","valueType":"spacing","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"页面内容左右 inset"},{"id":"T7","role":"size-featured-article","value":"380px","valueType":"dimension","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"精选文章高度"},{"id":"T8","role":"size-filter-height","value":"23px","valueType":"dimension","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"筛选高度"},{"id":"T9","role":"radius-image-frame","value":"8px","valueType":"shape","origin":"specified","sourcePath":"visual-direction.md","confidence":"medium","notes":"展签影像框最大圆角"},{"id":"T10","role":"motion-hierarchical","value":"left-enter/right-return; reduce-motion=fade","valueType":"motion","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","notes":"文章层级转场"}],"foundations":{"palette":"T1-T5","spacing":"T6","dimensions":"T7-T8","shape":"T9","motion":"T10","type":"Display uses Songti/Georgia-style serif; interface uses system sans."},"components":[{"id":"C1","name":"Featured article","purpose":"打开一篇主推文章。","anatomy":["photo","cover thumbnail","description","title","pager"],"variants":["default","loading","unavailable"],"states":["default","loading","failure"],"tokenIds":["T1","T3","T5","T7"],"contentRules":"标题允许两行；图片缺失保留文章身份与重试。","accessibility":"可读文章标题、摘要和位置；点击打开文章。","platformNotes":"进入使用 T10，不抢占系统返回。"},{"id":"C2","name":"Directory filter","purpose":"仅改变所属目录。","anatomy":["horizontal options","selected state"],"variants":["topic","dynasty"],"states":["default","selected","loading","disabled"],"tokenIds":["T1","T5","T8"],"contentRules":"选项可横向滚动；人物选项为朝代。","accessibility":"报告选中状态与筛选范围。","platformNotes":"iOS/Android 保持各自滚动语义。"},{"id":"C3","name":"Directory row","purpose":"打开主题推送文章或人物详情。","anatomy":["identity","title","metadata","destination cue"],"variants":["topic-article","figure"],"states":["default","pressed","loading","empty","failure"],"tokenIds":["T1","T3","T4","T6"],"contentRules":"默认七项，超过时由展开动作显示。","accessibility":"朗读对象类型、标题和打开目标。","platformNotes":"最低触控目标遵循平台规范。"},{"id":"C4","name":"Search overlay","purpose":"跨对象 ILIKE 子串搜索。","anatomy":["close","input","typed results","recovery"],"variants":["querying","results","empty","failure"],"states":["loading","success","failure"],"tokenIds":["T1","T3","T4","T5"],"contentRules":"人物名、文章标题、主题名分别使用 ILIKE '%query%' 并合并显示对象类型与目标；不改目录筛选。","accessibility":"键盘焦点和关闭后焦点回 S1。","platformNotes":"系统返回关闭覆盖层。"},{"id":"C5","name":"Status recovery","purpose":"表达加载、空和失败并恢复。","anatomy":["message","progress or action"],"variants":["page","local-directory","search","detail"],"states":["loading","empty","failure"],"tokenIds":["T3","T4","T5"],"contentRules":"空结果提供清除条件；失败提供重试。","accessibility":"非颜色状态文本与公告。","platformNotes":"Reduce Motion 下进度仍有文字语义。"}],"screens":[{"sourceScreenId":"S1","name":"人物页","userQuestion":"我如何继续探索内容？","visualPriority":["featured article","topic articles","figure directory"],"layoutRegions":["safe area/navigation","featured","topic article directory","figure directory","bottom navigation"],"componentIds":["C1","C2","C3","C5"],"stateSpecs":[{"stateId":"ST1","changes":"内容区显示居中加载","actions":["wait"],"feedback":"正在加载"},{"stateId":"ST2","changes":"内容区错误替代","actions":["retry"],"feedback":"加载失败"},{"stateId":"ST3","changes":"仅主题文章区域加载","actions":["clear topic"],"feedback":"正在更新文章"},{"stateId":"ST4","changes":"仅人物区域加载","actions":["clear dynasty"],"feedback":"正在更新人物"},{"stateId":"ST5","changes":"主题文章局部空/失败","actions":["retry","clear topic"],"feedback":"无文章或加载失败"},{"stateId":"ST6","changes":"人物目录局部空/失败","actions":["retry","clear dynasty"],"feedback":"无人或加载失败"}],"contentExamples":["精选文章","推荐主题","主题推送文章","人物目录"],"interactions":["article -> S3","figure -> S4","search -> S2"],"accessibility":"按标题、精选、主题文章、人物目录、导航的阅读顺序。","platformVariants":{"ios":"边缘返回","android":"系统返回/预测返回"},"acceptanceSignals":["独立筛选不互相改变。"]},{"sourceScreenId":"S2","name":"全局搜索","userQuestion":"哪些对象匹配关键词？","visualPriority":["input","typed results","recovery"],"layoutRegions":["close","keyboard avoiding input","scroll results"],"componentIds":["C4","C5"],"stateSpecs":[{"stateId":"ST7","changes":"显示查询中","actions":["cancel"],"feedback":"正在搜索"},{"stateId":"ST8","changes":"显示空结果","actions":["clear","close"],"feedback":"未找到匹配"},{"stateId":"ST9","changes":"显示失败","actions":["retry","close"],"feedback":"搜索失败"}],"contentExamples":["人物","文章","主题"],"interactions":["close -> S1","result article -> S3","result figure -> S4"],"accessibility":"结果读出类型、标题和目标。","platformVariants":{"ios":"返回关闭","android":"系统返回关闭"},"acceptanceSignals":["关闭后 S1 上下文不变。"]},{"sourceScreenId":"S3","name":"文章页","userQuestion":"文章讲了什么？","visualPriority":["title","reading content","return"],"layoutRegions":["safe area return","scroll reading"],"componentIds":["C5"],"stateSpecs":[{"stateId":"ST10","changes":"保留文章身份并显示失败","actions":["retry","return"],"feedback":"文章暂不可用"}],"contentExamples":["文章标题","正文"],"interactions":["back -> S1"],"accessibility":"返回可达，失败可读。","platformVariants":{"ios":"left enter edge back","android":"predictive back"},"acceptanceSignals":["恢复 S1 上下文。"]},{"sourceScreenId":"S4","name":"人物详情页","userQuestion":"这位人物有哪些资料？","visualPriority":["figure identity","related content","return"],"layoutRegions":["safe area return","scroll figure content"],"componentIds":["C5"],"stateSpecs":[{"stateId":"ST10","changes":"保留人物身份并显示失败","actions":["retry","return"],"feedback":"人物资料暂不可用"}],"contentExamples":["人物名称","关联内容"],"interactions":["back -> S1"],"accessibility":"返回可达，失败可读。","platformVariants":{"ios":"edge back","android":"system back"},"acceptanceSignals":["恢复 S1 上下文。"]}],"overlays":[{"id":"OV1","name":"Search","trigger":"search button","dismissal":"close or system back","recovery":"restore S1 context"}],"systemSurfaces":[{"name":"Notification deep link","fallback":"S1","failure":"show recovery"}],"coverage":[{"sourceScreenId":"S1","requiredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"coveredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"componentIds":["C1","C2","C3","C5"],"acceptanceSignals":["all local states recover"]},{"sourceScreenId":"S2","requiredStateIds":["ST7","ST8","ST9"],"coveredStateIds":["ST7","ST8","ST9"],"componentIds":["C4","C5"],"acceptanceSignals":["search restores context"]},{"sourceScreenId":"S3","requiredStateIds":["ST10"],"coveredStateIds":["ST10"],"componentIds":["C5"],"acceptanceSignals":["safe return"]},{"sourceScreenId":"S4","requiredStateIds":["ST10"],"coveredStateIds":["ST10"],"componentIds":["C5"],"acceptanceSignals":["safe return"]}],"openQuestions":["Confirm the exact database column mapping and result merge order during implementation."],"confidence":"medium"}</script>
+  <script id="design-system-data" type="application/json">{"schemaVersion":"0.1.0","meta":{"productName":"SageRoute 人物页","platform":"cross-platform","sourcePaths":["ui-design.json","visual-baseline.md"],"systemMode":"product","confidence":"medium"},"thesis":"以博物馆展签的暖白摄影阅读感承载内容，以灰色目录区组织高频筛选，以酒红表达唯一的选择与重点。","visualLock":{"status":"locked","directionId":"VD2","selectionSource":"user","styleFamily":"museum-exhibit-editorial","referenceIds":["HTML-02"],"themeVariant":"warm-paper-gray-directory","themeTokens":{"surface":"#FFFFFF","directory":"#D3D3D3","ink":"#3C2724","muted":"#6F6D72","accent":"#96615A"},"fallbackPolicy":"缺少资产或 token 时保留此系统并报告缺口，不改用默认渐变或通用卡片主题。"},"foundations":{"color":"暖白、灰色目录区、深棕文字、酒红单一强调。","typography":"展示标题使用宋体/Georgia 风格，界面文本使用系统无衬线。","spacing":"内容 inset 使用 T6，模块沿滚动轴自然分组。","shape":"影像框使用 T9，其他控件按语义使用紧凑圆角或圆形。","elevation":"仅影像和暖纸卡片使用轻阴影。","iconography":"使用单一线性图标家族，图标不得替代文字状态。","motion":"使用 T10；Reduce Motion 使用短淡入。","content":"对象类型和跳转目标必须可读；状态不只依赖色彩。","accessibility":"支持文本缩放、读屏顺序和平台最小触控目标。"},"tokens":[{"id":"T1","layer":"semantic","role":"surface-primary","value":"#FFFFFF","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"内容面"},{"id":"T2","layer":"semantic","role":"surface-directory","value":"#D3D3D3","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"分割线与推荐主题背景"},{"id":"T3","layer":"semantic","role":"text-primary","value":"#3C2724","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"标题与正文"},{"id":"T4","layer":"semantic","role":"text-muted","value":"#6F6D72","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"描述文字"},{"id":"T5","layer":"semantic","role":"action-selected","value":"#96615A","valueType":"color","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"选中筛选与重点"},{"id":"T6","layer":"semantic","role":"space-page-inset","value":"15px","valueType":"spacing","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"页面内容 inset"},{"id":"T7","layer":"component","role":"featured-article-height","value":"380px","valueType":"dimension","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"精选文章"},{"id":"T8","layer":"component","role":"filter-height","value":"23px","valueType":"dimension","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"筛选控制"},{"id":"T9","layer":"semantic","role":"radius-image-frame","value":"8px","valueType":"shape","origin":"specified","sourcePath":"visual-direction.md","confidence":"medium","usage":"影像框最大圆角"},{"id":"T10","layer":"semantic","role":"motion-hierarchical","value":"left-enter/right-return; reduce-motion=fade","valueType":"motion","origin":"inherited","sourcePath":"visual-baseline.md","confidence":"high","usage":"文章层级转场"}],"components":[{"id":"C1","name":"Featured article","purpose":"打开主推文章。","anatomy":["image","cover","copy","pager"],"variants":["default","loading","failure"],"states":["default","loading","failure"],"tokenIds":["T1","T3","T5","T7"],"contentRules":"标题最多两行，缺图仍显示身份与重试。","accessibility":"朗读标题、摘要和分页位置。","platformVariants":"进入遵循 T10。"},{"id":"C2","name":"Directory filter","purpose":"筛选所属目录。","anatomy":["options","selected state"],"variants":["topic","dynasty"],"states":["default","selected","loading"],"tokenIds":["T1","T5","T8"],"contentRules":"人物选项为朝代。","accessibility":"报告选择范围与状态。","platformVariants":"横向滚动遵循系统行为。"},{"id":"C3","name":"Directory row","purpose":"打开文章或人物详情。","anatomy":["identity","title","meta","cue"],"variants":["topic-article","figure"],"states":["default","empty","failure"],"tokenIds":["T1","T3","T4","T6"],"contentRules":"默认七项，可展开。","accessibility":"读出对象类型和目标。","platformVariants":"达到平台最小目标尺寸。"},{"id":"C4","name":"Search overlay","purpose":"跨对象搜索。","anatomy":["close","input","results","recovery"],"variants":["querying","results","empty","failure"],"states":["loading","success","failure"],"tokenIds":["T1","T3","T4","T5"],"contentRules":"关闭不改目录上下文。","accessibility":"关闭后焦点回人物页入口。","platformVariants":"系统返回关闭。"},{"id":"C5","name":"Status recovery","purpose":"表达加载、空与失败。","anatomy":["message","progress/action"],"variants":["page","directory","search","detail"],"states":["loading","empty","failure"],"tokenIds":["T3","T4","T5"],"contentRules":"空状态清除条件；失败重试。","accessibility":"状态文本可公告。","platformVariants":"减少动态不丢语义。"}],"themes":[{"id":"TH1","name":"Warm paper gray directory","mode":"light","tokenOverrides":{}}],"platformVariants":[{"id":"PV1","platform":"iOS","area":"back","behavior":"使用导航栈和边缘返回恢复上下文。","verification":"VoiceOver、Dynamic Type、边缘返回。"},{"id":"PV2","platform":"Android","area":"back","behavior":"系统/预测返回恢复上下文。","verification":"TalkBack、字体缩放、预测返回。"}],"governance":{"naming":"semantic-role 和 component-role 命名。","deprecation":"先标记替代 token，再移除。","owner":"SageRoute design and engineering。","reviewCadence":"新增页面、平台回归和视觉基准变更时审查。"},"coverage":[{"screenId":"S1","tokenIds":["T1","T2","T3","T4","T5","T6","T7","T8","T10"],"componentIds":["C1","C2","C3","C5"],"acceptanceSignals":["独立目录筛选与恢复。"]},{"screenId":"S2","tokenIds":["T1","T3","T4","T5"],"componentIds":["C4","C5"],"acceptanceSignals":["关闭恢复上下文。"]},{"screenId":"S3","tokenIds":["T1","T3","T10"],"componentIds":["C5"],"acceptanceSignals":["安全返回。"]},{"screenId":"S4","tokenIds":["T1","T3"],"componentIds":["C5"],"acceptanceSignals":["安全返回。"]}],"openQuestions":["真实 Flutter 字体与图片裁切以截图验收确认。"]}</script>
+  <script>
+    const prototype = JSON.parse(document.getElementById('prototype-data').textContent);
+    const uiDesign = JSON.parse(document.getElementById('ui-design-data').textContent);
+    const designSystem = JSON.parse(document.getElementById('design-system-data').textContent);
+    const inspectMode = new URLSearchParams(window.location.search).get('inspect') === '1';
+    document.body.classList.add(inspectMode ? 'inspect-mode' : 'preview-mode');
+    document.documentElement.dataset.designSystem = designSystem.meta?.productName || '';
+    const visualLock = designSystem.visualLock || {};
+    document.documentElement.dataset.visualLock = visualLock.status || 'missing';
+    document.body.dataset.themeVariant = visualLock.themeVariant || 'unlocked';
+    if (visualLock.themeVariant === 'reference-rich-modular') document.body.classList.add('reference-rich');
+    const modeToggle = document.getElementById('mode-toggle');
+    const previewModeLink = document.getElementById('preview-mode-link');
+    if (modeToggle) {
+      modeToggle.href = inspectMode ? './' : '?inspect=1';
+      modeToggle.textContent = inspectMode ? 'Product preview' : 'Inspect behavior';
+    }
+    if (previewModeLink) previewModeLink.href = '?inspect=1';
+    const phoneScreen = document.getElementById('phone-screen');
+    const inspectorContent = document.getElementById('inspector-content');
+    const sourcePaths = document.getElementById('source-paths');
+    const productName = prototype.meta?.productName || 'Mobile app';
+    const nodes = Array.isArray(prototype.nodes) ? prototype.nodes : [];
+    const transitions = Array.isArray(prototype.transitions) ? prototype.transitions : [];
+    const nodeById = Object.fromEntries(nodes.map((node) => [node.id, node]));
+    const transitionsByFrom = transitions.reduce((groups, transition) => {
+      (groups[transition.fromNodeId] ||= []).push(transition);
+      return groups;
+    }, {});
+    const uiScreens = Array.isArray(uiDesign.screens) ? uiDesign.screens : [];
+    const stateByKey = {};
+    uiScreens.forEach((screen) => {
+      (screen.stateSpecs || []).forEach((state) => {
+        stateByKey[screen.sourceScreenId + ':' + state.stateId] = state;
+      });
+    });
+
+    const samplePage = 'The room was quiet enough to hear the first thought arrive. I left it on the page without asking it to become anything else.';
+    const behavior = {
+      currentNodeId: nodes[0]?.id || '',
+      draftText: '',
+      pageText: '',
+      hasPage: false,
+      promptUsed: false,
+      overlay: null,
+      reduceMotion: false,
+      failures: { save: false, index: false, permission: false, delete: false },
+      log: ['Runner ready. Runtime evidence is not claimed.']
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[character]));
+    }
+
+    function currentNode() { return nodeById[behavior.currentNodeId] || nodes[0] || {}; }
+    function currentScreen() { return uiScreens.find((screen) => screen.sourceScreenId === currentNode().screenId) || {}; }
+    function currentState() { return stateByKey[currentNode().screenId + ':' + currentNode().stateId] || {}; }
+    function stateFor(screenId, stateId) { return nodes.find((node) => node.screenId === screenId && node.stateId === stateId); }
+    function screenName(node = currentNode()) {
+      return uiScreens.find((screen) => screen.sourceScreenId === node.screenId)?.name || node.screenId || 'Screen';
+    }
+    function stateLabel(node = currentNode()) { return node.stateId || 'Unknown state'; }
+    function isState(stateId, node = currentNode()) { return node.stateId === stateId; }
+    function wordCount(text) { return text.trim() ? text.trim().split(/\s+/).length : 0; }
+    function shortText(text, limit = 90) {
+      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      return clean.length > limit ? clean.slice(0, limit - 1) + '…' : clean;
+    }
+    function addLog(message) {
+      behavior.log.unshift(message);
+      behavior.log = behavior.log.slice(0, 14);
+    }
+    function findState(screenId, stateId, fallback = '') {
+      return stateFor(screenId, stateId)?.id || fallback || nodes[0]?.id || '';
+    }
+    function navigate(nodeId, reason) {
+      if (!nodeById[nodeId]) return;
+      behavior.currentNodeId = nodeId;
+      behavior.overlay = null;
+      addLog((reason ? reason + ' · ' : '') + screenName(nodeById[nodeId]) + ' / ' + stateLabel(nodeById[nodeId]));
+      renderAll();
+    }
+    function button(action, label, variant = '') {
+      return '<button type="button" data-action="' + escapeHtml(action) + '" class="' + variant + '">' + escapeHtml(label) + '</button>';
+    }
+    function notice(title, body, variant = '') {
+      return '<div class="notice ' + variant + '" role="status"><div><strong>' + escapeHtml(title) + '</strong><span>' + escapeHtml(body) + '</span></div></div>';
+    }
+    function nav(title, leadingAction, leadingLabel, trailingAction, trailingLabel) {
+      const leading = leadingAction ? button(leadingAction, leadingLabel || 'Back', 'quiet') : '<span aria-hidden="true"></span>';
+      const trailing = trailingAction ? button(trailingAction, trailingLabel || 'Settings', 'quiet') : '<span aria-hidden="true"></span>';
+      return '<div class="phone-nav">' + leading + '<div class="nav-title">' + escapeHtml(title) + '</div>' + trailing + '</div>';
+    }
+    function svgIcon(name) {
+      const paths = {
+        today: '<path d="M3.5 10.5 12 3l8.5 7.5v8a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 18.5z"/><path d="M8.5 20v-5.5h7V20"/>',
+        volume: '<path d="M4 5.5h16M4 10h16M4 14.5h16M4 19h10"/><path d="M17 16.5 19 18.5l3-3"/>',
+      };
+      return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (paths[name] || paths.today) + '</svg>';
+    }
+    function tabButton(action, label, iconName, active) {
+      return '<button type="button" data-action="' + escapeHtml(action) + '" class="' + (active ? 'active' : '') + '"' + (active ? ' aria-current="page"' : '') + '><span class="tab-icon">' + svgIcon(iconName) + '</span><span>' + escapeHtml(label) + '</span></button>';
+    }
+    function tabs(active) {
+      return '<nav class="tab-bar" aria-label="Main navigation">' +
+        tabButton('today', active === 'today' ? 'Today · selected' : 'Today', 'today', active === 'today') +
+        tabButton('volume', active === 'volume' ? 'Volume · selected' : 'Volume', 'volume', active === 'volume') +
+        '</nav>';
+    }
+
+    function renderToday(node, state) {
+      const promptState = isState('ST3', node) ? notice('Prompt unavailable', 'A blank page is ready. You can start without waiting.', 'failure') :
+        isState('ST2', node) ? notice('Preparing a prompt', 'Blank page remains available while this region loads.', '') : '';
+      const hasDraft = Boolean(behavior.draftText && !behavior.hasPage);
+      let primary = '';
+      if (isState('ST8', node) || hasDraft) {
+        primary = '<section class="surface-block"><p class="phone-kicker">Retained draft</p><h3>Your words are still here.</h3><p class="prose">' + escapeHtml(shortText(behavior.draftText || samplePage, 155)) + '</p><div class="meta-line"><span>Saved on this iPhone</span><span>Draft · ' + wordCount(behavior.draftText || samplePage) + ' words</span></div><div class="button-row">' + button('resume', 'Resume', 'primary') + button('blank', 'Start fresh') + '</div></section>';
+      } else if (isState('ST17', node)) {
+        primary = '<section class="surface-block"><p class="phone-kicker">Welcome back</p><h3>Your pages are still here.</h3><p>Nothing to repair and no score to catch up. Begin a page or look through Volume.</p><div class="button-row">' + button('blank', 'Start writing', 'primary') + button('volume', 'Open Volume') + '</div></section>';
+      } else {
+        const prompt = isState('ST4', node) ? 'A small page can hold the thought before it has a destination.' : 'Write for five minutes.';
+        primary = '<section class="surface-block prompt-sheet"><div class="prompt-meta"><strong>' + (isState('ST3', node) ? 'Prompt unavailable' : 'A quiet starting point') + '</strong><span>01 / 01</span></div><p class="prompt-copy">' + escapeHtml(prompt) + '</p>' + promptState + '<div class="button-stack prompt-actions">' + (isState('ST3', node) ? button('prompt-retry', 'Retry prompt') : button('prompt', 'Use this prompt', 'primary')) + button('blank', 'Start a blank page') + '</div></section>';
+      }
+      const context = isState('ST18', node) ? '<div class="meta-line"><span>Reminders off</span><span>Writing is unaffected</span></div>' : isState('ST19', node) ? '<div class="meta-line"><span>Reminder scheduled</span><span>Tomorrow · 08:00</span></div>' : isState('ST20', node) ? notice('Reminders are off', 'You can keep writing; this setting does not change your pages.', '') : '';
+      const rhythm = behavior.hasPage ? '<section class="surface-block muted"><p class="phone-kicker">Volume 01</p><h3>One page is here.</h3><div class="meta-line"><span>1 page written</span><span>Local pages</span></div></section>' : '<section class="surface-block muted"><p class="phone-kicker">Your Volume</p><h3>Nothing to catch up on.</h3><p>One page is enough to begin. Your writing stays local on this iPhone.</p><div class="meta-line"><span>0 pages</span><span>Private by default</span></div><div class="button-row">' + button('volume', 'View Volume') + '</div></section>';
+      return nav('Today', '', '', 'settings', 'Settings') + '<div class="phone-content"><section class="today-hero"><div class="today-hero-copy"><p class="phone-kicker">' + escapeHtml(productName) + ' · Today</p><h2 class="phone-heading">Today.</h2><p class="phone-lede">A private place to begin, continue, or simply leave a thought.</p></div><div class="today-mark" aria-hidden="true"><span>01</span></div></section>' + primary + context + rhythm + tabs('today') + '</div>';
+    }
+
+    function renderEditor(node, state) {
+      const status = isState('ST10', node) ? notice('Save failed', 'Your words are still here. Retry when ready or export the text.', 'failure') :
+        isState('ST9', node) ? notice('Offline', 'Drafts and pages still save on this iPhone.', '') :
+        isState('ST11', node) ? notice('Page saved', 'Saved on this iPhone. The page is now in Volume.', 'success') :
+        isState('ST7', node) ? notice('Draft saved', 'Saved on this iPhone. You can keep writing.', 'success') :
+        isState('ST6', node) ? notice('Saving draft', 'Saving draft on this iPhone…', '') :
+        isState('ST21', node) ? notice('Discard needs confirmation', 'The draft is retained until you confirm the irreversible action.', '') : '';
+      const hasText = Boolean(behavior.draftText.trim());
+      const saveDisabled = !hasText && isState('ST5', node) ? ' disabled' : '';
+      const savedSheet = isState('ST11', node) ? '<section class="surface-block muted"><p class="phone-kicker">Page added</p><h3>One page, kept here.</h3><p class="prose">' + escapeHtml(shortText(behavior.pageText || behavior.draftText || samplePage, 180)) + '</p><div class="meta-line"><span>Saved on this iPhone</span><span>' + wordCount(behavior.pageText || behavior.draftText || samplePage) + ' words</span></div><div class="button-row">' + button('volume', 'Open Volume', 'primary') + button('done', 'Done') + '</div></section>' : '';
+      const editContext = behavior.promptUsed ? '<div class="surface-block muted"><p class="phone-kicker">Optional prompt</p><p>Keep the prompt nearby, or let the page move in its own direction.</p></div>' : '';
+      const failureAction = isState('ST10', node) ? button('retry-save', 'Retry save', 'primary') + button('export-text', 'Export text') : '';
+      return nav('Editor', 'close', 'Close', '', '') + '<div class="phone-content"><p class="phone-kicker">' + (behavior.hasPage ? 'Edit page' : 'New page') + '</p><h2 class="phone-heading compact">Start anywhere.</h2>' + editContext + '<div class="writing-field"><label for="draft-text">Page text</label><textarea id="draft-text" aria-label="Page text" placeholder="Write the first sentence…">' + escapeHtml(behavior.draftText) + '</textarea><span class="small-copy">' + (hasText ? wordCount(behavior.draftText) + ' words · local draft' : 'Write something to save') + '</span></div>' + status + '<div class="button-row"><button type="button" data-action="save" class="primary"' + saveDisabled + '>Save page</button>' + button('close', 'Close and keep draft') + '</div>' + failureAction + savedSheet + '</div>';
+    }
+
+    function renderVolume(node, state) {
+      const failed = isState('ST16', node) || behavior.failures.index;
+      const stateNotice = failed ? notice('Volume index unavailable', 'Your local page remains intact. Retry the index or return to Today.', 'failure') : '';
+      const page = behavior.hasPage ? '<button type="button" class="page-row" data-action="open-page"><strong>Today, just now</strong><span>' + escapeHtml(shortText(behavior.pageText || samplePage, 130)) + '</span><span>' + wordCount(behavior.pageText || samplePage) + ' words · Saved on this iPhone</span></button>' : '<section class="surface-block"><p class="phone-kicker">No pages yet</p><h3>Your volume starts with one page.</h3><p>There is no debt to catch up on. Start whenever the page feels useful.</p><div class="button-row">' + button('start', 'Start writing', 'primary') + '</div></section>';
+      const retry = failed ? '<div class="button-row">' + button('index-retry', 'Retry index', 'primary') + button('today', 'Return to Today') + '</div>' : '';
+      return nav('Volume', 'today', 'Today', '', '') + '<div class="phone-content"><p class="phone-kicker">Local pages</p><h2 class="phone-heading">Volume 01.</h2><p class="phone-lede">A quiet record of what you chose to keep.</p>' + stateNotice + page + retry + tabs('volume') + '</div>';
+    }
+
+    function renderDetail(node, state) {
+      const failedDelete = isState('ST22', node) || behavior.failures.delete;
+      const failure = failedDelete ? notice('Page could not be deleted', 'The page is still here. No content was removed.', 'failure') : '';
+      if (!behavior.hasPage && !failedDelete) return nav('Page', 'volume', 'Volume', '', '') + '<div class="phone-content">' + notice('No page selected', 'Return to Volume to choose a saved page.', '') + button('volume', 'Back to Volume', 'primary') + '</div>';
+      const text = behavior.pageText || samplePage;
+      return nav('Page detail', 'volume', 'Volume', '', '') + '<div class="phone-content"><p class="phone-kicker">Today · Page 01</p><h2 class="phone-heading compact">Kept on this iPhone.</h2><div class="detail-prose">' + escapeHtml(text) + '</div><div class="meta-line"><span>' + wordCount(text) + ' words</span><span>Saved on this iPhone</span></div>' + failure + '<div class="button-row">' + button('edit', 'Edit page', 'primary') + button('export', 'Export') + button('delete', 'Delete', 'danger') + '</div></div>';
+    }
+
+    function renderSettings(node, state) {
+      const denied = isState('ST20', node) || behavior.failures.permission;
+      const body = denied ? notice('Reminders are not allowed', 'Writing is unaffected. If you want reminders, enable them in system Settings.', '') : '<section class="surface-block"><p class="phone-kicker">Optional reminder</p><h3>Return when it helps.</h3><p>Margin can offer one quiet local reminder. It never contains your page text or a score.</p></section>';
+      const actions = denied ? button('settings-open', 'Open Settings', 'primary') + button('settings-continue', 'Continue without reminders') : button('settings-continue', 'Allow reminder', 'primary') + button('settings-not-now', 'Not now');
+      return nav('Settings', 'today', 'Today', '', '') + '<div class="phone-content"><p class="phone-kicker">Preferences</p><h2 class="phone-heading compact">Keep it optional.</h2>' + body + '<div class="button-row">' + actions + '</div></div>';
+    }
+
+    function renderGeneric(node, state) {
+      const actions = (state.actions || []).map((action) => '<li>' + escapeHtml(action) + '</li>').join('');
+      return nav(screenName(node), 'today', 'Today', '', '') + '<div class="phone-content"><p class="phone-kicker">Contract state</p><h2 class="phone-heading compact">' + escapeHtml(stateLabel(node)) + '</h2><section class="surface-block"><h3>' + escapeHtml(state.changes || node.uiChanges || 'State-specific content') + '</h3><p>' + escapeHtml(state.feedback || node.feedback || 'Follow the contract edge in the inspector.') + '</p><ul class="detail-list">' + actions + '</ul></section></div>';
+    }
+
+    function overlayMarkup() {
+      if (!behavior.overlay) return '';
+      if (behavior.overlay === 'export') return '<div class="overlay-scrim"><section class="overlay-sheet" role="dialog" aria-modal="true" aria-labelledby="export-title"><h3 id="export-title">Export page text</h3><p>The system share surface would open here. The text remains local until you choose a destination.</p><div class="button-row">' + button('confirm-export', 'Open share sheet', 'primary') + button('cancel-overlay', 'Cancel') + '</div></section></div>';
+      return '<div class="overlay-scrim"><section class="overlay-sheet" role="dialog" aria-modal="true" aria-labelledby="delete-title"><h3 id="delete-title">Delete this page?</h3><p>This page cannot be recovered on this iPhone under the current design assumption.</p><div class="button-row">' + button('cancel-overlay', 'Cancel') + button('confirm-delete', 'Delete page', 'danger') + '</div></section></div>';
+    }
+
+    function renderPhone() {
+      const node = currentNode();
+      const state = currentState();
+      let content;
+      if (screenName(node) === 'Today') content = renderToday(node, state);
+      else if (screenName(node) === 'Editor') content = renderEditor(node, state);
+      else if (screenName(node) === 'Volume') content = renderVolume(node, state);
+      else if (screenName(node) === 'Page Detail') content = renderDetail(node, state);
+      else if (screenName(node) === 'Reminder & Settings' || screenName(node) === 'Settings') content = renderSettings(node, state);
+      else content = renderGeneric(node, state);
+      phoneScreen.innerHTML = content + overlayMarkup();
+      phoneScreen.querySelectorAll('[data-action]').forEach((control) => control.addEventListener('click', () => handleAction(control.dataset.action)));
+      const textarea = phoneScreen.querySelector('#draft-text');
+      if (textarea) textarea.addEventListener('input', (event) => {
+        behavior.draftText = event.target.value;
+        const saveButton = phoneScreen.querySelector('[data-action="save"]');
+        if (saveButton && isState('ST5')) saveButton.disabled = !behavior.draftText.trim();
+        const fieldHint = textarea.parentElement?.querySelector('.small-copy');
+        if (fieldHint) fieldHint.textContent = behavior.draftText.trim() ? wordCount(behavior.draftText) + ' words · local draft' : 'Write something to save';
+        addLog('Draft text changed; content remains editable in the current state.');
+        renderInspector();
+      });
+    }
+
+    function savePage() {
+      behavior.draftText = phoneScreen.querySelector('#draft-text')?.value ?? behavior.draftText;
+      if (!behavior.draftText.trim()) {
+        addLog('Save blocked: empty page has an explicit reason.');
+        renderAll();
+        return;
+      }
+      if (behavior.failures.save) {
+        addLog('Injected persistence failure: text retained and editable.');
+        navigate(findState('S2', 'ST10'), 'Save attempt');
+        return;
+      }
+      behavior.hasPage = true;
+      behavior.pageText = behavior.draftText.trim();
+      addLog('Page saved locally with one stable page identity.');
+      navigate(findState('S2', 'ST11'), 'Save succeeded');
+    }
+
+    function handleAction(action) {
+      if (action === 'blank' || action === 'start') return navigate(findState('S2', 'ST5'), 'Started a blank page');
+      if (action === 'prompt') { behavior.promptUsed = true; return navigate(findState('S2', 'ST5'), 'Used the prompt as optional context'); }
+      if (action === 'prompt-retry') return navigate(findState('S1', 'ST4'), 'Prompt region retried');
+      if (action === 'resume') { if (!behavior.draftText) behavior.draftText = samplePage; return navigate(findState('S2', 'ST8'), 'Resumed retained draft'); }
+      if (action === 'today' || action === 'done') return navigate(findState('S1', behavior.hasPage ? 'ST17' : 'ST1'), action === 'done' ? 'Dismissed saved page' : 'Opened Today');
+      if (action === 'volume') return navigate(findState('S3', behavior.hasPage ? 'ST14' : 'ST12'), 'Opened Volume');
+      if (action === 'settings') return navigate(findState('S5', behavior.failures.permission ? 'ST20' : 'ST18'), 'Opened reminder settings');
+      if (action === 'close') {
+        behavior.draftText = phoneScreen.querySelector('#draft-text')?.value ?? behavior.draftText;
+        return navigate(findState('S1', behavior.draftText.trim() ? 'ST8' : 'ST1'), 'Closed editor');
+      }
+      if (action === 'save' || action === 'retry-save') return savePage();
+      if (action === 'export' || action === 'export-text') { behavior.overlay = 'export'; addLog('Prepared export system-surface boundary.'); return renderAll(); }
+      if (action === 'confirm-export') { behavior.overlay = null; addLog('Share sheet boundary acknowledged; no external export was performed.'); return renderAll(); }
+      if (action === 'open-page') return navigate(findState('S4', 'ST14'), 'Opened saved page');
+      if (action === 'edit') { behavior.draftText = behavior.pageText || samplePage; return navigate(findState('S2', 'ST7'), 'Opened page editor'); }
+      if (action === 'delete') { behavior.overlay = 'delete'; addLog('Opened named destructive confirmation.'); return renderAll(); }
+      if (action === 'confirm-delete') {
+        behavior.overlay = null;
+        if (behavior.failures.delete) { addLog('Injected delete failure: page remains available.'); return navigate(findState('S4', 'ST22'), 'Delete attempt'); }
+        behavior.hasPage = false;
+        behavior.pageText = '';
+        addLog('Page deleted without claiming an undo path.');
+        return navigate(findState('S4', 'ST22'), 'Delete completed');
+      }
+      if (action === 'cancel-overlay') { behavior.overlay = null; addLog('Dismissed overlay; invoking content remains unchanged.'); return renderAll(); }
+      if (action === 'index-retry') {
+        if (behavior.failures.index) { addLog('Injected index failure still active; local content remains safe.'); return renderAll(); }
+        return navigate(findState('S3', behavior.hasPage ? 'ST14' : 'ST12'), 'Volume index retried');
+      }
+      if (action === 'settings-continue') return navigate(findState('S5', behavior.failures.permission ? 'ST20' : 'ST19'), behavior.failures.permission ? 'Permission denial preserved' : 'Reminder allowed');
+      if (action === 'settings-open') return navigate(findState('S5', 'ST20'), 'Opened system Settings boundary');
+      if (action === 'settings-not-now') return navigate(findState('S1', 'ST17'), 'Skipped optional reminder');
+      if (action.startsWith('contract:')) return navigate(action.slice('contract:'.length), 'Jumped via contract edge');
+    }
+
+    function transitionLabel(transition) {
+      const trigger = shortText(transition.trigger || 'Contract action', 84);
+      const source = transition.source ? ' · ' + transition.source : '';
+      return '<strong>' + escapeHtml(trigger) + '</strong><span>→ ' + escapeHtml(transition.toNodeId || '') + escapeHtml(source) + '</span>';
+    }
+
+    function renderInspector() {
+      const node = currentNode();
+      const state = currentState();
+      const outgoing = transitionsByFrom[node.id] || [];
+      const options = nodes.map((item) => '<option value="' + escapeHtml(item.id) + '"' + (item.id === node.id ? ' selected' : '') + '>' + escapeHtml(screenName(item) + ' / ' + item.stateId + ' · ' + item.id) + '</option>').join('');
+      const edges = outgoing.length ? outgoing.map((transition) => '<li><button type="button" data-action="contract:' + escapeHtml(transition.toNodeId) + '">' + transitionLabel(transition) + '</button></li>').join('') : '<li class="small-copy">No outgoing contract edge recorded for this node.</li>';
+      const log = behavior.log.map((item) => '<li><strong>•</strong> ' + escapeHtml(item) + '</li>').join('');
+      inspectorContent.innerHTML = '<div class="inspector-grid">' +
+        '<section class="inspector-card full"><h3>' + escapeHtml(screenName(node)) + ' / ' + escapeHtml(stateLabel(node)) + '</h3><span class="state-chip">' + escapeHtml(node.id || 'No node') + '</span><dl class="detail-list"><div><dt>State changes</dt><dd>' + escapeHtml(state.changes || node.uiChanges || 'No UI state description supplied.') + '</dd></div><div><dt>Feedback</dt><dd>' + escapeHtml(state.feedback || node.feedback || 'No feedback description supplied.') + '</dd></div><div><dt>Primary action</dt><dd>' + escapeHtml(node.primaryAction || 'Not specified') + '</dd></div></dl></section>' +
+        '<section class="inspector-card"><h3>Jump through the contract</h3><p>Use this for state review when a product action is not mapped in the small runner.</p><div class="contract-control"><label for="state-jump">Contract state</label><select id="state-jump">' + options + '</select></div><div class="metric-row"><div class="metric"><strong>' + nodes.length + '</strong><span>state nodes</span></div><div class="metric"><strong>' + transitions.length + '</strong><span>transitions</span></div><div class="metric"><strong>' + outgoing.length + '</strong><span>outgoing here</span></div></div></section>' +
+        '<section class="inspector-card"><h3>Failure injection</h3><p>Switch one deterministic outcome, then use the phone surface to exercise recovery.</p><div class="toggle-list"><label class="toggle"><input id="save-failure" type="checkbox" data-failure="save"' + (behavior.failures.save ? ' checked' : '') + '>Save operation fails</label><label class="toggle"><input id="index-failure" type="checkbox" data-failure="index"' + (behavior.failures.index ? ' checked' : '') + '>Volume index fails</label><label class="toggle"><input id="permission-denied" type="checkbox" data-failure="permission"' + (behavior.failures.permission ? ' checked' : '') + '>Reminder permission denied</label><label class="toggle"><input id="delete-failure" type="checkbox" data-failure="delete"' + (behavior.failures.delete ? ' checked' : '') + '>Delete operation fails</label><label class="toggle"><input id="reduced-motion" type="checkbox"' + (behavior.reduceMotion ? ' checked' : '') + '>Reduce Motion equivalent</label></div></section>' +
+        '<section class="inspector-card full"><h3>Contract edges from this state</h3><p>These buttons expose the transition contract directly; the product actions above remain the primary review path.</p><ul class="edge-list">' + edges + '</ul></section>' +
+        '<section class="inspector-card full"><h3>Event log</h3><p aria-live="polite">Every action is recorded as review evidence context, not as a runtime pass claim.</p><ul class="log-list" aria-live="polite">' + log + '</ul></section>' +
+        '</div>';
+      const jump = document.getElementById('state-jump');
+      if (jump) jump.addEventListener('change', (event) => navigate(event.target.value, 'State review jump'));
+      inspectorContent.querySelectorAll('[data-failure]').forEach((control) => control.addEventListener('change', (event) => {
+        behavior.failures[event.target.dataset.failure] = event.target.checked;
+        addLog((event.target.checked ? 'Enabled ' : 'Disabled ') + event.target.dataset.failure + ' failure injection.');
+        renderAll();
+      }));
+      const reducedMotion = document.getElementById('reduced-motion');
+      if (reducedMotion) reducedMotion.addEventListener('change', (event) => {
+        behavior.reduceMotion = event.target.checked;
+        document.body.classList.toggle('reduced-motion', behavior.reduceMotion);
+        addLog((behavior.reduceMotion ? 'Enabled' : 'Disabled') + ' reduced-motion equivalence.');
+        renderAll();
+      });
+      inspectorContent.querySelectorAll('[data-action^="contract:"]').forEach((control) => control.addEventListener('click', () => handleAction(control.dataset.action)));
+    }
+
+    function renderAll() {
+      renderPhone();
+      renderInspector();
+      const sourceNames = [...(prototype.meta?.sourcePaths || [])];
+      if (Object.keys(designSystem).length) sourceNames.push('design-system.json');
+      sourcePaths.textContent = sourceNames.join(', ') || 'prototype.json';
+      document.body.classList.toggle('reduced-motion', behavior.reduceMotion);
+    }
+
+    document.getElementById('reset-runner').addEventListener('click', () => {
+      behavior.currentNodeId = nodes[0]?.id || '';
+      behavior.draftText = '';
+      behavior.pageText = '';
+      behavior.hasPage = false;
+      behavior.promptUsed = false;
+      behavior.overlay = null;
+      behavior.failures = { save: false, index: false, permission: false, delete: false };
+      behavior.log = ['Runner reset. Runtime evidence is not claimed.'];
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

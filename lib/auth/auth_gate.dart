@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/database_service.dart';
 import 'login_page.dart';
+import 'reset_password_page.dart';
 
 /// 鉴权入口 Widget。
 ///
@@ -17,22 +18,35 @@ import 'login_page.dart';
 /// )
 /// ```
 class AuthGate extends StatelessWidget {
-  AuthGate({
+  const AuthGate({
     super.key,
     required this.authenticatedBuilder,
     SupabaseClient? client,
-  }) : _client = client ?? DatabaseService.client;
+    Stream<AuthState>? authStateChanges,
+  }) : _client = client,
+       _authStateChanges = authStateChanges;
 
   final Widget Function(BuildContext context) authenticatedBuilder;
-  final SupabaseClient _client;
+  final SupabaseClient? _client;
+  final Stream<AuthState>? _authStateChanges;
+
+  SupabaseClient get _supabaseClient => _client ?? DatabaseService.client;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<AuthState>(
-      stream: _client.auth.onAuthStateChange,
+      stream: _authStateChanges ?? _supabaseClient.auth.onAuthStateChange,
       builder: (context, snapshot) {
+        final authState = snapshot.data;
+        if (authState?.event == AuthChangeEvent.passwordRecovery) {
+          return const ResetPasswordPage();
+        }
+        if (authState == null && _authStateChanges != null) {
+          return const LoginPage();
+        }
         // 优先用 stream 中的 session，其次用当前已有的 session
-        final session = snapshot.data?.session ?? _client.auth.currentSession;
+        final session =
+            authState?.session ?? _supabaseClient.auth.currentSession;
 
         if (session == null) {
           return const LoginPage();

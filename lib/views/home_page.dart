@@ -40,7 +40,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    if (_listener != null) widget.createdRoutesListenable!.removeListener(_listener!);
+    if (_listener != null)
+      widget.createdRoutesListenable!.removeListener(_listener!);
     super.dispose();
   }
 
@@ -62,7 +63,10 @@ class _HomePageState extends State<HomePage> {
           if (!mounted) return;
           _items = [inserted, ..._items];
           try {
-            _listKey.currentState?.insertItem(0, duration: const Duration(milliseconds: 450));
+            _listKey.currentState?.insertItem(
+              0,
+              duration: const Duration(milliseconds: 450),
+            );
           } catch (e, st) {
             debugPrint('AnimatedList insertItem error: $e\n$st');
           }
@@ -89,7 +93,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[HomePage.build] items=${_items.map((i)=>i.id).toList()}');
+    debugPrint('[HomePage.build] items=${_items.map((i) => i.id).toList()}');
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       body: SafeArea(
@@ -146,7 +150,7 @@ class _HomePageState extends State<HomePage> {
             width: 40,
             height: 40,
             decoration: const BoxDecoration(
-              color: Color(0xFFEEEAD9),
+              color: AppColors.brandLight,
               shape: BoxShape.circle,
             ),
             child: IconButton(
@@ -201,7 +205,10 @@ class _HomePageState extends State<HomePage> {
             itemBuilder: (context, index, animation) {
               final route = _items[index];
               return SizeTransition(
-                sizeFactor: CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+                sizeFactor: CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
                 axisAlignment: -1.0,
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 16),

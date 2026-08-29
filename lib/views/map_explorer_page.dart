@@ -51,12 +51,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
           ),
 
           // ── Top search bar ──
-          Positioned(
-            top: 44,
-            left: 24,
-            right: 24,
-            child: _buildSearchBar(),
-          ),
+          Positioned(top: 44, left: 24, right: 24, child: _buildSearchBar()),
 
           // ── Filter capsules (horizontal scroll) ──
           Positioned(
@@ -67,11 +62,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
           ),
 
           // ── Right floating action buttons ──
-          Positioned(
-            right: 24,
-            bottom: 140,
-            child: _buildFloatingButtons(),
-          ),
+          Positioned(right: 24, bottom: 140, child: _buildFloatingButtons()),
 
           // ── Bottom location preview card ──
           Positioned(
@@ -91,7 +82,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         borderRadius: BorderRadius.circular(100),
         border: Border.all(color: AppColors.sageBorder),
         boxShadow: [
@@ -109,17 +100,10 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
           const Expanded(
             child: Text(
               '搜索附近的历史遗迹...',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.sageMuted,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.sageMuted),
             ),
           ),
-          Container(
-            width: 1,
-            height: 20,
-            color: AppColors.sageBorder,
-          ),
+          Container(width: 1, height: 20, color: AppColors.sageBorder),
           const SizedBox(width: 8),
           const Icon(Icons.filter_list, size: 20, color: AppColors.sageText),
         ],
@@ -142,8 +126,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
             decoration: BoxDecoration(
               color: isActive ? AppColors.sageDeep : Colors.white,
               borderRadius: BorderRadius.circular(100),
-              border:
-                  isActive ? null : Border.all(color: AppColors.sageBorder),
+              border: isActive ? null : Border.all(color: AppColors.sageBorder),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.06),
@@ -184,7 +167,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
       width: 48,
       height: 48,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         shape: BoxShape.circle,
         border: Border.all(color: AppColors.sageBorder),
         boxShadow: [
@@ -211,7 +194,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppColors.sageBorder),
         boxShadow: [
@@ -229,96 +212,95 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
             // Main content row
             Row(
               children: [
-                  // Image with dynasty badge overlay
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 80,
-                      height: 80,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: Image.network(
-                              location.imageUrl,
-                              fit: BoxFit.cover,
-                              cacheWidth: 160,
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 4,
-                            right: 4,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.2),
-                                ),
-                              ),
-                              child: const Text(
-                                '唐',
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Text content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
+                // Image with dynasty badge overlay
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: Stack(
                       children: [
-                        Text(
-                          location.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.sageText,
-                            height: 1.1,
+                        Positioned.fill(
+                          child: Image.network(
+                            location.imageUrl,
+                            fit: BoxFit.cover,
+                            cacheWidth: 160,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          location.region,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.sageMuted,
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: const Text(
+                              '唐',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _buildStatBadge(
-                              Icons.route,
-                              AppColors.sageAccent,
-                              '距您 ${location.distance}',
-                            ),
-                            const SizedBox(width: 12),
-                            _buildStatBadge(
-                              Icons.location_on,
-                              AppColors.sageText,
-                              '白居易路线',
-                            ),
-                          ],
                         ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        location.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.sageText,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        location.region,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.sageMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _buildStatBadge(
+                            Icons.route,
+                            AppColors.sageAccent,
+                            '距您 ${location.distance}',
+                          ),
+                          const SizedBox(width: 12),
+                          _buildStatBadge(
+                            Icons.location_on,
+                            AppColors.sageText,
+                            '白居易路线',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             // Decorative gradient corner (matches Web version)
             Positioned(
               top: 0,
@@ -330,10 +312,7 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
                   gradient: LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
-                    colors: [
-                      Color(0xFFDCD6B3),
-                      Colors.transparent,
-                    ],
+                    colors: [AppColors.sageBorder, Colors.transparent],
                     stops: [0.0, 1.0],
                   ),
                 ),

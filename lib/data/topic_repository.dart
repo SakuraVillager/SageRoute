@@ -10,7 +10,7 @@ class TopicRepository {
     SupabaseTableRepository? tableRepository,
   }) : _fetcher = fetcher,
        _tableRepository =
-          tableRepository ?? const SupabaseTableRepository(tableName: 'Topic');
+           tableRepository ?? const SupabaseTableRepository(tableName: 'Topic');
 
   final TopicFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
@@ -67,6 +67,25 @@ class TopicRepository {
       limit: 1,
     );
     return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<List<TopicRecord>> searchByName(String query) async {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) return const <TopicRecord>[];
+
+    final fetcher = _fetcher;
+    if (fetcher != null) {
+      final topics = await fetcher();
+      return topics
+          .where((topic) => topic.name.contains(normalizedQuery))
+          .toList(growable: false);
+    }
+
+    return _tableRepository.fetchWhereIlike<TopicRecord>(
+      column: 'name',
+      pattern: '%$normalizedQuery%',
+      mapper: TopicRecord.fromMap,
+    );
   }
 
   String _normalizeName(String value) {

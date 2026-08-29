@@ -1,1132 +1,1173 @@
+import 'dart:async';
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
-import '../theme/color_schemes.dart';
-import '../data/mock_figures.dart';
+
+import '../components/content_carousel.dart';
+import '../components/filterable_directory_section.dart';
+import '../data/article_repository.dart';
+import '../data/article_image_repository.dart';
+import '../data/celebrity_repository.dart';
+import '../data/topic_repository.dart';
+import '../models/article_record.dart';
+import '../models/article_image_record.dart';
+import '../models/article_media.dart';
+import '../models/celebrity_profile.dart';
 import '../models/figure.dart';
+import '../models/topic_record.dart';
+import '../theme/color_schemes.dart';
 import '../utils/slide_route.dart';
+import 'article_detail_page.dart';
 import 'figure_detail_page.dart';
 
-/// Historical figures list page matching the Web version's FiguresList.tsx.
-///
-/// Layout (top to bottom):
-/// 1. Brand header (Sage —— Route + bell + avatar)
-/// 2. Title section (small "历史人物" + big title + description)
-/// 3. Search bar (white rounded with search icon)
-/// 4. Dynasty filter capsules (horizontal scroll, active dark fill)
-/// 5. Theme filter capsules (horizontal scroll, with emoji icons)
-/// 6. Featured figure card (image + gradient + bottom info)
-/// 7. "全部人物" section header
-/// 8. 2-column figure grid (image + dynasty tag + bookmark + name + stats)
-/// 9. "加载更多" button
-///
-/// All filters are static UI — no real filtering logic.
-class FiguresListPage extends StatelessWidget {
-  const FiguresListPage({super.key});
+const _directorySurface = AppColors.neutralDirectory;
+const _pageInset = EdgeInsets.symmetric(horizontal: 15);
 
-  static const List<String> _dynasties = ['全部', '唐朝', '宋朝', '汉朝', '周朝', '明朝'];
+/// Reading-first entry point for article, topic, and historical figure content.
+class FiguresListPage extends StatefulWidget {
+  const FiguresListPage({
+    super.key,
+    this.articleRepository,
+    this.articleImageRepository,
+    this.celebrityRepository,
+    this.topicRepository,
+  });
 
-  // Pre-computed grid figures (avoids list creation on every build).
-  static final List<MockFigure> _gridFigures = [
-    mockFigures[1], // 苏东坡
-    mockFigures[2], // 李白
-    mockFigures[0], // 白居易
-    mockFigures[1], // 苏东坡 (repeat)
-    mockFigures[2], // 李白 (repeat)
-    mockFigures[0], // 白居易 (repeat)
-  ];
-
-  // Web 版主题: 全部主题 / 诗词 / 哲学 / 帝王 / 军事
-  static const List<Map<String, String>> _themes = [
-    {'emoji': '', 'label': '全部主题'},
-    {'emoji': '🍁', 'label': '诗词'},
-    {'emoji': '📜', 'label': '哲学'},
-    {'emoji': '👑', 'label': '帝王'},
-    {'emoji': '⚔️', 'label': '军事'},
-  ];
+  final ArticleRepository? articleRepository;
+  final ArticleImageRepository? articleImageRepository;
+  final CelebrityRepository? celebrityRepository;
+  final TopicRepository? topicRepository;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.sageBg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildTitleSection(),
-              const SizedBox(height: 20),
-              _buildSearchBar(),
-              const SizedBox(height: 24),
-              _buildDynastyFilters(),
-              const SizedBox(height: 16),
-              _buildThemeFilters(),
-              const SizedBox(height: 28),
-              _buildFeaturedCardHeader(),
-              const SizedBox(height: 12),
-              _buildFeaturedCard(context, mockFigures[0]),
-              const SizedBox(height: 24),
-              // Optional: 3 horizontal route recommendations (skip if mock not available, screenshot shows route chips below featured card)
-              _buildFeaturedRoutes(),
-              const SizedBox(height: 32),
-              _buildAllFiguresHeader(),
-              const SizedBox(height: 16),
-              _buildFigureGrid(context),
-              const SizedBox(height: 24),
-              _buildLoadMoreButton(),
-              // Bottom padding for BottomNav bar
-              const SizedBox(height: 100),
-            ],
-          ),
-        ),
-      ),
+  State<FiguresListPage> createState() => _FiguresListPageState();
+}
+
+class _FiguresListPageState extends State<FiguresListPage> {
+  late final ArticleRepository _articleRepository =
+      widget.articleRepository ?? const ArticleRepository();
+  late final CelebrityRepository _celebrityRepository =
+      widget.celebrityRepository ?? const CelebrityRepository();
+  late final TopicRepository _topicRepository =
+      widget.topicRepository ?? const TopicRepository();
+  late final ArticleImageRepository _articleImageRepository =
+      widget.articleImageRepository ?? const ArticleImageRepository();
+  late Future<_FiguresPageData> _pageFuture;
+
+  String _selectedTopic = _allFilter;
+  String _selectedDynasty = _allFilter;
+  bool _showAllArticles = false;
+  bool _showAllFigures = false;
+
+  static const _allFilter = '全部';
+
+  @override
+  void initState() {
+    super.initState();
+    _pageFuture = _loadPage();
+  }
+
+  Future<_FiguresPageData> _loadPage() async {
+    final data = await Future.wait<Object>([
+      _articleRepository.fetchArticles(),
+      _celebrityRepository.fetchCelebrities(),
+      _topicRepository.fetchTopics(),
+    ]);
+    final images = await _loadArticleImages();
+    return _FiguresPageData(
+      articles: data[0] as List<ArticleRecord>,
+      images: images,
+      celebrities: data[1] as List<CelebrityProfile>,
+      topics: data[2] as List<TopicRecord>,
     );
   }
 
-  // ── Header: "Sage —— Route" + bell icon + avatar ──
-  // Web: bell bg-[#EBE5DA] rounded-full, avatar ring-2 ring-[#EBE5DA]
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const _BrandTitle(),
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEEEAD9),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(Icons.notifications_outlined, size: 20),
-                  color: AppColors.sageText,
-                  onPressed: () {},
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFEEEAD9), width: 2),
-                  image: const DecorationImage(
-                    image: NetworkImage('https://i.pravatar.cc/150?img=47'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Future<List<ArticleImageRecord>> _loadArticleImages() async {
+    try {
+      return await _articleImageRepository.fetchArticleImages();
+    } catch (_) {
+      return const <ArticleImageRecord>[];
+    }
   }
 
-  // ── Title section: small subtitle + big title + description ──
-  // Web: small "历史人物" with sage-accent color + 1px line, large "历史名人" h2.
-  Widget _buildTitleSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                '历史人物',
-                style: TextStyle(
-                  color: AppColors.sageAccent,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(width: 24, height: 1, color: AppColors.sageAccent),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '历史名人',
-            style: TextStyle(
-              color: AppColors.sageText,
-              fontSize: 30, // Web: text-3xl
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '探索历朝历代的学者、诗人与帝王',
-            style: TextStyle(
-              color: AppColors.sageMuted,
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
+  void _retry() => setState(() => _pageFuture = _loadPage());
+
+  void _openArticle(ArticleRecord article) {
+    Navigator.of(
+      context,
+    ).push(slideFromRightRoute(ArticleDetailPage(article: article)));
   }
 
-  // ── Search bar: pill-shaped with sage-card bg + Filter trailing ──
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: AppColors.sageCard, // #FAF7F2
-          borderRadius: BorderRadius.circular(100),
-          border: Border.all(color: AppColors.sageBorder),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 1),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.search, size: 20, color: AppColors.sageMuted),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: TextField(
-                style: TextStyle(fontSize: 14, color: AppColors.sageText),
-                decoration: InputDecoration(
-                  isCollapsed: true,
-                  contentPadding: EdgeInsets.symmetric(vertical: 4),
-                  border: InputBorder.none,
-                  hintText: '搜索人物、朝代...',
-                  hintStyle: TextStyle(
-                    color: AppColors.sageMuted,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-            // Filter button (dark pill)
-            Container(
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: AppColors.sageText,
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-              ),
-              child: const Icon(Icons.tune, size: 16, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<void> _openFeaturedArticle(ArticleRecord article) => Navigator.of(
+    context,
+  ).push(slideFromRightRoute(ArticleDetailPage(article: article)));
 
-  // ── Dynasty filter capsules ──
-
-  Widget _buildDynastyFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Text(
-            '朝代',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.sageMuted,
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 36,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: _dynasties.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, index) {
-              final isActive = index == 0;
-              return _FilterChip(label: _dynasties[index], isActive: isActive);
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── Theme filter capsules (with emoji) ──
-  Widget _buildThemeFilters() {
-    return SizedBox(
-      height: 36,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: _themes.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final filter = _themes[index];
-          final isActive = index == 0;
-          final emoji = filter['emoji']!;
-          return _ThemeFilterChip(
-            // "全部主题" uses layout_grid icon if emoji is empty
-            emoji: emoji,
-            label: filter['label']!,
-            isActive: isActive,
-          );
-        },
-      ),
-    );
-  }
-
-  // ── "精选人物" Header ──
-  Widget _buildFeaturedCardHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text(
-            '精选人物',
-            style: TextStyle(
-              color: AppColors.sageMuted,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDot(true),
-              const SizedBox(width: 4),
-              _buildDot(false),
-              const SizedBox(width: 4),
-              _buildDot(false),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDot(bool active) {
-    return Container(
-      width: 6,
-      height: 6,
-      decoration: BoxDecoration(
-        color: active
-            ? AppColors.sageAccent.withValues(alpha: 0.6)
-            : AppColors.sageBorder.withValues(alpha: 0.8),
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  // ── "Featured routes" horizontal chips ──
-  Widget _buildFeaturedRoutes() {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _buildFeaturedRouteChip('庐山隐居', '3天·5处遗址'),
-          const SizedBox(width: 12),
-          _buildFeaturedRouteChip('浔阳贬谪', '2天·4处遗址'),
-          const SizedBox(width: 12),
-          _buildFeaturedRouteChip('长安岁月', '4天·7处遗址'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeaturedRouteChip(String title, String subtitle) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.sageBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: AppColors.sageCard,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.route_outlined,
-              size: 14,
-              color: AppColors.sageAccent,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.sageText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  color: AppColors.sageMuted,
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Navigate to figure detail page ──
-  void _openFigure(BuildContext context, MockFigure mf) {
+  void _openFigure(CelebrityProfile celebrity) {
     Navigator.of(context).push(
       slideFromRightRoute(
         FigureDetailPage(
           figure: Figure(
-            id: mf.id,
-            name: mf.name,
-            pinyinName: mf.pinyinName,
-            dynasty: mf.dynasty,
-            role: mf.role,
-            years: mf.years,
-            shortDesc: mf.shortDesc,
-            description: mf.description,
-            imageUrl: mf.imageUrl,
-            locationsCount: mf.locationsCount,
-            routesCount: mf.routesCount,
-            poemsCount: mf.poemsCount,
-            rating: mf.rating,
+            id: celebrity.id.toString(),
+            name: celebrity.name,
+            dynasty: celebrity.dynasty,
+            shortDesc: celebrity.bioShort,
+            description: celebrity.bioFull,
+            imageUrl: celebrity.avatarUrl,
           ),
         ),
       ),
     );
   }
 
-  // ── Featured figure card (full-width, 24px radius, image + gradient + info) ──
-  // Web: aspect-[4/3], dynasty tag bg-[#C37153], role tag bg-black/30 backdrop-blur,
-  //      bookmark button bottom-right, stats with MapPin + Route icons
-  Widget _buildFeaturedCard(BuildContext context, MockFigure figure) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: GestureDetector(
-        onTap: () => _openFigure(context, figure),
-        child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+  Future<void> _openSearch() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => _SearchPage(
+          articleRepository: _articleRepository,
+          celebrityRepository: _celebrityRepository,
+          topicRepository: _topicRepository,
+          onOpenArticle: _openArticle,
+          onOpenFigure: _openFigure,
+          onSelectTopic: (topic) {
+            setState(() {
+              _selectedTopic = topic;
+              _showAllArticles = false;
+            });
+          },
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<_FiguresPageData>(
+    future: _pageFuture,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const _PageStatus(label: '正在加载人物内容', loading: true);
+      }
+      if (snapshot.hasError) {
+        return _PageStatus(
+          label: '人物内容暂时无法加载',
+          actionLabel: '重试',
+          onAction: _retry,
+        );
+      }
+      return _FiguresContent(
+        data: snapshot.data!,
+        selectedTopic: _selectedTopic,
+        selectedDynasty: _selectedDynasty,
+        showAllArticles: _showAllArticles,
+        showAllFigures: _showAllFigures,
+        onOpenSearch: _openSearch,
+        onOpenArticle: _openArticle,
+        onOpenFeaturedArticle: _openFeaturedArticle,
+        onOpenFigure: _openFigure,
+        onTopicChanged: (topic) => setState(() {
+          _selectedTopic = topic;
+          _showAllArticles = false;
+        }),
+        onDynastyChanged: (dynasty) => setState(() {
+          _selectedDynasty = dynasty;
+          _showAllFigures = false;
+        }),
+        onArticleExpansionChanged: () =>
+            setState(() => _showAllArticles = !_showAllArticles),
+        onFigureExpansionChanged: () =>
+            setState(() => _showAllFigures = !_showAllFigures),
+      );
+    },
+  );
+}
+
+class _FiguresPageData {
+  const _FiguresPageData({
+    required this.articles,
+    required this.images,
+    required this.celebrities,
+    required this.topics,
+  });
+
+  final List<ArticleRecord> articles;
+  final List<ArticleImageRecord> images;
+  final List<CelebrityProfile> celebrities;
+  final List<TopicRecord> topics;
+}
+
+class _PageStatus extends StatelessWidget {
+  const _PageStatus({
+    required this.label,
+    this.loading = false,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String label;
+  final bool loading;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.white,
+    body: SafeArea(
+      child: Center(
+        child: Semantics(
+          liveRegion: true,
+          label: label,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              AspectRatio(
-                aspectRatio: 4 / 3,
-                child: Image.network(
-                  figure.imageUrl,
-                  fit: BoxFit.cover,
-                  cacheWidth: 800,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: AppColors.primaryLight.withValues(alpha: 0.2),
-                  ),
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      color: AppColors.sageBorder.withValues(alpha: 0.3),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.sageMuted,
+              if (loading) const CircularProgressIndicator(),
+              if (loading) const SizedBox(height: 16),
+              Text(label, style: const TextStyle(color: AppColors.brandInk)),
+              if (onAction != null) ...[
+                const SizedBox(height: 12),
+                TextButton(onPressed: onAction, child: Text(actionLabel!)),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _FiguresContent extends StatelessWidget {
+  const _FiguresContent({
+    required this.data,
+    required this.selectedTopic,
+    required this.selectedDynasty,
+    required this.showAllArticles,
+    required this.showAllFigures,
+    required this.onOpenSearch,
+    required this.onOpenArticle,
+    required this.onOpenFeaturedArticle,
+    required this.onOpenFigure,
+    required this.onTopicChanged,
+    required this.onDynastyChanged,
+    required this.onArticleExpansionChanged,
+    required this.onFigureExpansionChanged,
+  });
+
+  final _FiguresPageData data;
+  final String selectedTopic;
+  final String selectedDynasty;
+  final bool showAllArticles;
+  final bool showAllFigures;
+  final VoidCallback onOpenSearch;
+  final ValueChanged<ArticleRecord> onOpenArticle;
+  final Future<void> Function(ArticleRecord) onOpenFeaturedArticle;
+  final ValueChanged<CelebrityProfile> onOpenFigure;
+  final ValueChanged<String> onTopicChanged;
+  final ValueChanged<String> onDynastyChanged;
+  final VoidCallback onArticleExpansionChanged;
+  final VoidCallback onFigureExpansionChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final topicNames = _unique(<String>[
+      ...data.topics.map((topic) => topic.name),
+      ...data.articles.map((article) => article.topic),
+    ]);
+    final dynasties = _unique(data.celebrities.map((figure) => figure.dynasty));
+    final articles = selectedTopic == _FiguresListPageState._allFilter
+        ? data.articles
+        : data.articles
+              .where((article) => article.topic == selectedTopic)
+              .toList(growable: false);
+    final figures = selectedDynasty == _FiguresListPageState._allFilter
+        ? data.celebrities
+        : data.celebrities
+              .where((figure) => figure.dynasty == selectedDynasty)
+              .toList(growable: false);
+    final visibleArticles = _visibleItems(articles, showAllArticles);
+    final visibleFigures = _visibleItems(figures, showAllFigures);
+    final articleMedia = <int, ArticleMedia>{
+      for (final article in data.articles)
+        article.id: ArticleMedia(
+          article: article,
+          images: data.images
+              .where((image) => image.articleId == article.id)
+              .toList(growable: false),
+        ),
+    };
+    final featured = data.articles
+        .map((article) => articleMedia[article.id]!)
+        .toList(growable: false);
+
+    return Scaffold(
+      backgroundColor: AppColors.white,
+      body: SafeArea(
+        child: CustomScrollView(
+          key: const Key('figures-scroll'),
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(15, 18, 15, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '人物',
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontFamily: 'serif',
+                              color: AppColors.brandInk,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 48,
+                      height: 48,
+                      child: Semantics(
+                        button: true,
+                        label: '搜索人物、文章、主题',
+                        child: ExcludeSemantics(
+                          child: IconButton(
+                            tooltip: '搜索人物、文章、主题',
+                            onPressed: onOpenSearch,
+                            icon: const Icon(Icons.search_outlined),
+                          ),
                         ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
-              Positioned.fill(
-                child: DecoratedBox(
+            ),
+            if (featured.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(15, 6, 15, 10),
+                      child: Text(
+                        '精选文章',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.brandInk,
+                          fontFamily: 'serif',
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    _FeaturedArticle(
+                      articles: featured,
+                      onTap: onOpenFeaturedArticle,
+                    ),
+                  ],
+                ),
+              ),
+            const SliverToBoxAdapter(
+              child: _SectionDivider(key: Key('section-divider')),
+            ),
+            SliverToBoxAdapter(
+              child: FilterableDirectorySection<ArticleRecord>(
+                title: '主题目录',
+                filterLabel: '主题',
+                options: topicNames,
+                selectedOption: selectedTopic,
+                emptyLabel: '这个主题下还没有推送文章',
+                items: visibleArticles,
+                totalCount: articles.length,
+                expanded: showAllArticles,
+                onOptionChanged: onTopicChanged,
+                onExpansionChanged: onArticleExpansionChanged,
+                filterKeyPrefix: 'topic',
+                itemId: (article) => 'article-${article.id}',
+                itemBuilder: (article) => _ArticleRow(
+                  media: articleMedia[article.id]!,
+                  onTap: () => onOpenArticle(article),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: _RecommendedTopics(
+                topics: data.topics,
+                articles: featured,
+                onOpenArticle: onOpenArticle,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: FilterableDirectorySection<CelebrityProfile>(
+                title: '人物目录',
+                filterLabel: '朝代',
+                options: dynasties,
+                selectedOption: selectedDynasty,
+                emptyLabel: '这个朝代下还没有人物',
+                items: visibleFigures,
+                totalCount: figures.length,
+                expanded: showAllFigures,
+                onOptionChanged: onDynastyChanged,
+                onExpansionChanged: onFigureExpansionChanged,
+                filterKeyPrefix: 'dynasty',
+                itemId: (figure) => 'figure-${figure.id}',
+                itemBuilder: (figure) => _FigureRow(
+                  figure: figure,
+                  onTap: () => onOpenFigure(figure),
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 98)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FeaturedArticle extends StatefulWidget {
+  const _FeaturedArticle({required this.articles, required this.onTap});
+
+  final List<ArticleMedia> articles;
+  final Future<void> Function(ArticleRecord) onTap;
+
+  @override
+  State<_FeaturedArticle> createState() => _FeaturedArticleState();
+}
+
+class _FeaturedArticleState extends State<_FeaturedArticle> {
+  late final PageController _controller;
+  Timer? _autoAdvanceTimer;
+  var _currentPage = 0;
+  var _physicalPage = 0;
+  var _isAutoAdvancing = false;
+  var _isHoldingArticle = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = PageController();
+    _scheduleAutoAdvance();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeaturedArticle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.articles.length != widget.articles.length) {
+      _currentPage = widget.articles.isEmpty
+          ? 0
+          : _currentPage.clamp(0, widget.articles.length - 1).toInt();
+      _scheduleAutoAdvance();
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoAdvanceTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _scheduleAutoAdvance() {
+    _autoAdvanceTimer?.cancel();
+    if (widget.articles.length < 2 || _isHoldingArticle) return;
+    _autoAdvanceTimer = Timer(const Duration(seconds: 5), _advance);
+  }
+
+  Future<void> _advance() async {
+    if (!mounted ||
+        !_controller.hasClients ||
+        widget.articles.length < 2 ||
+        _isHoldingArticle) {
+      return;
+    }
+    _isAutoAdvancing = true;
+    await _controller.animateToPage(
+      _physicalPage + 1,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+    _isAutoAdvancing = false;
+    if (mounted) _scheduleAutoAdvance();
+  }
+
+  void _onPageChanged(int page) {
+    _physicalPage = page;
+    setState(() => _currentPage = page % widget.articles.length);
+    if (!_isAutoAdvancing) _scheduleAutoAdvance();
+  }
+
+  void _onHoldStart(LongPressStartDetails _) {
+    _isHoldingArticle = true;
+    _autoAdvanceTimer?.cancel();
+  }
+
+  void _onHoldEnd(LongPressEndDetails _) {
+    _isHoldingArticle = false;
+    _scheduleAutoAdvance();
+  }
+
+  void _onHoldCancel() {
+    if (!_isHoldingArticle) return;
+    _isHoldingArticle = false;
+    _scheduleAutoAdvance();
+  }
+
+  Future<void> _openArticle(ArticleRecord article) async {
+    _autoAdvanceTimer?.cancel();
+    await widget.onTap(article);
+    if (mounted) _scheduleAutoAdvance();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: '精选文章，第 ${_currentPage + 1} 篇，共 ${widget.articles.length} 篇',
+    child: Column(
+      children: [
+        SizedBox(
+          key: const Key('featured-page-view'),
+          height: 380,
+          child: GestureDetector(
+            onLongPressStart: _onHoldStart,
+            onLongPressEnd: _onHoldEnd,
+            onLongPressCancel: _onHoldCancel,
+            child: PageView.builder(
+              controller: _controller,
+              onPageChanged: _onPageChanged,
+              itemBuilder: (context, index) {
+                final media = widget.articles[index % widget.articles.length];
+                return _FeaturedArticleCard(
+                  key: Key('featured-virtual-page-$index'),
+                  media: media,
+                  onTap: () => _openArticle(media.article),
+                );
+              },
+            ),
+          ),
+        ),
+        SizedBox(
+          key: const Key('featured-article-pager'),
+          height: 30,
+          child: Center(
+            child: _ArticlePager(
+              count: widget.articles.length,
+              currentIndex: _currentPage,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FeaturedArticleCard extends StatelessWidget {
+  const _FeaturedArticleCard({
+    super.key,
+    required this.media,
+    required this.onTap,
+  });
+
+  final ArticleMedia media;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    button: true,
+    label: '打开精选文章 ${media.article.title}',
+    child: ExcludeSemantics(
+      child: Material(
+        color: AppColors.brandNearBlack,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: 380,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _ArticleImage(
+                  key: Key('featured-image-${media.article.id}'),
+                  article: media.article,
+                  imageUrl: media.urlFor(ArticleImageRole.featured),
+                  altText: media.altTextFor(ArticleImageRole.featured),
+                ),
+                const DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.25),
-                        Colors.black.withValues(alpha: 0.68),
-                      ],
-                      stops: const [0.0, 0.46, 0.76, 1.0],
+                      colors: [Colors.transparent, Color(0xD92D1D1B)],
+                      stops: [0.35, 1],
                     ),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 14,
-                left: 14,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.sageAccent,
-                    borderRadius: BorderRadius.circular(100),
-                  ),
-                  child: Text(
-                    figure.dynasty,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 14,
-                right: 14,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.32),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.16),
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.bookmark_border,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 18,
-                right: 18,
-                bottom: 18,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      figure.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        height: 1.05,
+                Positioned(
+                  left: 15,
+                  right: 15,
+                  bottom: 18,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _CoverMark(
+                        key: Key('featured-poster-${media.article.id}'),
+                        media: media,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${figure.years} · ${figure.shortDesc}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.82),
-                        fontSize: 13,
-                        height: 1.35,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 12),
-                    if (figure.role.isNotEmpty)
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: figure.role.take(2).map((role) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.18),
-                              ),
-                            ),
-                            child: Text(
-                              role,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              media.article.summary,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        _FeaturedStat(
-                          icon: Icons.location_on_outlined,
-                          iconColor: Colors.white,
-                          text: '${figure.locationsCount} 处遗址',
+                            const SizedBox(height: 5),
+                            Text(
+                              media.article.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontFamily: 'serif',
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        _FeaturedStat(
-                          icon: Icons.route_outlined,
-                          iconColor: Colors.white,
-                          text: '${figure.routesCount} 条路线',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAllFiguresHeader() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '全部人物',
-                style: TextStyle(
-                  color: AppColors.sageText,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                '共 48 位历史名人',
-                style: TextStyle(color: AppColors.sageMuted, fontSize: 13),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppColors.sageCard,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.sageBorder),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 2,
-                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.grid_view_rounded,
-                    size: 16,
-                    color: AppColors.sageText,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(
-                    Icons.view_list_rounded,
-                    size: 16,
-                    color: AppColors.sageMuted,
-                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
-  // ── 2-column figure grid ──
+class _ArticlePager extends StatelessWidget {
+  const _ArticlePager({required this.count, required this.currentIndex});
 
-  Widget _buildFigureGrid(BuildContext context) {
-    final gridFigures = _gridFigures;
+  final int count;
+  final int currentIndex;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Column(
-        children: [
-          for (int i = 0; i < gridFigures.length; i += 2)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Row(
-                children: [
-                  Expanded(child: _FigureCard(figure: gridFigures[i], onTap: () => _openFigure(context, gridFigures[i]))),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: i + 1 < gridFigures.length
-                        ? _FigureCard(figure: gridFigures[i + 1], onTap: () => _openFigure(context, gridFigures[i + 1]))
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              ),
-            ),
-        ],
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: List<Widget>.generate(count, (index) {
+      final active = index == currentIndex;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: active
+            ? Container(
+                width: 25,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.brand,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              )
+            : const _PagerDot(),
+      );
+    }),
+  );
+}
+
+class _PagerDot extends StatelessWidget {
+  const _PagerDot();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+    width: 5,
+    height: 5,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.sageMuted,
+        shape: BoxShape.circle,
       ),
-    );
-  }
+    ),
+  );
+}
 
-  // ── "加载更多" button ──
-  // Web: border border-[#DCD6C8] rounded-xl
-  Widget _buildLoadMoreButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton(
-          onPressed: null,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.sageText,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+class _SectionDivider extends StatelessWidget {
+  const _SectionDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) =>
+      const Divider(height: 25, thickness: 6, color: _directorySurface);
+}
+
+class _ArticleRow extends StatelessWidget {
+  const _ArticleRow({required this.media, required this.onTap});
+
+  final ArticleMedia media;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    key: Key('article-row-${media.article.id}'),
+    contentPadding: EdgeInsets.zero,
+    minVerticalPadding: 16,
+    leading: _ArticleThumbnail(media: media),
+    title: Text(
+      media.article.title,
+      style: const TextStyle(
+        color: AppColors.brandInk,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    subtitle: Text(
+      media.article.summary,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
+}
+
+class _FigureRow extends StatelessWidget {
+  const _FigureRow({required this.figure, required this.onTap});
+
+  final CelebrityProfile figure;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    key: Key('figure-row-${figure.id}'),
+    contentPadding: EdgeInsets.zero,
+    minVerticalPadding: 16,
+    leading: _InitialAvatar(
+      key: Key('figure-thumb-${figure.id}'),
+      name: figure.name,
+      imageUrl: figure.avatarUrl,
+    ),
+    title: Text(
+      figure.name,
+      style: const TextStyle(
+        color: AppColors.brandInk,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    subtitle: Text('${figure.dynasty} · ${figure.bioShort}'),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
+}
+
+class _RecommendedTopics extends StatelessWidget {
+  const _RecommendedTopics({
+    required this.topics,
+    required this.articles,
+    required this.onOpenArticle,
+  });
+
+  final List<TopicRecord> topics;
+  final List<ArticleMedia> articles;
+  final ValueChanged<ArticleRecord> onOpenArticle;
+
+  @override
+  Widget build(BuildContext context) => ContentCarousel<TopicRecord>(
+    title: '推荐主题',
+    items: topics,
+    pageViewKey: const Key('recommended-page-view'),
+    showPositionIndicator: true,
+    positionIndicatorKey: const Key('recommended-topic-pager'),
+    inactiveIndicatorColor: AppColors.white,
+    itemBuilder: (context, topic, distance) {
+      final scale = 1 - (distance * 0.17);
+      final article = _mediaForTopic(articles, topic.name);
+      return Center(
+        child: Transform.scale(
+          scale: scale,
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: distance * 2.8,
+              sigmaY: distance * 2.8,
             ),
-            side: const BorderSide(color: Color(0xFFDCD6B3)),
-            elevation: 0,
+            child: _TopicCard(
+              key: article == null
+                  ? Key('recommended-topic-${topic.id}')
+                  : Key('recommended-article-${article.article.id}'),
+              topic: topic,
+              article: article,
+              onTap: article == null
+                  ? null
+                  : () => onOpenArticle(article.article),
+            ),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        ),
+      );
+    },
+  );
+}
+
+class _TopicCard extends StatelessWidget {
+  const _TopicCard({
+    super.key,
+    required this.topic,
+    required this.article,
+    required this.onTap,
+  });
+
+  final TopicRecord topic;
+  final ArticleMedia? article;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: onTap != null,
+    enabled: onTap != null,
+    label: onTap == null
+        ? '推荐主题 ${topic.name}，暂无相关文章'
+        : '打开推荐文章 ${article!.article.title}',
+    child: Material(
+      color: AppColors.neutralDirectory,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Column(
             children: [
+              Expanded(
+                child: Container(
+                  color: AppColors.neutralDirectory,
+                  alignment: Alignment.center,
+                  child: SizedBox.expand(
+                    key: article == null
+                        ? null
+                        : Key('recommended-image-frame-${article!.article.id}'),
+                    child: article == null
+                        ? Center(
+                            child: Text(
+                              topic.name,
+                              style: const TextStyle(
+                                color: AppColors.brandDark,
+                              ),
+                            ),
+                          )
+                        : _ArticleImage(
+                            article: article!.article,
+                            imageUrl: article!.urlFor(
+                              ArticleImageRole.featured,
+                            ),
+                            altText: article!.altTextFor(
+                              ArticleImageRole.featured,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Text(
-                '加载更多人物',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                article?.article.title ?? topic.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.brandInk,
+                  fontFamily: 'serif',
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                article?.article.summary ?? topic.description ?? '',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.sageMuted,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }
 
-// ═══════════════════════════════════════════════════════════
-// Private helper widgets
-// ═══════════════════════════════════════════════════════════
-
-/// "Sage —— Route" brand title with a sage-accent decorative line.
-/// Web: <span class="text-sage-accent mx-2 ... bg-sage-accent">
-class _BrandTitle extends StatelessWidget {
-  const _BrandTitle();
-
-  @override
-  Widget build(BuildContext context) {
-    const style = TextStyle(
-      color: AppColors.sageText,
-      fontSize: 22,
-      fontWeight: FontWeight.w700,
-      height: 1.0,
-    );
-
-    return const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text('Sage', style: style),
-        SizedBox(width: 8),
-        SizedBox(
-          width: 16,
-          height: 1,
-          child: DecoratedBox(
-            decoration: BoxDecoration(color: AppColors.sageAccent),
-          ),
-        ),
-        SizedBox(width: 8),
-        Text('Route', style: style),
-      ],
-    );
+ArticleMedia? _mediaForTopic(List<ArticleMedia> articles, String topicName) {
+  for (final article in articles) {
+    if (article.article.topic == topicName) return article;
   }
+  return null;
 }
 
-/// A single dynasty filter chip (rounded-full pill).
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({required this.label, required this.isActive});
+class _InitialAvatar extends StatelessWidget {
+  const _InitialAvatar({super.key, required this.name, required this.imageUrl});
 
-  final String label;
-  final bool isActive;
+  final String name;
+  final String imageUrl;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+  Widget build(BuildContext context) => SizedBox(
+    width: 64,
+    height: 64,
+    child: DecoratedBox(
       decoration: BoxDecoration(
-        color: isActive ? AppColors.sageText : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: isActive ? null : Border.all(color: AppColors.sageBorder),
+        color: AppColors.brandLight,
+        image: imageUrl.isEmpty
+            ? null
+            : DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isActive ? Colors.white : AppColors.sageText,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.3,
-        ),
-      ),
-    );
-  }
-}
-
-/// A theme filter chip with emoji icon (🍁 📜 👑).
-/// Web 版激活态色: bg-[#C37153] text-white (sageAccent)
-class _ThemeFilterChip extends StatelessWidget {
-  const _ThemeFilterChip({
-    required this.emoji,
-    required this.label,
-    required this.isActive,
-  });
-
-  final String emoji;
-  final String label;
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? AppColors.sageAccent : Colors.white,
-        borderRadius: BorderRadius.circular(100),
-        border: isActive ? null : Border.all(color: AppColors.sageBorder),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (emoji.isEmpty)
-            Icon(
-              Icons.grid_view_rounded,
-              size: 14,
-              color: isActive ? Colors.white : AppColors.sageText,
+      child: imageUrl.isEmpty
+          ? Center(
+              child: Text(
+                name.isEmpty ? '?' : name.characters.first,
+                style: const TextStyle(color: AppColors.brandDark),
+              ),
             )
-          else ...[
-            Text(emoji, style: const TextStyle(fontSize: 14)),
-            const SizedBox(width: 4),
-          ],
-          if (emoji.isEmpty) const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: isActive ? Colors.white : AppColors.sageText,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+          : null,
+    ),
+  );
 }
 
-/// A single figure card in the 2-column grid.
-///
-/// Layout: image (with dynasty tag + bookmark overlay) → name → years →
-/// role tags → bottom stats row with "查看" button.
-/// Web: dynasty tag bg-[#84A98C] rounded-full, bookmark text-[#C37153],
-///      role tags bg-[#FAF7F2], bottom stats with MapPin + "查看" button.
-class _FigureCard extends StatelessWidget {
-  const _FigureCard({required this.figure, this.onTap});
+class _ArticleThumbnail extends StatelessWidget {
+  const _ArticleThumbnail({required this.media});
 
-  final MockFigure figure;
-  final VoidCallback? onTap;
+  final ArticleMedia media;
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.sageBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ── Image area with overlays ──
-          SizedBox(
-            height: 130,
-            width: double.infinity,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      figure.imageUrl,
-                      fit: BoxFit.cover,
-                      cacheWidth: 320,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: AppColors.sageBorder.withValues(alpha: 0.3),
-                      ),
-                    ),
-                  ),
-                ),
-                // Dynasty tag — top-left (green, rounded-full)
-                Positioned(
-                  top: 18,
-                  left: 18,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.sageGreen,
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Text(
-                      figure.dynasty,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                // Bookmark icon — top-right (accent color)
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.bookmark_border,
-                      size: 14,
-                      color: AppColors.sageAccent,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // ── Content area ──
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Name
-                Text(
-                  figure.name,
-                  style: const TextStyle(
-                    color: AppColors.sageText,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                // Years
-                Text(
-                  figure.years,
-                  style: const TextStyle(
-                    color: AppColors.sageMuted,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w400,
-                    height: 1.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                // Role tags
-                if (figure.role.isNotEmpty)
-                  Wrap(
-                    spacing: 6,
-                    children: figure.role.take(2).map((r) {
-                      final isFirst = r == figure.role.first;
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isFirst
-                              ? AppColors
-                                    .sageCard // Let's use light brown/orange bg for first?
-                              : AppColors.sageCard,
-                          borderRadius: BorderRadius.circular(100),
-                        ),
-                        child: Text(
-                          r,
-                          style: TextStyle(
-                            color: isFirst
-                                ? AppColors.sageAccent
-                                : AppColors.sageMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                const SizedBox(height: 10),
-                // Bottom stats row with divider + "查看" button
-                const Divider(height: 1, color: AppColors.sageBorder),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.location_on_outlined,
-                          size: 10,
-                          color: AppColors.sageMuted,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          '${figure.locationsCount} 处',
-                          style: const TextStyle(
-                            color: AppColors.sageMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.sageCard,
-                        borderRadius: BorderRadius.circular(100),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '查看',
-                            style: TextStyle(
-                              color: AppColors.sageText,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(width: 2),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 10,
-                            color: AppColors.sageText,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SizedBox(
+    key: Key('article-thumb-${media.article.id}'),
+    width: 82,
+    height: 82,
+    child: _ArticleImage(
+      article: media.article,
+      imageUrl: media.urlFor(ArticleImageRole.cover),
+      altText: media.altTextFor(ArticleImageRole.cover),
+    ),
+  );
 }
 
-/// Stat item used in the featured figure card (light text on dark image).
-/// Web: text-white/70 with colored icons.
-class _FeaturedStat extends StatelessWidget {
-  const _FeaturedStat({
-    required this.icon,
-    required this.iconColor,
-    required this.text,
+class _CoverMark extends StatelessWidget {
+  const _CoverMark({super.key, required this.media});
+
+  final ArticleMedia media;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 48,
+    height: 70,
+    child: ClipRect(
+      child: _ArticleImage(
+        article: media.article,
+        imageUrl: media.urlFor(ArticleImageRole.poster),
+        altText: media.altTextFor(ArticleImageRole.poster),
+      ),
+    ),
+  );
+}
+
+class _ArticleImage extends StatelessWidget {
+  const _ArticleImage({
+    super.key,
+    required this.article,
+    required this.imageUrl,
+    this.altText,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final String text;
+  final ArticleRecord article;
+  final String imageUrl;
+  final String? altText;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: iconColor),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
+    if (imageUrl.isEmpty) {
+      return Container(
+        color: AppColors.brandDark,
+        alignment: Alignment.center,
+        child: Text(
+          article.topic,
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
-      ],
+      );
+    }
+    return Image.network(
+      imageUrl,
+      semanticLabel: altText,
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => Container(color: AppColors.brandDark),
     );
   }
 }
+
+class _SearchPage extends StatefulWidget {
+  const _SearchPage({
+    required this.articleRepository,
+    required this.celebrityRepository,
+    required this.topicRepository,
+    required this.onOpenArticle,
+    required this.onOpenFigure,
+    required this.onSelectTopic,
+  });
+
+  final ArticleRepository articleRepository;
+  final CelebrityRepository celebrityRepository;
+  final TopicRepository topicRepository;
+  final ValueChanged<ArticleRecord> onOpenArticle;
+  final ValueChanged<CelebrityProfile> onOpenFigure;
+  final ValueChanged<String> onSelectTopic;
+
+  @override
+  State<_SearchPage> createState() => _SearchPageState();
+}
+
+class _SearchPageState extends State<_SearchPage> {
+  final _controller = TextEditingController();
+  Future<_SearchResults>? _searchFuture;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _search() {
+    final query = _controller.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _searchFuture =
+          Future.wait<Object>([
+            widget.celebrityRepository.searchByName(query),
+            widget.articleRepository.searchByTitle(query),
+            widget.topicRepository.searchByName(query),
+          ]).then(
+            (data) => _SearchResults(
+              celebrities: data[0] as List<CelebrityProfile>,
+              articles: data[1] as List<ArticleRecord>,
+              topics: data[2] as List<TopicRecord>,
+            ),
+          );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.white,
+    appBar: AppBar(
+      backgroundColor: AppColors.white,
+      title: const Text('搜索'),
+      leading: IconButton(
+        tooltip: '关闭搜索',
+        onPressed: () => Navigator.of(context).pop(),
+        icon: const Icon(Icons.close),
+      ),
+    ),
+    body: SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: _pageInset,
+            child: TextField(
+              controller: _controller,
+              autofocus: true,
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _search(),
+              decoration: InputDecoration(
+                hintText: '搜索人物、文章、主题',
+                suffixIcon: IconButton(
+                  tooltip: '执行搜索',
+                  onPressed: _search,
+                  icon: const Icon(Icons.search),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _SearchResultsView(future: _searchFuture, widget: widget),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SearchResults {
+  const _SearchResults({
+    required this.celebrities,
+    required this.articles,
+    required this.topics,
+  });
+
+  final List<CelebrityProfile> celebrities;
+  final List<ArticleRecord> articles;
+  final List<TopicRecord> topics;
+
+  bool get isEmpty => celebrities.isEmpty && articles.isEmpty && topics.isEmpty;
+}
+
+class _SearchResultsView extends StatelessWidget {
+  const _SearchResultsView({required this.future, required this.widget});
+
+  final Future<_SearchResults>? future;
+  final _SearchPage widget;
+
+  @override
+  Widget build(BuildContext context) {
+    if (future == null) {
+      return const Center(child: Text('输入关键词开始搜索'));
+    }
+    return FutureBuilder<_SearchResults>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('搜索失败，请重试'));
+        }
+        final results = snapshot.data!;
+        if (results.isEmpty) {
+          return const Center(child: Text('未找到匹配结果'));
+        }
+        return ListView(
+          children: [
+            for (final article in results.articles)
+              ListTile(
+                key: Key('search-result-article-${article.id}'),
+                title: Text(article.title),
+                subtitle: const Text('文章'),
+                onTap: () => widget.onOpenArticle(article),
+              ),
+            for (final celebrity in results.celebrities)
+              ListTile(
+                key: Key('search-result-figure-${celebrity.id}'),
+                title: Text(celebrity.name),
+                subtitle: const Text('人物'),
+                onTap: () => widget.onOpenFigure(celebrity),
+              ),
+            for (final topic in results.topics)
+              ListTile(
+                key: Key('search-result-topic-${topic.id}'),
+                title: Text(topic.name),
+                subtitle: const Text('主题'),
+                onTap: () {
+                  widget.onSelectTopic(topic.name);
+                  Navigator.of(context).pop();
+                },
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+List<String> _unique(Iterable<String> values) {
+  final seen = <String>{};
+  return <String>[
+    _FiguresListPageState._allFilter,
+    ...values.where((value) => value.isNotEmpty && seen.add(value)),
+  ];
+}
+
+List<T> _visibleItems<T>(List<T> items, bool expanded) =>
+    expanded || items.length <= 7
+    ? items
+    : items.take(7).toList(growable: false);

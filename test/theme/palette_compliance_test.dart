@@ -6,16 +6,22 @@ void main() {
   test('all application colors belong to the approved brand palette', () {
     const allowedRgb = <String>{
       '000000',
-      '1C1700',
-      '382F00',
-      '534600',
-      '6F5E00',
-      '8B7500',
-      'A89840',
-      'C5BA80',
-      'DCD6B3',
-      'EEEAD9',
-      'F8F7F0',
+      '202124',
+      '2D1D1B',
+      '3C2724',
+      '5A3A36',
+      '6F6D72',
+      '784E48',
+      '96615A',
+      'AB817B',
+      'C0A09C',
+      'D3D3D3',
+      'D5C0BD',
+      'D8D8DC',
+      'EADFDE',
+      'F0F0F2',
+      'F5EFEF',
+      'F8F8F9',
       'FFFFFF',
     };
     const allowedNamedColors = <String>{'black', 'white', 'transparent'};
@@ -40,6 +46,6 @@ void main() {
       }
     }
 
-    expect(violations, isEmpty, reason: '发现未使用黑、白、#8B7500 或其明暗衍生色的颜色');
+    expect(violations, isEmpty, reason: '发现未使用 #F0F0F2 中性色板或 #96615A 品牌色板的颜色');
   });
 }

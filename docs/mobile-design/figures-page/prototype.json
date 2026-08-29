@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "productName": "SageRoute 人物页",
+    "platform": "cross-platform",
+    "prototypeTarget": "behavior-prototype",
+    "evidenceStatus": "built",
+    "sourcePaths": ["ux-architecture.json", "ui-design.json", "design-system.json"],
+    "sourceUiPath": "ui-design.json",
+    "confidence": "medium"
+  },
+  "scope": {
+    "criticalFlowIds": ["F2", "F3"],
+    "highRiskStateIds": ["ST2", "ST5", "ST6", "ST8", "ST9", "ST10"],
+    "implementationBoundary": "This contract defines observable behavior, state continuity, deterministic failure injection, and platform-facing outcomes. Search is three Supabase/Postgres ILIKE '%query%' substring queries over figure names, article titles, and topic names; it excludes typo tolerance, pinyin, aliases, simplified/traditional conversion, and complex ranking. It does not implement Flutter UI, notification authorization, or device evidence."
+  },
+  "nodes": [
+    {"id":"P1","screenId":"S1","stateId":"ST1","kind":"loading","entry":"Enter People page or retry initial request.","primaryAction":"Wait for content or use retry after failure.","feedback":"Centered circular indicator with a readable loading announcement; Reduce Motion keeps text semantics.","exit":"Content becomes available or page failure is shown."},
+    {"id":"P2","screenId":"S1","stateId":"ST2","kind":"failure","entry":"Initial People page load fails or times out.","primaryAction":"Retry loading.","feedback":"Page-level error text and an available retry action.","exit":"Retry returns to P1; the People page remains reachable."},
+    {"id":"P3","screenId":"S1","stateId":"ST3","kind":"local-loading","entry":"A topic selection starts its article query.","primaryAction":"Clear the topic or wait for the topic article result.","feedback":"Only the topic article region announces loading.","exit":"Topic result, P5, a detail route, or search overlay."},
+    {"id":"P4","screenId":"S1","stateId":"ST4","kind":"local-loading","entry":"A dynasty selection starts its figure query.","primaryAction":"Clear the dynasty or wait for the figure result.","feedback":"Only the figure directory announces loading.","exit":"Figure result, P6, or a figure detail route."},
+    {"id":"P5","screenId":"S1","stateId":"ST5","kind":"local-recovery","entry":"Topic article query is empty or fails.","primaryAction":"Retry or clear only the topic filter.","feedback":"Inline topic-specific empty/error copy with recovery action.","exit":"Retry returns to P3; clearing returns the unfiltered topic article directory."},
+    {"id":"P6","screenId":"S1","stateId":"ST6","kind":"local-recovery","entry":"Figure directory query is empty or fails.","primaryAction":"Retry or clear only the dynasty filter.","feedback":"Inline figure-specific empty/error copy with recovery action.","exit":"Retry returns to P4; clearing returns the unfiltered figure directory."},
+    {"id":"P7","screenId":"S2","stateId":"ST7","kind":"search-loading","entry":"Search overlay opens and query is submitted or edited.","primaryAction":"Edit, cancel, or await the three ILIKE '%query%' result sets.","feedback":"Loading status is announced while input focus remains available.","exit":"Typed results, P8, P9, an article/figure route, or restored People page."},
+    {"id":"P8","screenId":"S2","stateId":"ST8","kind":"empty","entry":"Search response has no fuzzy matches.","primaryAction":"Edit/clear query or close search.","feedback":"No-result message with visible recovery actions.","exit":"Editing returns to P7; close restores saved People page context."},
+    {"id":"P9","screenId":"S2","stateId":"ST9","kind":"failure","entry":"Search request fails or times out.","primaryAction":"Retry the same query or close search.","feedback":"Search error is announced with retry; query is retained.","exit":"Retry returns to P7; close restores saved People page context."},
+    {"id":"P10","screenId":"S3","stateId":"ST10","kind":"detail-failure","entry":"An identified article cannot load.","primaryAction":"Retry article load or return to People page.","feedback":"Article identity remains visible and failure is announced.","exit":"Retry preserves article identity; Back returns to saved People page context."},
+    {"id":"P11","screenId":"S4","stateId":"ST10","kind":"detail-failure","entry":"An identified figure cannot load.","primaryAction":"Retry figure load or return to People page.","feedback":"Figure identity remains visible and failure is announced.","exit":"Retry preserves figure identity; Back returns to saved People page context."}
+  ],
+  "transitions": [
+    {"id":"TR1","fromNodeId":"P1","trigger":"initial request succeeds","systemResponse":"Render People page content and preserve default directory scope.","motion":"Spinner ends; content becomes available.","feedback":"Loading announcement completes.","toNodeId":"P3","recovery":"If a local topic query begins, only that directory enters P3."},
+    {"id":"TR2","fromNodeId":"P1","trigger":"initial request fails","systemResponse":"Keep the People page reachable with a retry action.","motion":"No route change.","feedback":"Page failure is announced.","toNodeId":"P2","recovery":"Retry returns to P1 without claiming stale content is current."},
+    {"id":"TR3","fromNodeId":"P3","trigger":"select topic","systemResponse":"Update only topic article data; retain dynasty and both expansion states.","motion":"Local progress only; no full-page reset.","feedback":"Topic-area loading is announced.","toNodeId":"P3","recovery":"Empty/failure uses P5; clear affects only the topic filter."},
+    {"id":"TR4","fromNodeId":"P4","trigger":"select dynasty","systemResponse":"Update only figure data; retain topic and both expansion states.","motion":"Local progress only; no full-page reset.","feedback":"Figure-area loading is announced.","toNodeId":"P4","recovery":"Empty/failure uses P6; clear affects only the dynasty filter."},
+    {"id":"TR5","fromNodeId":"P5","trigger":"retry or clear topic","systemResponse":"Retry same topic request or remove only topic constraint.","motion":"Inline region update.","feedback":"Topic recovery status is announced.","toNodeId":"P3","recovery":"Selected dynasty and figure list stay unchanged."},
+    {"id":"TR6","fromNodeId":"P6","trigger":"retry or clear dynasty","systemResponse":"Retry same dynasty request or remove only dynasty constraint.","motion":"Inline region update.","feedback":"Figure recovery status is announced.","toNodeId":"P4","recovery":"Selected topic and topic article list stay unchanged."},
+    {"id":"TR7","fromNodeId":"P3","trigger":"tap article","systemResponse":"Save People page context and push article route.","motion":"Article enters leftward; Reduce Motion uses a short fade.","feedback":"Article target is announced before activation.","toNodeId":"P10","recovery":"iOS edge Back and Android system/predictive Back restore saved context."},
+    {"id":"TR8","fromNodeId":"P4","trigger":"tap figure","systemResponse":"Save People page context and push figure route.","motion":"Hierarchical transition; Reduce Motion uses a short fade.","feedback":"Figure target is announced before activation.","toNodeId":"P11","recovery":"Platform Back restores saved context."},
+    {"id":"TR9","fromNodeId":"P3","trigger":"tap search","systemResponse":"Open global overlay above saved People page context and focus input.","motion":"Keyboard appears while input remains visible.","feedback":"Search input receives focus.","toNodeId":"P7","recovery":"Close/system Back dismisses overlay and restores original context."},
+    {"id":"TR10","fromNodeId":"P7","trigger":"search has no matches","systemResponse":"Keep query and show empty state.","motion":"No route change.","feedback":"No-result announcement is polite.","toNodeId":"P8","recovery":"Edit/clear returns to P7; close restores context."},
+    {"id":"TR11","fromNodeId":"P7","trigger":"search fails or times out","systemResponse":"Keep query and show retry.","motion":"No route change.","feedback":"Search failure is announced.","toNodeId":"P9","recovery":"Retry reuses query; close restores context."},
+    {"id":"TR12","fromNodeId":"P7","trigger":"tap article result","systemResponse":"Save origin context and push article route.","motion":"Leftward entry; Reduce Motion uses fade.","feedback":"Result type and destination are exposed.","toNodeId":"P10","recovery":"Route Back restores original People page context."},
+    {"id":"TR13","fromNodeId":"P7","trigger":"tap figure result","systemResponse":"Save origin context and push figure route.","motion":"Hierarchical transition; Reduce Motion uses fade.","feedback":"Result type and destination are exposed.","toNodeId":"P11","recovery":"Route Back restores original People page context."},
+    {"id":"TR14","fromNodeId":"P7","trigger":"close search or system Back","systemResponse":"Dismiss overlay and restore focus to the invoking search control.","motion":"Keyboard dismisses, then focus returns.","feedback":"No selection/filter/scroll reset announcement occurs.","toNodeId":"P3","recovery":"Saved topic, dynasty, expansion, and scroll states return unchanged."},
+    {"id":"TR15","fromNodeId":"P10","trigger":"retry article","systemResponse":"Retry identified article without losing identity.","motion":"Loading text or reduced-motion fade.","feedback":"Retry status is announced.","toNodeId":"P10","recovery":"Return remains available at all times."},
+    {"id":"TR16","fromNodeId":"P11","trigger":"retry figure","systemResponse":"Retry identified figure without losing identity.","motion":"Loading text or reduced-motion fade.","feedback":"Retry status is announced.","toNodeId":"P11","recovery":"Return remains available at all times."}
+  ],
+  "failureHooks": [
+    {"id":"FH1","area":"initial content","trigger":"Force People page request to fail before first render (ST1/ST2).","injectedOutcome":"ST2 page-level failure replaces loading.","expectedTruth":"Retry is available; no stale content is represented as current."},
+    {"id":"FH2","area":"topic directory","trigger":"Force topic query to return timeout or zero matches (ST3/ST5).","injectedOutcome":"ST5 local topic recovery appears.","expectedTruth":"Only topic articles change; clear/retry leaves dynasty state and figure list untouched."},
+    {"id":"FH3","area":"figure directory","trigger":"Force dynasty query to return timeout or zero matches (ST4/ST6).","injectedOutcome":"ST6 local figure recovery appears.","expectedTruth":"Only figure directory changes; clear/retry leaves topic state and article list untouched."},
+    {"id":"FH4","area":"search index","trigger":"Use deterministic query responses for timeout, zero matches, and success (ST7/ST8/ST9).","injectedOutcome":"ST8 empty or ST9 failure preserves entered query.","expectedTruth":"Retry, edit/clear, and close are available; close restores original People page context."},
+    {"id":"FH5","area":"article detail","trigger":"Open an identified article then force detail fetch failure (ST10).","injectedOutcome":"Article ST10 failure keeps object identity visible.","expectedTruth":"Retry and return remain available; return restores saved context."},
+    {"id":"FH6","area":"figure detail","trigger":"Open an identified figure then force detail fetch failure (ST10).","injectedOutcome":"Figure ST10 failure keeps object identity visible.","expectedTruth":"Retry and return remain available; return restores saved context."},
+    {"id":"FH7","area":"notification deep link","trigger":"Open expired, missing, or unauthorized notification target.","injectedOutcome":"Target recovery is shown instead of a blank detail page.","expectedTruth":"User can continue to the People page without notification permission."}
+  ],
+  "runtimeChecks": [
+    {"id":"RC1","category":"search","case":"ILIKE '%query%' results identify figure, article, and topic result types and their destinations.","deviceOrSetting":"iOS and Android phone","expected":"Three substring result sets are distinguishable after merge and navigation targets are correct.","status":"not-tested","evidence":""},
+    {"id":"RC2","category":"state-continuity","case":"Close search after a non-default topic, dynasty, expansion, and scroll state.","deviceOrSetting":"iOS and Android phone","expected":"All original People page context is restored.","status":"not-tested","evidence":""},
+    {"id":"RC3","category":"accessibility","case":"Use VoiceOver/TalkBack for search input, typed results, selected filters, and recovery states.","deviceOrSetting":"iOS VoiceOver; Android TalkBack","expected":"Reading order, labels, state announcements, and focus restore are correct.","status":"not-tested","evidence":""},
+    {"id":"RC4","category":"motion","case":"Enable Reduce Motion/reduced animation and open/return from article and figure routes.","deviceOrSetting":"iOS Reduce Motion; Android reduced animation","expected":"Fade/reduced motion keeps route and loading semantics perceptible.","status":"not-tested","evidence":""},
+    {"id":"RC5","category":"system","case":"Use iOS edge Back and Android system/predictive Back from detail and search.","deviceOrSetting":"Current supported iOS and Android versions","expected":"Back closes search first or restores the saved People page context without an accidental exit.","status":"not-tested","evidence":""},
+    {"id":"RC6","category":"lifecycle","case":"Background and resume/recreate while search or a detail route is open.","deviceOrSetting":"iOS background/resume; Android process recreation","expected":"No false restored state; persisted context restores when available.","status":"not-tested","evidence":""}
+  ],
+  "testCases": [
+    {"id":"TC1","flowId":"F2","preconditions":"People page uses non-default topic, dynasty, expansion, and scroll state.","actions":"Open search, enter a substring contained in a figure name, article title, or topic name, inspect typed results, and close.","expectedResult":"Three ILIKE '%query%' result sets are merged with explicit types; close restores all saved People page context.","status":"not-tested","evidence":""},
+    {"id":"TC2","flowId":"F2","preconditions":"Search returns article and figure results.","actions":"Open each result and use platform Back.","expectedResult":"Article enters leftward/returns rightward; detail return restores original People page context.","status":"not-tested","evidence":""},
+    {"id":"TC3","flowId":"F3","preconditions":"Both directories have more than seven records and deterministic empty/failure hooks.","actions":"Independently select/clear topic and dynasty, expand/collapse each list, then inject recovery states.","expectedResult":"Filters and expansion affect only their owning directory and each recovery is local.","status":"not-tested","evidence":""},
+    {"id":"TC4","flowId":"F1","preconditions":"Deterministic article and figure detail failure hooks are available.","actions":"Open an object, force ST10 failure, retry, then return.","expectedResult":"Object identity remains visible; retry is idempotent; return restores context.","status":"not-tested","evidence":""},
+    {"id":"TC5","flowId":"F4","preconditions":"Invalid notification deep link can be invoked.","actions":"Open invalid target and choose recovery.","expectedResult":"Reason is shown and People page remains a usable fallback.","status":"not-tested","evidence":""}
+  ],
+  "coverage": [
+    {"sourceScreenId":"S1","requiredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"prototypeNodeIds":["P1","P2","P3","P4","P5","P6"]},
+    {"sourceScreenId":"S2","requiredStateIds":["ST7","ST8","ST9"],"prototypeNodeIds":["P7","P8","P9"]},
+    {"sourceScreenId":"S3","requiredStateIds":["ST10"],"prototypeNodeIds":["P10"]},
+    {"sourceScreenId":"S4","requiredStateIds":["ST10"],"prototypeNodeIds":["P11"]}
+  ],
+  "interactionCoverage": [
+    {"id":"S1-I1","screenId":"S1","action":"article -> S3","status":"mapped","transitionIds":["TR7"]},
+    {"id":"S1-I2","screenId":"S1","action":"figure -> S4","status":"mapped","transitionIds":["TR8"]},
+    {"id":"S1-I3","screenId":"S1","action":"search -> S2","status":"mapped","transitionIds":["TR9"]},
+    {"id":"S2-I1","screenId":"S2","action":"close -> S1","status":"mapped","transitionIds":["TR14"]},
+    {"id":"S2-I2","screenId":"S2","action":"result article -> S3","status":"mapped","transitionIds":["TR12"]},
+    {"id":"S2-I3","screenId":"S2","action":"result figure -> S4","status":"mapped","transitionIds":["TR13"]},
+    {"id":"S3-I1","screenId":"S3","action":"back -> S1","status":"mapped","transitionIds":["TR15"]},
+    {"id":"S4-I1","screenId":"S4","action":"back -> S1","status":"mapped","transitionIds":["TR16"]}
+  ],
+  "deliverables": ["prototype-map.md", "prototype.json", "prototype-test-plan.md", "prototype-runner/index.html", "prototype-runner/runner-report.json"],
+  "openQuestions": ["Confirm the exact database column mapping and result merge order for the three ILIKE queries during implementation.", "The app's exact supported OS range and notification authorization policy remain unconfirmed.", "The browser runner structurally exercised ST7, ST8, ST9, and the close-to-P3 contract on 2026-08-26; it is not evidence of production search, device accessibility, interruption, or system Back behavior, so runtime checks remain not-tested."]
+}

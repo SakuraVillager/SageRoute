@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../../data/location_repository.dart';
 import '../../../data/topic_repository.dart';
@@ -213,7 +213,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
         child: SizedBox(
           height: sheetHeight,
           child: Material(
-            color: const Color(0xFFFFFFFF),
+            color: AppColors.sageCard,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: Column(
@@ -320,7 +320,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
                   icon: const Icon(Icons.close, size: 18),
                 ),
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.brandWash,
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           border: OutlineInputBorder(
@@ -440,7 +440,7 @@ class _PlaceListTile extends StatelessWidget {
       child: Material(
         color: isSelected
             ? AppColors.primaryLight.withValues(alpha: 0.09)
-            : Colors.white,
+            : AppColors.brandWash,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: onToggle,
@@ -534,7 +534,7 @@ class _BottomActionBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.sageCard,
         border: Border(top: BorderSide(color: AppColors.sageBorder)),
       ),
       child: Row(

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {
+    "productName": "SageRoute 人物页",
+    "reviewMode": "package",
+    "platform": "cross-platform",
+    "generatedAt": "2026-08-26"
+  },
+  "sources": [
+    {"id":"SR1","path":"product-brief.json","date":"2026-08-26","limitation":"Defines the user-approved ILIKE search boundary but does not prove the Flutter implementation."},
+    {"id":"SR2","path":"ux-architecture.json; wireframe.json","date":"2026-08-26","limitation":"Defines intended behavior, not a running application."},
+    {"id":"SR3","path":"ui-design.json; ui-spec.md; visual-baseline.md; design-system.json","date":"2026-08-26","limitation":"Static documents cannot prove target size, reflow, or semantics."},
+    {"id":"SR4","path":"prototype.json; prototype-runner/index.html","date":"2026-08-26","limitation":"Browser runner proves contract reachability, not device/runtime behavior."},
+    {"id":"SR5","path":"platform-guidelines.json; platform-review.md","date":"2026-08-26","limitation":"All device checks are not-tested."}
+  ],
+  "validationRuns": [
+    {"id":"VR1","command":"validate_product_brief.py product-brief.json","result":"pass","evidence":"Recorded in design-run.json."},
+    {"id":"VR2","command":"validate_ux_architecture.py ux-architecture.json; validate_wireframe.py wireframe.json --source-ux ux-architecture.json","result":"pass","evidence":"Recorded in design-run.json."},
+    {"id":"VR3","command":"validate_ui_design.py ui-design.json; validate_design_system.py design-system.json --source-ui ui-design.json","result":"pass","evidence":"Recorded in design-run.json."},
+    {"id":"VR4","command":"validate_prototype.py prototype.json; validate_ui_prototype_alignment.py --ui-design ui-design.json --prototype prototype.json; validate_prototype_runner.py --html prototype-runner/index.html --prototype prototype.json --design-system design-system.json","result":"pass","evidence":"11 nodes and 16 transitions validated; runner structurally exercised search states."},
+    {"id":"VR5","command":"validate_platform_guidelines.py platform-guidelines.json; validate_design_run.py design-run.json --root .","result":"pass","evidence":"Structure and workflow manifest passed."}
+  ],
+  "decision": {
+    "result": "conditional-pass",
+    "nextStage": "flutter-implementation",
+    "conditions": ["Implement and test three Supabase/Postgres ILIKE '%query%' searches over figure names, article titles, and topic names; merge results with their object types.", "Implement semantic 44 pt iOS and 48 dp Android hit targets around smaller locked visual controls.", "Implement and device-verify saved People-page context across search dismissal and detail Back."],
+    "rationale": "The package is internally traceable, the main flows have recovery paths, and the user resolved the first-release search scope. Runtime Flutter and device platform behavior remain untested."
+  },
+  "score": {
+    "dimensions": [
+      {"id":"product-task","maximum":20,"awarded":20,"deductionFindingIds":[]},
+      {"id":"information-architecture-ux","maximum":20,"awarded":18,"deductionFindingIds":["I3"]},
+      {"id":"visual-hierarchy-consistency","maximum":20,"awarded":18,"deductionFindingIds":["I2"]},
+      {"id":"platform-native","maximum":15,"awarded":10,"deductionFindingIds":["I2","I4"]},
+      {"id":"state-completeness","maximum":10,"awarded":9,"deductionFindingIds":["I3"]},
+      {"id":"accessibility-privacy-ethics","maximum":10,"awarded":7,"deductionFindingIds":["I2","I4"]},
+      {"id":"brand-differentiation","maximum":5,"awarded":5,"deductionFindingIds":[]}
+    ],
+    "total": 87,
+    "maximum": 100
+  },
+  "findings": [
+    {"id":"I1","severity":"P1","blocker":false,"dimension":"product-task","title":"Search scope is explicitly bounded","locations":["product-brief.json S5 and constraints","ux-architecture.json R2/AS2","prototype.json implementationBoundary"],"evidenceType":"observed","evidence":"User confirmed that the first release uses Supabase/Postgres ILIKE '%query%' against figure names, article titles, and topic names only; typo tolerance, pinyin, aliases, simplified/traditional conversion, and complex ordering are excluded.","affectedUsers":"Users searching figures, article titles, or topic names.","impact":"The core discovery task now has a bounded, implementable search promise.","fix":"Implement three ILIKE '%query%' queries, merge typed results, and do not add unsupported fuzzy-search behavior.","verification":"Focused tests cover the three field queries, substring matches, zero results, failure, retry, and typed-result merge.","confidence":"high","status":"fixed"},
+    {"id":"I2","severity":"P2","blocker":false,"dimension":"accessibility-privacy-ethics","title":"Locked visual dimensions need explicit semantic hit-area wrappers","locations":["visual-baseline.md spatial baseline","ui-spec.md foundations","platform-guidelines.json PR3/PR4"],"evidenceType":"derived","evidence":"Visible search, filter, and row measurements are below the stated 44 pt iOS and 48 dp Android target guidance unless the implementation adds larger semantic bounds.","affectedUsers":"Users with motor impairments and users operating filters/search one-handed.","impact":"Directly using visible dimensions as hit areas would make frequent actions error-prone and violate the intended accessibility contract.","fix":"Preserve visual dimensions but wrap every interactive component in a non-overlapping 44 pt/48 dp minimum semantic hit area.","verification":"Widget tests inspect hit bounds; iOS/Android manual tests confirm adjacent actions remain independently operable at large text.","confidence":"high","status":"open"},
+    {"id":"I3","severity":"P2","blocker":false,"dimension":"information-architecture-ux","title":"Detail defaults and restoration storage boundary need implementation definition","locations":["ui-spec.md S3/S4","prototype.json scope/openQuestions","platform-guidelines.json PR5/PR6"],"evidenceType":"risk","evidence":"Article body is deferred to the existing route, figure detail structure is deferred, and cold-start persistence fields are not decided.","affectedUsers":"Readers returning from detail after backgrounding, recreation, or an unavailable target.","impact":"Navigation can restore partially or show ambiguous detail states.","fix":"Identify existing article/figure routes, define their loading/error ownership, and decide which People-page fields are in-memory versus restoration-persisted.","verification":"Widget/integration tests cover existing routes, search close, detail return, resume, and Android recreation against the chosen boundary.","confidence":"medium","status":"open"},
+    {"id":"I4","severity":"P2","blocker":false,"dimension":"platform-native","title":"Platform and notification policy need device evidence","locations":["platform-guidelines.json PC1-PC6","platform-review.md device test plan"],"evidenceType":"not-tested","evidence":"All listed platform checks are not-tested and the supported OS/API range plus notification authorization timing are unresolved.","affectedUsers":"iOS/Android users using system Back, assistive technology, large text, keyboard, or notification deep links.","impact":"Static visual agreement cannot prevent platform behavior regressions.","fix":"Record supported OS/API ranges, keep notification permission optional, and run the device matrix after implementation.","verification":"Attach iOS/Android evidence for Back, insets, text scaling, assistive tech, reduced motion, recreation, and invalid deep-link recovery.","confidence":"high","status":"open"}
+  ],
+  "strengths": [
+    {"id":"S1","evidence":"ui-design.json and design-system.json preserve user-selected VD2 as a locked semantic system.","statement":"The visual direction is traceable and does not depend on an unstructured screenshot."},
+    {"id":"S2","evidence":"ux-architecture.json, prototype.json, and UI/prototype alignment validation cover all four screens and eleven required states.","statement":"Independent filtering, recovery, search close, and detail return have explicit contracts."},
+    {"id":"S3","evidence":"platform-guidelines.json FB1-FB3 and prototype FH7 define optional notification behavior and People-page fallback.","statement":"Secondary system entry cannot block the core discovery task."}
+  ],
+  "notTested": [
+    {"id":"NT1","area":"Live search implementation","reason":"The user-approved ILIKE scope is documented, but no Flutter/Supabase query or test has yet been implemented."},
+    {"id":"NT2","area":"Flutter behavior","reason":"No Flutter code or widget/integration tests have been created for this package."},
+    {"id":"NT3","area":"iOS device behavior","reason":"No iPhone evidence exists for edge Back, Dynamic Type, VoiceOver, keyboard, safe areas, or Reduce Motion."},
+    {"id":"NT4","area":"Android device behavior","reason":"No Android evidence exists for predictive Back, insets, font scale, TalkBack, process recreation, or adaptive windows."}
+  ],
+  "nextActions": [
+    {"priority":1,"owner":"SageRoute Flutter","action":"Implement and test I1's three-field ILIKE search contract and typed-result merge.","exitCondition":"Figure-name, article-title, and topic-name substring queries plus empty/error/retry tests pass."},
+    {"priority":2,"owner":"SageRoute Flutter","action":"Implement People page with I2 semantic targets and I3 restoration rules.","exitCondition":"Widget/integration tests pass for filters, search close, routes, and recovery."},
+    {"priority":3,"owner":"SageRoute QA/accessibility","action":"Run I4 device matrix after a runnable build exists.","exitCondition":"Platform checks have documented device evidence or tracked failures."}
+  ]
+}

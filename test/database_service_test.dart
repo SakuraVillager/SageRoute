@@ -22,7 +22,7 @@ void main() {
 
       await DatabaseService.initialize(
         env: env,
-        initializer: (url, anonKey) async {
+        initializer: (url, anonKey, authOptions) async {
           capturedUrl = url;
           capturedKey = anonKey;
         },
@@ -34,11 +34,33 @@ void main() {
       expect(capturedKey, isNotEmpty);
     });
 
+    test(
+      'first initialization lets Supabase initialize session storage once',
+      () async {
+        try {
+          await DatabaseService.initialize(
+            env: const {
+              'SUPABASE_URL': 'https://example.supabase.co',
+              'SUPABASE_ANON_KEY': 'publishable-test-key',
+            },
+          );
+
+          expect(Supabase.instance.isInitialized, isTrue);
+        } finally {
+          if (Supabase.instance.isInitialized) {
+            Supabase.instance.client.auth.stopAutoRefresh();
+            await Future<void>.delayed(Duration.zero);
+            await Supabase.instance.dispose();
+          }
+        }
+      },
+    );
+
     test('initialize throws when required env is missing', () async {
       expect(
         () => DatabaseService.initialize(
           env: const {'SUPABASE_URL': 'https://example.supabase.co'},
-          initializer: (url, anonKey) async {},
+          initializer: (url, anonKey, authOptions) async {},
         ),
         throwsException,
       );
@@ -50,7 +72,9 @@ void main() {
           'SUPABASE_URL': 'https://example.supabase.co',
           'SUPABASE_ANON_KEY': 'publishable-test-key',
         },
-        initializer: (url, publishableKey) async {},
+        initializer: (url, publishableKey, authOptions) async {
+          await authOptions.localStorage!.initialize();
+        },
       );
       final session = Session(
         accessToken: 'test-access-token',
@@ -106,6 +130,43 @@ void main() {
 
       expect(values, <dynamic>['苏东坡', '白居易']);
     });
+
+    test(
+      'repository passes ILIKE column and substring pattern to query layer',
+      () async {
+        String? table;
+        String? column;
+        String? pattern;
+        final repository = SupabaseTableRepository(
+          tableName: 'Article',
+          rawIlikeFetcher:
+              ({
+                required tableName,
+                required columns,
+                required ilikeColumn,
+                required ilikePattern,
+                limit,
+              }) async {
+                table = tableName;
+                column = ilikeColumn;
+                pattern = ilikePattern;
+                return <dynamic>[
+                  const <String, dynamic>{'id': 1},
+                ];
+              },
+        );
+
+        final rows = await repository.fetchWhereIlikeRaw(
+          column: 'title',
+          pattern: '%江南%',
+        );
+
+        expect(table, 'Article');
+        expect(column, 'title');
+        expect(pattern, '%江南%');
+        expect(rows.single['id'], 1);
+      },
+    );
 
     test(
       'integration: query Supabase Celebrity table via env credentials',

@@ -1,0 +1,34 @@
+{
+  "runnerVersion": "0.1.0",
+  "status": "generated",
+  "runtimeEvidence": "not-tested",
+  "productName": "SageRoute 人物页",
+  "sourcePrototypePath": "D:\\cxf\\code\\SageRoute\\docs\\mobile-design\\figures-page\\prototype.json",
+  "sourceUiPath": "D:\\cxf\\code\\SageRoute\\docs\\mobile-design\\figures-page\\ui-design.json",
+  "sourceDesignSystemPath": "D:\\cxf\\code\\SageRoute\\docs\\mobile-design\\figures-page\\design-system.json",
+  "designSystemConsumed": true,
+  "visualLockConsumed": true,
+  "selectedDirectionId": "VD2",
+  "selectedStyleFamily": "museum-exhibit-editorial",
+  "themeVariant": "warm-paper-gray-directory",
+  "defaultMode": "clean-product-preview",
+  "inspectMode": "?inspect=1",
+  "counts": {
+    "nodes": 11,
+    "transitions": 16,
+    "failureHooks": 7,
+    "runtimeChecks": 6
+  },
+  "reviewSurface": [
+    "warm-paper-gray-directory product preview from the selected museum-exhibit-editorial direction",
+    "reference fingerprint, color hierarchy, module rhythm, and selected theme tokens consumed by the Runner",
+    "contract state jump and outgoing transition controls",
+    "save, index, permission, and delete failure injection",
+    "event log and reduced-motion equivalent"
+  ],
+  "nextEvidence": [
+    "Browser core-flow click test",
+    "Large text and keyboard reflow review",
+    "VoiceOver/TalkBack and device interruption review"
+  ]
+}

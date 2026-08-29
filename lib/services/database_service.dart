@@ -7,7 +7,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-typedef InitFn = Future<void> Function(String url, String publishableKey);
+typedef InitFn =
+    Future<void> Function(
+      String url,
+      String publishableKey,
+      FlutterAuthClientOptions authOptions,
+    );
 typedef QueryTableFn = Future<dynamic> Function(String table);
 typedef QueryFieldFn = Future<dynamic> Function(String table, String field);
 
@@ -46,17 +51,23 @@ class DatabaseService {
       persistSessionKey:
           'sb-${Uri.parse(supabaseUrl).host.split('.').first}-auth-token',
     );
-    await authStorage.initialize();
-    _authStorage = authStorage;
+    final authOptions = FlutterAuthClientOptions(localStorage: authStorage);
     final init =
         initializer ??
-        (String url, String publishableKey) => Supabase.initialize(
-          url: url,
-          publishableKey: publishableKey,
-          authOptions: FlutterAuthClientOptions(localStorage: authStorage),
-        );
+        (
+          String url,
+          String publishableKey,
+          FlutterAuthClientOptions options,
+        ) async {
+          await Supabase.initialize(
+            url: url,
+            publishableKey: publishableKey,
+            authOptions: options,
+          );
+        };
     try {
-      await init(supabaseUrl, supabaseKey);
+      await init(supabaseUrl, supabaseKey, authOptions);
+      _authStorage = authStorage;
       _initialized = true;
     } catch (error) {
       final message = error.toString();

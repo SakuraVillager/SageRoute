@@ -6,10 +6,10 @@ import 'package:flutter/material.dart';
 import '../../models/celebrity_profile.dart';
 import '../../models/new_route_draft.dart';
 import '../../route_planning/models/route_place.dart';
+import '../../route_planning/route_preview_coordinator.dart';
 import '../../theme/color_schemes.dart';
 import 'steps/step1_figure.dart';
 import 'steps/step3_map.dart';
-import 'steps/step4_route_preview.dart';
 
 part 'create_route_wizard_widgets.dart';
 
@@ -24,18 +24,18 @@ class CreateRouteWizard extends StatefulWidget {
 
 class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Colours shared with theatre widget part file ──
-  static const _bgPage = Color(0xFFF8F7F0);
+  static const _bgPage = AppColors.sageBg;
   static const _ticketLeft = Colors.white;
-  static const _ticketRight = Color(0xFFEEEAD9);
-  static const _textMain = Color(0xFF382F00);
-  static const _textSub = Color(0xFF8B7500);
-  static const _accent = Color(0xFF8B7500);
-  static const _lineColor = Color(0xFFDCD6B3);
-  static const _skeletonColor = Color(0xFFEEEAD9);
-  static const _calendarRangeBg = Color(0x298B7500);
+  static const _ticketRight = AppColors.brandLight;
+  static const _textMain = AppColors.sageText;
+  static const _textSub = AppColors.sageAccent;
+  static const _accent = AppColors.sageAccent;
+  static const _lineColor = AppColors.sageBorder;
+  static const _skeletonColor = AppColors.brandLight;
+  static const _calendarRangeBg = Color(0x2996615A);
 
   // ── Step titles ──
-  static const _stepTitles = ['行程规划', '选择人物', '地点选择', '路线预览'];
+  static const _stepTitles = ['行程规划', '选择人物', '路线规划'];
 
   String get _currentStepTitle => _stepTitles[_currentStep - 1];
 
@@ -59,11 +59,11 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   int? _startDay;
   int? _endDay;
 
-  // ── Wizard state (steps 2–4) ──
+  // ── Wizard state (steps 2–3) ──
   String? _selectedFigureId;
   CelebrityProfile? _selectedFigure;
-  String? _selectedThemeId;
   List<RoutePlace> _selectedLocations = [];
+  RoutePreviewStatus _routePreviewStatus = RoutePreviewStatus.insufficient;
 
   // ── Archive animation ──
   bool _archiving = false;
@@ -72,8 +72,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   bool get _isNextDisabled {
     if (_currentStep == 2 && _selectedFigureId == null) return true;
-    if (_currentStep == 3 && _selectedLocations.length < 2) return true;
-    if (_currentStep == 4 && _selectedLocations.length < 2) return true;
+    if (_currentStep == 3) {
+      return resolveRouteSaveAction(
+            placesCount: _selectedLocations.length,
+            previewStatus: _routePreviewStatus,
+          ) ==
+          RouteSaveAction.disabled;
+    }
     return false;
   }
 
@@ -214,19 +219,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     setState(() {
       _selectedFigureId = id;
       _selectedFigure = profile;
-      _selectedThemeId = null;
       _selectedLocations = [];
-    });
-  }
-
-  void _selectTheme(String id, String name) {
-    setState(() {
-      _selectedThemeId = id;
+      _routePreviewStatus = RoutePreviewStatus.insufficient;
     });
   }
 
   void _handleNext() {
-    if (_currentStep >= 4) return;
+    if (_currentStep >= 3) return;
     setState(() {
       _previousStep = _currentStep;
       _currentStep++;
@@ -244,9 +243,36 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     Navigator.of(context).pop();
   }
 
-  // ── Save (step 4) ──
+  // ── Save (step 3) ──
 
-  void _handleSave() {
+  Future<void> _handleSave() async {
+    final saveAction = resolveRouteSaveAction(
+      placesCount: _selectedLocations.length,
+      previewStatus: _routePreviewStatus,
+    );
+    if (saveAction == RouteSaveAction.disabled) return;
+
+    if (saveAction == RouteSaveAction.confirmFailure) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('路线预览失败'),
+          content: const Text('暂未生成可预览路线，仍要保存当前行程吗？'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('继续调整'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('仍然保存'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
     setState(() => _archiving = true);
 
     _later(const Duration(milliseconds: 1800), () {
@@ -288,7 +314,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         if (!didPop) _handleBack();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFFFFFFF),
+        backgroundColor: AppColors.sageBg,
         body: Stack(
           fit: StackFit.expand,
           children: [
@@ -329,7 +355,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       child: Row(
         children: [
           Material(
-            color: const Color(0xFFF8F7F0),
+            color: AppColors.sageBg,
             shape: const CircleBorder(
               side: BorderSide(color: AppColors.sageBorder),
             ),
@@ -353,13 +379,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0x148B7500),
+                    color: const Color(0x1496615A),
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
-                    '$_currentStep / 4',
+                    '$_currentStep / 3',
                     style: const TextStyle(
-                      color: Color(0xFF8B7500),
+                      color: AppColors.sageAccent,
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
@@ -374,7 +400,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                     style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF382F00),
+                      color: AppColors.sageText,
                     ),
                   ),
                 ),
@@ -395,9 +421,9 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         borderRadius: BorderRadius.circular(3),
         child: LinearProgressIndicator(
           minHeight: 3,
-          value: _currentStep / 4,
-          backgroundColor: const Color(0xFFEEEAD9),
-          valueColor: const AlwaysStoppedAnimation(Color(0xFF8B7500)),
+          value: _currentStep / 3,
+          backgroundColor: AppColors.brandLight,
+          valueColor: const AlwaysStoppedAnimation(AppColors.sageAccent),
         ),
       ),
     );
@@ -414,14 +440,16 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       Step1Figure(selectedFigureId: _selectedFigureId, onSelect: _selectFigure),
       Step3Map(
         figure: _selectedFigure,
-        topicId: _selectedThemeId,
         selectedPlaces: _selectedLocations,
-        onTopicChanged: _selectTheme,
         onLocationsChanged: (locations) {
           setState(() => _selectedLocations = locations);
         },
+        onPreviewStatusChanged: (status) {
+          if (_routePreviewStatus == status) return;
+          setState(() => _routePreviewStatus = status);
+        },
+        onSaveRequested: _handleSave,
       ),
-      Step4RoutePreview(places: _selectedLocations),
     ];
 
     final currentChild = KeyedSubtree(
@@ -666,51 +694,50 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     );
   }
 
-  // ── Bottom action button (steps 2–4) ──
+  // ── Bottom action button (steps 2–3) ──
 
   Widget _buildBottomButton() {
-    // Step 1 (theatre) manages its own buttons inside the panels.
-    if (_currentStep == 1) return const SizedBox.shrink();
+    // Steps 1 and 3 manage their actions inside their own panels.
+    if (_currentStep == 1 || _currentStep == 3) {
+      return const SizedBox.shrink();
+    }
 
-    final isLastStep = _currentStep == 4;
-    final buttonText = isLastStep
-        ? '保存行程'
-        : _currentStep == 3
-        ? '预览路线'
-        : '下一步';
-    final buttonHandler = isLastStep ? _handleSave : _handleNext;
+    const buttonText = '下一步';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
       decoration: const BoxDecoration(
-        color: Color(0xFFFFFFFF),
-        border: Border(top: BorderSide(color: Color(0x80EEEAD9))),
+        color: AppColors.sageCard,
+        border: Border(top: BorderSide(color: Color(0x80D8D8DC))),
       ),
-      child: ElevatedButton(
-        onPressed: _isNextDisabled ? null : buttonHandler,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1C1700),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFEEEAD9),
-          disabledForegroundColor: const Color(0xFFA89840),
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              buttonText,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+      child: SizedBox(
+        height: 48,
+        child: ElevatedButton(
+          onPressed: _isNextDisabled ? null : _handleNext,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.sageDeep,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.brandLight,
+            disabledForegroundColor: AppColors.sageMuted,
+            elevation: 0,
+            minimumSize: const Size(double.infinity, 38.4),
+            tapTargetSize: MaterialTapTargetSize.padded,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.8),
             ),
-            if (!isLastStep) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward, size: 18),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                buttonText,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(width: 7),
+              Icon(Icons.arrow_forward, size: 17),
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -723,7 +750,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       duration: const Duration(milliseconds: 400),
       opacity: _archiving ? 1 : 0,
       child: Container(
-        color: const Color(0xCCF8F7F0),
+        color: const Color(0xCCF0F0F2),
         child: Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.8, end: 1.0),
@@ -743,7 +770,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Color(0x208B7500),
+                            color: Color(0x2096615A),
                             blurRadius: 24,
                             offset: Offset(0, 8),
                           ),

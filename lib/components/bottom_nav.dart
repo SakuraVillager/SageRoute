@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/color_schemes.dart';
+
 /// 自定义 5-tab 底部导航栏，匹配 Web 版与用户要求：
 /// a. 规划按钮完全展示
 /// b. 导航栏中间“挖洞”
@@ -14,12 +16,12 @@ class SageRouteBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _bgColor = Color(0xFFEEEAD9);
-  static const Color _borderColor = Color(0xFFDCD6B3);
-  static const Color _activeBg = Color(0xFFEEEAD9);
-  static const Color _inactiveColor = Color(0xFFA89840);
-  static const Color _activeColor = Color(0xFF382F00);
-  static const Color _specialBg = Color(0xFF8B7500);
+  static const Color _bgColor = AppColors.brandLight;
+  static const Color _borderColor = AppColors.sageBorder;
+  static const Color _activeBg = AppColors.brandLight;
+  static const Color _inactiveColor = AppColors.sageMuted;
+  static const Color _activeColor = AppColors.sageText;
+  static const Color _specialBg = AppColors.sageAccent;
   static const Color _specialBorder = Color(0xFFFFFFFF);
 
   @override

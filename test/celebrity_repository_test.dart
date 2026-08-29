@@ -46,6 +46,35 @@ void main() {
     expect(rows.first.name, '苏东坡');
   });
 
+  test('searchByName finds a substring in injected celebrity names', () async {
+    final repository = CelebrityRepository(
+      fetcher: () async => const <CelebrityProfile>[
+        CelebrityProfile(
+          id: 1,
+          name: '苏东坡',
+          dynasty: '北宋',
+          bioShort: '',
+          bioFull: '',
+          avatarUrl: '',
+          topic: <String>[],
+        ),
+        CelebrityProfile(
+          id: 2,
+          name: '白居易',
+          dynasty: '唐',
+          bioShort: '',
+          bioFull: '',
+          avatarUrl: '',
+          topic: <String>[],
+        ),
+      ],
+    );
+
+    final celebrities = await repository.searchByName('东坡');
+
+    expect(celebrities.map((celebrity) => celebrity.name), <String>['苏东坡']);
+  });
+
   test(
     'integration: fetchCelebrities returns rows from Supabase table',
     () async {

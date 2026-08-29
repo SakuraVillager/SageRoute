@@ -47,6 +47,31 @@ void main() {
     expect(rows.last.name, '赤壁赋');
   });
 
+  test('searchByName finds a substring in injected topic names', () async {
+    final repository = TopicRepository(
+      fetcher: () async => const <TopicRecord>[
+        TopicRecord(
+          id: 1,
+          createdAt: null,
+          celebrity: null,
+          name: '江南诗路',
+          description: null,
+        ),
+        TopicRecord(
+          id: 2,
+          createdAt: null,
+          celebrity: null,
+          name: '赤壁故事',
+          description: null,
+        ),
+      ],
+    );
+
+    final topics = await repository.searchByName('江南');
+
+    expect(topics.map((topic) => topic.name), <String>['江南诗路']);
+  });
+
   test('fetchTopics with limit returns subset via fetcher', () async {
     final repository = TopicRepository(
       fetcher: () async => const <TopicRecord>[
@@ -81,76 +106,84 @@ void main() {
     expect(rows.last.name, '钱塘湖春行');
   });
 
-  test('fetchTopicsByCelebrity filters by celebrity name via fetcher', () async {
-    final repository = TopicRepository(
-      fetcher: () async => const <TopicRecord>[
-        TopicRecord(
-          id: 1,
-          createdAt: null,
-          celebrity: '苏东坡',
-          name: '西湖诗词',
-          description: null,
-        ),
-        TopicRecord(
-          id: 2,
-          createdAt: null,
-          celebrity: '苏东坡',
-          name: '赤壁赋',
-          description: null,
-        ),
-        TopicRecord(
-          id: 3,
-          createdAt: null,
-          celebrity: '白居易',
-          name: '钱塘湖春行',
-          description: null,
-        ),
-      ],
-    );
+  test(
+    'fetchTopicsByCelebrity filters by celebrity name via fetcher',
+    () async {
+      final repository = TopicRepository(
+        fetcher: () async => const <TopicRecord>[
+          TopicRecord(
+            id: 1,
+            createdAt: null,
+            celebrity: '苏东坡',
+            name: '西湖诗词',
+            description: null,
+          ),
+          TopicRecord(
+            id: 2,
+            createdAt: null,
+            celebrity: '苏东坡',
+            name: '赤壁赋',
+            description: null,
+          ),
+          TopicRecord(
+            id: 3,
+            createdAt: null,
+            celebrity: '白居易',
+            name: '钱塘湖春行',
+            description: null,
+          ),
+        ],
+      );
 
-    final rows = await repository.fetchTopicsByCelebrity('苏东坡');
+      final rows = await repository.fetchTopicsByCelebrity('苏东坡');
 
-    expect(rows, hasLength(2));
-    expect(rows.first.celebrity, '苏东坡');
-    expect(rows.map((t) => t.name), containsAll(['西湖诗词', '赤壁赋']));
-  });
+      expect(rows, hasLength(2));
+      expect(rows.first.celebrity, '苏东坡');
+      expect(rows.map((t) => t.name), containsAll(['西湖诗词', '赤壁赋']));
+    },
+  );
 
-  test('fetchTopicsByCelebrity returns empty when no match in fetcher data',
-      () async {
-    final repository = TopicRepository(
-      fetcher: () async => const <TopicRecord>[
-        TopicRecord(
-          id: 1,
-          createdAt: null,
-          celebrity: '苏东坡',
-          name: '西湖诗词',
-          description: null,
-        ),
-      ],
-    );
+  test(
+    'fetchTopicsByCelebrity returns empty when no match in fetcher data',
+    () async {
+      final repository = TopicRepository(
+        fetcher: () async => const <TopicRecord>[
+          TopicRecord(
+            id: 1,
+            createdAt: null,
+            celebrity: '苏东坡',
+            name: '西湖诗词',
+            description: null,
+          ),
+        ],
+      );
 
-    final rows = await repository.fetchTopicsByCelebrity('李白');
+      final rows = await repository.fetchTopicsByCelebrity('李白');
 
-    expect(rows, isEmpty);
-  });
+      expect(rows, isEmpty);
+    },
+  );
 
-  test('fetchTopicsByCelebrity returns empty for blank celebrity name', () async {
-    final repository = TopicRepository(
-      fetcher: () async => const <TopicRecord>[
-        TopicRecord(
-          id: 1,
-          createdAt: null,
-          celebrity: '苏东坡',
-          name: '西湖诗词',
-          description: null,
-        ),
-      ],
-    );
+  test(
+    'fetchTopicsByCelebrity returns empty for blank celebrity name',
+    () async {
+      final repository = TopicRepository(
+        fetcher: () async => const <TopicRecord>[
+          TopicRecord(
+            id: 1,
+            createdAt: null,
+            celebrity: '苏东坡',
+            name: '西湖诗词',
+            description: null,
+          ),
+        ],
+      );
 
-    final rows = await repository.fetchTopicsByCelebrity('  ');
+      final rows = await repository.fetchTopicsByCelebrity('  ');
 
-    expect(rows, isEmpty);
-  });
+      expect(rows, isEmpty);
+    },
+  );
 
   test('fetchTopicsByCelebrity returns empty for empty string', () async {
     final repository = TopicRepository(
@@ -185,9 +218,6 @@ void main() {
       fetcher: () async => throw Exception('查询失败'),
     );
 
-    expect(
-      () => repository.fetchTopics(),
-      throwsException,
-    );
+    expect(() => repository.fetchTopics(), throwsException);
   });
 }

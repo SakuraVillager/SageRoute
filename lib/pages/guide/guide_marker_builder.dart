@@ -271,5 +271,5 @@ Future<BitmapDescriptor> _buildCategoryMarkerIcon(
 }
 
 Future<BitmapDescriptor> _buildUserLocationIcon(_GuidePageState state) async {
-  return _buildCircleMarkerIcon(fillColor: const ui.Color(0xFFA89840));
+  return _buildCircleMarkerIcon(fillColor: AppColors.sageMuted);
 }
