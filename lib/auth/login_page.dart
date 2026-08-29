@@ -14,7 +14,8 @@ import 'register_page.dart';
 /// - 跳转注册页
 /// - 错误提示（邮箱格式、密码错误、网络异常等）
 /// - 加载状态
-/// - 7 天内登录过则自动填充邮箱与密码（记住密码）
+/// - 记住密码（勾选后启用）：7 天内登录过则自动填充邮箱与密码，
+///   点击勾选项旁的说明图标可查看保留期限等详情
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key, this.authService, this.credentialStorage});
 
@@ -39,6 +40,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _loading = false;
   String? _errorMessage;
 
+  /// 是否记住密码（勾选后登录成功才保存，7 天内自动填充）。
+  bool _rememberPassword = false;
+
   // ── Page-specific colors ──
   static const _pageBg = AppColors.sageBg;
   static const _textColor = AppColors.sageText;
@@ -57,12 +61,18 @@ class _LoginPageState extends State<LoginPage> {
     _restoreSavedCredentials();
   }
 
-  /// 同一设备 7 天内登录过 -> 自动填充邮箱与密码。
+  /// 同一设备 7 天内勾选「记住密码」登录过 -> 自动填充邮箱与密码。
   Future<void> _restoreSavedCredentials() async {
     final saved = await _credentials.load();
     if (saved == null || !mounted) return;
+    // 仅在用户（或系统密码管理器）尚未输入时填充，避免覆盖已有内容。
+    if (_emailController.text.isNotEmpty ||
+        _passwordController.text.isNotEmpty) {
+      return;
+    }
     _emailController.text = saved.email;
     _passwordController.text = saved.password;
+    setState(() => _rememberPassword = true);
   }
 
   @override
@@ -107,9 +117,14 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _errorMessage = '登录成功但未获取到有效会话，请重试');
         return;
       }
-      // 登录成功后记住账号密码，供 7 天内自动填充。
-      // 保存的是 AuthService 实际提交的凭据（两侧均已 trim）。
-      await _rememberCredentials(email: email, password: password);
+      // 登录成功后按勾选项处理记住的凭据，供 7 天内自动填充。
+      // 保存的是 AuthService 实际提交的凭据（两侧均已 trim）；
+      // 未勾选则清除旧记录，确保不再自动填充。
+      if (_rememberPassword) {
+        await _rememberCredentials(email: email, password: password);
+      } else {
+        await _forgetCredentials();
+      }
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
     } on AuthException catch (e) {
@@ -163,6 +178,15 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  /// 清除已记住的凭据（未勾选「记住密码」登录时调用）。
+  Future<void> _forgetCredentials() async {
+    try {
+      await _credentials.clear();
+    } catch (error) {
+      debugPrint('[Auth] clear credentials failed: $error');
+    }
+  }
+
   void _goToRegister() {
     Navigator.of(
       context,
@@ -192,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
                 _buildErrorText(),
               ],
               const SizedBox(height: 8),
-              _buildForgotPassword(),
+              _buildRememberAndForgotRow(),
               const SizedBox(height: 24),
               _buildLoginButton(),
               const SizedBox(height: 40),
@@ -315,25 +339,102 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ── Forgot password ──
+  // ── Remember password checkbox + forgot password ──
 
-  Widget _buildForgotPassword() {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: TextButton(
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => ForgotPasswordPage(authService: _auth),
+  Widget _buildRememberAndForgotRow() {
+    return Row(
+      children: [
+        SizedBox(
+          width: 24,
+          height: 24,
+          child: Checkbox(
+            value: _rememberPassword,
+            onChanged: _loading
+                ? null
+                : (value) => setState(() => _rememberPassword = value ?? false),
           ),
         ),
-        style: TextButton.styleFrom(
-          foregroundColor: _mutedColor,
-          padding: EdgeInsets.zero,
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: _loading ? null : _toggleRememberPassword,
+          behavior: HitTestBehavior.opaque,
+          child: Text(
+            '记住密码',
+            style: TextStyle(color: _mutedColor, fontSize: 13),
+          ),
         ),
-        child: const Text('忘记密码？'),
-      ),
+        const SizedBox(width: 4),
+        GestureDetector(
+          onTap: _loading ? null : _showRememberPasswordInfo,
+          behavior: HitTestBehavior.opaque,
+          child: Icon(Icons.info_outline, size: 14, color: _mutedColor),
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: _loading
+              ? null
+              : () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ForgotPasswordPage(authService: _auth),
+                  ),
+                ),
+          style: TextButton.styleFrom(
+            foregroundColor: _mutedColor,
+            padding: EdgeInsets.zero,
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+          child: const Text('忘记密码？'),
+        ),
+      ],
+    );
+  }
+
+  void _toggleRememberPassword() {
+    setState(() => _rememberPassword = !_rememberPassword);
+  }
+
+  /// 点击「记住密码」旁的说明图标，展示保留期限等详情。
+  void _showRememberPasswordInfo() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.sageCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.sageBorder),
+          ),
+          title: Text(
+            '记住密码说明',
+            style: const TextStyle(
+              color: AppColors.sageText,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: const Text(
+            '勾选后，登录成功时会把邮箱和密码保存在这台设备上：\n\n'
+            '· 下次打开登录页时自动填充\n'
+            '· 自本次登录成功起保留 7 天，超过 7 天自动删除\n'
+            '· 退出登录不会删除；重置密码后会自动同步为新密码\n'
+            '· 凭据仅保存在本机，不会上传到服务器\n\n'
+            '不勾选时登录，将清除本机已保存的记录。',
+            style: TextStyle(
+              color: AppColors.sageText,
+              fontSize: 13,
+              height: 1.6,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              style: TextButton.styleFrom(foregroundColor: _accentColor),
+              child: const Text('知道了'),
+            ),
+          ],
+        );
+      },
     );
   }
 

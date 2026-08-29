@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
-import '../services/credential_storage.dart';
 import '../theme/color_schemes.dart';
 
 /// 注册页，匹配 SageRoute 文人风格设计语言。
@@ -12,14 +11,13 @@ import '../theme/color_schemes.dart';
 /// - 表单校验（邮箱格式、密码长度、两次密码一致）
 /// - 注册成功提示
 /// - 错误提示
-/// - 注册即登录（无需邮箱验证）时记住账号密码
+///
+/// 注册即登录不会保存密码：记住密码需在登录页勾选（opt-in），
+/// 首次登录成功后才开始 7 天自动填充。
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key, this.authService, this.credentialStorage});
+  const RegisterPage({super.key, this.authService});
 
   final AuthService? authService;
-
-  /// 可选的凭据存储，便于测试注入。
-  final CredentialStorage? credentialStorage;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -27,7 +25,6 @@ class RegisterPage extends StatefulWidget {
 
 class _RegisterPageState extends State<RegisterPage> {
   late final AuthService _auth;
-  late final CredentialStorage _credentials;
 
   final _nicknameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -59,7 +56,6 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
     _auth = widget.authService ?? AuthService();
-    _credentials = widget.credentialStorage ?? CredentialStorage();
   }
 
   @override
@@ -138,8 +134,6 @@ class _RegisterPageState extends State<RegisterPage> {
       if (session != null) {
         // 邮箱验证关闭的情况下，session 非空 = 直接登录成功
         // AuthGate 会自动跳转到主页。
-        // 注册即登录同样记住账号密码，供 7 天内自动填充。
-        await _rememberCredentials(email: email, password: password);
         return;
       }
 
@@ -161,18 +155,6 @@ class _RegisterPageState extends State<RegisterPage> {
       });
     } finally {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  /// 持久化记住的凭据；存储失败不影响注册结果。
-  Future<void> _rememberCredentials({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      await _credentials.save(email: email, password: password);
-    } catch (error) {
-      debugPrint('[Auth] persist credentials failed: $error');
     }
   }
 
