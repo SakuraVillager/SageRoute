@@ -61,3 +61,10 @@ broken.txt
 CLAUDE.md
 .claude
 .gitignore
+
+# Local design and browser evidence (never ship with product sources)
+.playwright-mcp/
+.superpowers/
+figures-directions-desktop.png
+figures-visual-directions.png
+v6-preview.png
