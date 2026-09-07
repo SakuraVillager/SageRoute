@@ -15,7 +15,6 @@ void main() {
       '96615A',
       'AB817B',
       'C0A09C',
-      'D3D3D3',
       'D5C0BD',
       'D8D8DC',
       'EADFDE',

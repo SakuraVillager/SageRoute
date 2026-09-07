@@ -26,7 +26,6 @@ class AppColors {
   static const Color neutralSoft = Color(0xFFF8F8F9);
   static const Color neutralCard = white;
   static const Color neutralBorder = Color(0xFFD8D8DC);
-  static const Color neutralDirectory = Color(0xFFD3D3D3);
   static const Color neutralMuted = Color(0xFF6F6D72);
   static const Color neutralText = Color(0xFF202124);
   static const Color brandSurface = neutralBg;
