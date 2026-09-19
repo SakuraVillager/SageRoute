@@ -2,9 +2,7 @@ import 'package:amap_map/amap_map.dart';
 import 'package:flutter/material.dart';
 import 'package:x_amap_base/x_amap_base.dart';
 
-import '../../../data/location_repository.dart';
 import '../../../models/celebrity_profile.dart';
-import '../../../models/location_record.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../route_planning/models/transport_type.dart';
 import '../../../route_planning/route_preview_coordinator.dart';
@@ -37,13 +35,7 @@ class _Step3MapState extends State<Step3Map> {
   static const List<double> _panelStops = [0.32, 0.56, 0.78];
 
   double _panelFraction = _initialPanelFraction;
-  List<RoutePlace> _allPlaces = [];
-  List<RoutePlace> _themePlaces = [];
-  List<RoutePlace> _visiblePlaces = [];
   late List<RoutePlace> _selected;
-  bool _loading = true;
-  int _loadSequence = 0;
-  String? _loadError;
 
   final Map<String, TransportType> _segmentTransportTypes = {};
   RoutePreviewStatus _previewStatus = RoutePreviewStatus.insufficient;
@@ -64,16 +56,15 @@ class _Step3MapState extends State<Step3Map> {
     _routeCoordinator = RoutePreviewCoordinator(
       gateway: const NativeAmapGateway(),
     );
-    _loadLocations();
+    _scheduleRoute();
   }
 
   @override
   void didUpdateWidget(covariant Step3Map oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_hasSamePlaceIds(widget.selectedPlaces, oldWidget.selectedPlaces)) {
+    if (!_hasSamePlaces(widget.selectedPlaces, oldWidget.selectedPlaces)) {
       setState(() {
         _selected = List<RoutePlace>.from(widget.selectedPlaces);
-        _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
       });
       _scheduleRoute();
     }
@@ -85,132 +76,18 @@ class _Step3MapState extends State<Step3Map> {
     super.dispose();
   }
 
-  bool _hasSamePlaceIds(List<RoutePlace> a, List<RoutePlace> b) {
+  bool _hasSamePlaces(List<RoutePlace> a, List<RoutePlace> b) {
     if (a.length != b.length) return false;
     for (var i = 0; i < a.length; i++) {
-      if (a[i].id != b[i].id || a[i].name != b[i].name) return false;
+      if (a[i].id != b[i].id ||
+          a[i].name != b[i].name ||
+          a[i].latitude != b[i].latitude ||
+          a[i].longitude != b[i].longitude ||
+          a[i].averageVisitDurationMin != b[i].averageVisitDurationMin) {
+        return false;
+      }
     }
     return true;
-  }
-
-  Future<void> _loadLocations() async {
-    final sequence = ++_loadSequence;
-    setState(() {
-      _loading = true;
-      _loadError = null;
-    });
-
-    try {
-      const locationRepo = LocationRepository();
-      final raw = await locationRepo.fetchLocations();
-
-      if (!mounted || sequence != _loadSequence) return;
-
-      final places = _recordsToPlaces(raw);
-      final themePlaces = places;
-      final visiblePlaces = _mergeVisiblePlaces(themePlaces, _selected);
-      final selected = _selectedInVisibleOrder(visiblePlaces);
-
-      setState(() {
-        _allPlaces = places;
-        _themePlaces = themePlaces;
-        _visiblePlaces = visiblePlaces;
-        _selected = selected;
-        _loading = false;
-      });
-      widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
-      _scheduleRoute();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitMapToMarkers();
-      });
-    } catch (e) {
-      if (!mounted || sequence != _loadSequence) return;
-      setState(() {
-        _loadError = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  List<RoutePlace> _recordsToPlaces(List<LocationRecord> raw) {
-    final places = <RoutePlace>[];
-    for (var i = 0; i < raw.length; i++) {
-      final loc = raw[i];
-      if (_hasValidCoordinates(loc)) {
-        final id = loc.id > 0 ? loc.id : 100000 + i;
-        places.add(
-          RoutePlace(
-            id: id,
-            name: loc.nameModern,
-            latitude: loc.coordinates[1],
-            longitude: loc.coordinates[0],
-            averageVisitDurationMin: loc.averageVisitDurationMin,
-            topic: loc.topic,
-            categories: loc.categories.join(', '),
-          ),
-        );
-      }
-    }
-    places.sort((a, b) => a.name.compareTo(b.name));
-    return places;
-  }
-
-  bool _hasValidCoordinates(LocationRecord location) {
-    if (location.coordinates.length < 2) return false;
-    final longitude = location.coordinates[0];
-    final latitude = location.coordinates[1];
-    return latitude.isFinite &&
-        longitude.isFinite &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180 &&
-        !(latitude == 0 && longitude == 0);
-  }
-
-  List<RoutePlace> _mergeVisiblePlaces(
-    List<RoutePlace> themePlaces,
-    List<RoutePlace> selectedPlaces,
-  ) {
-    final allowedNames = <String>{
-      for (final place in themePlaces) place.name,
-      for (final place in selectedPlaces) place.name,
-    };
-    final byName = <String, RoutePlace>{};
-    for (final place in selectedPlaces) {
-      byName[place.name] = place;
-    }
-    for (final place in themePlaces) {
-      byName[place.name] = place;
-    }
-
-    final merged = <RoutePlace>[];
-    final mergedNames = <String>{};
-    for (final place in _visiblePlaces) {
-      final next = byName[place.name];
-      if (next != null && allowedNames.contains(place.name)) {
-        merged.add(next);
-        mergedNames.add(place.name);
-      }
-    }
-    for (final place in selectedPlaces) {
-      if (allowedNames.contains(place.name) && mergedNames.add(place.name)) {
-        merged.add(byName[place.name] ?? place);
-      }
-    }
-    for (final place in themePlaces) {
-      if (mergedNames.add(place.name)) {
-        merged.add(place);
-      }
-    }
-    return merged;
-  }
-
-  List<RoutePlace> _selectedInVisibleOrder(List<RoutePlace> visiblePlaces) {
-    final selectedNames = _selected.map((place) => place.name).toSet();
-    return visiblePlaces
-        .where((place) => selectedNames.contains(place.name))
-        .toList(growable: false);
   }
 
   void _setPreviewStatus(RoutePreviewStatus status) {
@@ -271,7 +148,6 @@ class _Step3MapState extends State<Step3Map> {
       _selected = _selected
           .where((selectedPlace) => selectedPlace.name != place.name)
           .toList(growable: false);
-      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
     _scheduleRoute();
@@ -285,7 +161,6 @@ class _Step3MapState extends State<Step3Map> {
   void _clearAllPlaces() {
     setState(() {
       _selected = const [];
-      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));
     _scheduleRoute();
@@ -376,11 +251,10 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   void _fitMapToMarkers() {
-    final points = _polyline.isNotEmpty
-        ? _polyline
-        : _markerPlaces
-              .map((place) => <double>[place.latitude, place.longitude])
-              .toList(growable: false);
+    final points = <List<double>>[
+      ..._polyline,
+      for (final place in _selected) [place.latitude, place.longitude],
+    ];
     if (points.isEmpty || _mapController == null) return;
 
     double minLat = double.infinity;
@@ -424,26 +298,10 @@ class _Step3MapState extends State<Step3Map> {
 
   double mathMax(double a, double b) => a > b ? a : b;
 
-  List<RoutePlace> get _markerPlaces => _visiblePlaces;
+  List<RoutePlace> get _markerPlaces => _selected;
 
   @override
   Widget build(BuildContext context) {
-    if (_loading && _allPlaces.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_loadError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            '加载失败: $_loadError',
-            style: const TextStyle(color: AppColors.sageMuted),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final panelH = constraints.maxHeight * _panelFraction;
@@ -486,20 +344,6 @@ class _Step3MapState extends State<Step3Map> {
                 ),
               ),
             ),
-            if (_loading)
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: Container(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2.4),
-                    ),
-                  ),
-                ),
-              ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
@@ -873,7 +717,6 @@ class _Step3MapState extends State<Step3Map> {
     setState(() {
       // Replace the complete selection so removals made in the picker take effect.
       _selected = List<RoutePlace>.from(result);
-      _visiblePlaces = _mergeVisiblePlaces(_themePlaces, _selected);
       _panelFraction = _initialPanelFraction;
     });
     widget.onLocationsChanged(List<RoutePlace>.unmodifiable(_selected));

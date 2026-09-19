@@ -25,6 +25,8 @@ class AppColors {
   static const Color neutralBg = Color(0xFFF0F0F2);
   static const Color neutralSoft = Color(0xFFF8F8F9);
   static const Color neutralCard = white;
+  // Directory dividers and recommendation backgrounds in the figures page.
+  static const Color neutralDirectory = Color(0xFFD3D3D3);
   static const Color neutralBorder = Color(0xFFD8D8DC);
   static const Color neutralMuted = Color(0xFF6F6D72);
   static const Color neutralText = Color(0xFF202124);

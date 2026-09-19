@@ -47,6 +47,7 @@ class NativeAmapGateway implements AmapGateway {
             'destLat': request.destination.latitude,
             'destLon': request.destination.longitude,
             'waypoints': waypoints,
+            'preferenceKey': request.preferenceKey,
           })
           .timeout(timeout);
     } on TimeoutException {

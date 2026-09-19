@@ -133,9 +133,13 @@ class RoutePlanningHandler(
         })
 
         val fromAndTo = RouteSearch.FromAndTo(from, to)
+        val strategy = when (call.argument<String>("preferenceKey")) {
+            "shortest" -> RouteSearch.DRIVING_SINGLE_SHORTEST
+            else -> RouteSearch.DRIVING_SINGLE_DEFAULT
+        }
         val query = RouteSearch.DriveRouteQuery(
             fromAndTo,
-            RouteSearch.DRIVING_SINGLE_DEFAULT,
+            strategy,
             passedBy,
             null,
             "",

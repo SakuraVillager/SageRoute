@@ -13,8 +13,6 @@ import 'steps/step3_map.dart';
 
 part 'create_route_wizard_widgets.dart';
 
-enum _TheatrePhase { hidden, flyIn, zoomTitle, datePicker }
-
 class CreateRouteWizard extends StatefulWidget {
   const CreateRouteWizard({super.key});
 
@@ -23,15 +21,11 @@ class CreateRouteWizard extends StatefulWidget {
 }
 
 class _CreateRouteWizardState extends State<CreateRouteWizard> {
-  // ── Colours shared with theatre widget part file ──
-  static const _bgPage = AppColors.sageBg;
-  static const _ticketLeft = Colors.white;
-  static const _ticketRight = AppColors.brandLight;
+  // ── Colours shared with step-one widgets ──
   static const _textMain = AppColors.sageText;
   static const _textSub = AppColors.sageAccent;
   static const _accent = AppColors.sageAccent;
   static const _lineColor = AppColors.sageBorder;
-  static const _skeletonColor = AppColors.brandLight;
   static const _calendarRangeBg = Color(0x2996615A);
 
   // ── Step titles ──
@@ -43,14 +37,10 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   int _currentStep = 1;
   int _previousStep = 1;
 
-  // ── Theatre state (step 1) ──
+  // ── Basic information (step 1) ──
   final _timers = <Timer>[];
   final _titleController = TextEditingController();
   final _titleFocusNode = FocusNode();
-
-  _TheatrePhase _theatrePhase = _TheatrePhase.hidden;
-  bool _showTheatrePanel = false;
-  bool _showCalendar = false;
 
   String _title = '';
   String _dateRange = '';
@@ -88,7 +78,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   void initState() {
     super.initState();
     _titleController.addListener(_syncTitle);
-    _startTheatreIntro();
   }
 
   @override
@@ -101,66 +90,23 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     super.dispose();
   }
 
-  // ── Theatre: intro animation ──
-
-  void _startTheatreIntro() {
-    _later(const Duration(milliseconds: 40), () {
-      _setTheatrePhase(_TheatrePhase.flyIn);
-    });
-    _later(const Duration(milliseconds: 900), () {
-      _setTheatrePhase(_TheatrePhase.zoomTitle);
-    });
-    _later(const Duration(milliseconds: 1750), () {
-      if (!mounted) return;
-      setState(() => _showTheatrePanel = true);
-      // Let the card and panel finish compositing before the keyboard changes
-      // the viewport. Overlapping those animations causes a visible frame drop.
-      _later(const Duration(milliseconds: 450), () {
-        if (mounted) _titleFocusNode.requestFocus();
-      });
-    });
-  }
-
   void _later(Duration duration, VoidCallback callback) {
     final timer = Timer(duration, callback);
     _timers.add(timer);
-  }
-
-  void _setTheatrePhase(_TheatrePhase phase) {
-    if (!mounted) return;
-    setState(() => _theatrePhase = phase);
   }
 
   void _syncTitle() {
     setState(() => _title = _titleController.text.trim());
   }
 
-  // ── Theatre: title → calendar ──
+  // ── Basic information → step 2 ──
 
-  void _handleTheatreNext() {
+  void _handlePlanDetailsDone() {
     if (_title.isEmpty) {
-      _showSnack('请先输入行程标题');
+      _showSnack('请先输入行程名称');
       _titleFocusNode.requestFocus();
       return;
     }
-
-    setState(() {
-      _showTheatrePanel = false;
-      _theatrePhase = _TheatrePhase.datePicker;
-    });
-
-    _later(const Duration(milliseconds: 350), () {
-      if (!mounted) return;
-      setState(() {
-        _showCalendar = true;
-        _showTheatrePanel = true;
-      });
-    });
-  }
-
-  // ── Theatre: calendar → step 2 ──
-
-  void _handleTheatreDone() {
     if (_startDay == null || _endDay == null) {
       _showSnack('请选择完整日期区间');
       return;
@@ -436,7 +382,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     final involvesMap = _currentStep >= 3 || _previousStep >= 3;
 
     final allSteps = <Widget>[
-      _buildTheatreStep(),
+      _buildPlanDetailsStep(),
       Step1Figure(selectedFigureId: _selectedFigureId, onSelect: _selectFigure),
       Step3Map(
         figure: _selectedFigure,
@@ -493,156 +439,67 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     );
   }
 
-  // ── Theatre step (step 1) ──
+  // ── Basic information form (step 1) ──
 
-  Widget _buildTheatreStep() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = Size(constraints.maxWidth, constraints.maxHeight);
-        return Stack(
-          children: [_buildTheatreCard(size), _buildTheatreInputPanel(size)],
-        );
-      },
-    );
-  }
-
-  Widget _buildTheatreCard(Size size) {
-    final geometry = _cardGeometry(size);
-    return Positioned(
-      left: 20,
-      right: 20,
-      top: 0,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 450),
-        opacity: geometry.opacity,
-        child: TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: geometry.top, end: geometry.top),
-          duration: geometry.duration,
-          curve: geometry.curve,
-          child: AnimatedScale(
-            duration: geometry.duration,
-            curve: geometry.curve,
-            scale: geometry.scale,
-            child: RepaintBoundary(
-              child: _TheatreTicketCard(
-                title: _title,
-                dateRange: _dateRange,
-                duration: _duration,
-                distance: _distance,
-              ),
-            ),
-          ),
-          builder: (context, top, child) =>
-              Transform.translate(offset: Offset(0, top), child: child),
-        ),
-      ),
-    );
-  }
-
-  _CardGeometry _cardGeometry(Size size) {
-    final focusScale = size.width < 390 ? 1.34 : 1.48;
-    switch (_theatrePhase) {
-      case _TheatrePhase.hidden:
-        return const _CardGeometry(
-          top: -180,
-          scale: 0.9,
-          opacity: 0,
-          duration: Duration(milliseconds: 850),
-          curve: Curves.easeOutBack,
-        );
-      case _TheatrePhase.flyIn:
-        return const _CardGeometry(
-          top: 64,
-          scale: 1,
-          opacity: 1,
-          duration: Duration(milliseconds: 850),
-          curve: Curves.easeOutBack,
-        );
-      case _TheatrePhase.zoomTitle:
-        return _CardGeometry(
-          top: size.height * 0.27,
-          scale: focusScale,
-          opacity: 1,
-          duration: const Duration(milliseconds: 950),
-          curve: Curves.easeOutCubic,
-        );
-      case _TheatrePhase.datePicker:
-        return _CardGeometry(
-          top: size.height * 0.18,
-          scale: focusScale,
-          opacity: 1,
-          duration: const Duration(milliseconds: 850),
-          curve: Curves.easeOutCubic,
-        );
-    }
-  }
-
-  Widget _buildTheatreInputPanel(Size size) {
-    final top = _showCalendar ? size.height * 0.5 - 38 : size.height * 0.5 + 35;
-    return Positioned(
-      top: 0,
-      left: 20,
-      right: 20,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween<double>(begin: top, end: top),
-        duration: const Duration(milliseconds: 650),
-        curve: Curves.easeOutCubic,
-        child: AnimatedSlide(
-          duration: const Duration(milliseconds: 450),
-          curve: Curves.easeOutCubic,
-          offset: _showTheatrePanel ? Offset.zero : const Offset(0, 0.05),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 450),
-            opacity: _showTheatrePanel ? 1 : 0,
-            child: IgnorePointer(
-              ignoring: !_showTheatrePanel,
-              child: _showCalendar ? _buildCalendarPanel() : _buildTitlePanel(),
-            ),
-          ),
-        ),
-        builder: (context, animatedTop, child) =>
-            Transform.translate(offset: Offset(0, animatedTop), child: child),
-      ),
-    );
-  }
-
-  Widget _buildTitlePanel() {
-    return _PanelFrame(
+  Widget _buildPlanDetailsStep() {
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _PanelTitle(icon: Icons.edit_note, text: '行程标题'),
+          const _FormSectionHeading(
+            number: '01',
+            title: '行程名称',
+            description: '取一个方便辨认的名字，之后仍可修改',
+          ),
+          const SizedBox(height: 10),
           TextField(
+            key: const ValueKey('route-title-field'),
             controller: _titleController,
             focusNode: _titleFocusNode,
             textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _handleTheatreNext(),
+            maxLength: 20,
+            onSubmitted: (_) => _titleFocusNode.unfocus(),
             style: const TextStyle(fontSize: 15, color: _textMain),
-            decoration: const InputDecoration(
-              hintText: '请输入行程短标题...',
+            decoration: InputDecoration(
+              hintText: '例如：苏轼的杭州三日行',
+              counterText: '',
+              prefixIcon: const Icon(
+                Icons.edit_outlined,
+                size: 19,
+                color: _textSub,
+              ),
               filled: true,
-              fillColor: Color(0xFFFFFFFF),
-              contentPadding: EdgeInsets.symmetric(
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 14,
-                vertical: 12,
+                vertical: 14,
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-                borderSide: BorderSide(color: _lineColor),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _lineColor),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(10)),
-                borderSide: BorderSide(color: _accent),
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _accent, width: 1.4),
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          const _FormSectionHeading(
+            number: '02',
+            title: '出行日期',
+            description: '依次选择出发日和返程日',
+          ),
+          const SizedBox(height: 10),
+          _buildCalendarPanel(),
+          const SizedBox(height: 14),
           _ConfirmButton(
-            label: '继续选取日期',
+            label: '下一步 · 选择同行人物',
             icon: Icons.arrow_forward,
-            color: _textMain,
-            onPressed: _handleTheatreNext,
+            color: _accent,
+            onPressed: _handlePlanDetailsDone,
           ),
         ],
       ),
@@ -657,9 +514,9 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '6月',
+            '2026年 6月',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: _textMain,
             ),
@@ -681,13 +538,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
               endDay: _endDay,
               onTap: () => _selectDay(index + 1),
             ),
-          ),
-          const SizedBox(height: 2),
-          _ConfirmButton(
-            label: '完成并开始规划',
-            icon: Icons.arrow_forward,
-            color: _accent,
-            onPressed: _handleTheatreDone,
           ),
         ],
       ),
