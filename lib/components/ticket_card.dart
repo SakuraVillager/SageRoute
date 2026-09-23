@@ -42,7 +42,7 @@ class TicketCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        height: 136,
+        height: 156,
         child: Stack(
           children: [
             // 主体卡片（左 + 右）

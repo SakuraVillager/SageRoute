@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import '../services/database_service.dart';
 
 typedef RowMapper<T> = T Function(Map<String, dynamic> row);
@@ -18,6 +20,16 @@ typedef RawTableIlikeFetcher =
       int? limit,
     });
 
+typedef RawTableWriter =
+    Future<dynamic> Function({
+      required String tableName,
+      required String operation,
+      Map<String, dynamic>? row,
+      List<Map<String, dynamic>>? rows,
+      Map<String, dynamic>? equals,
+      Map<String, dynamic>? values,
+    });
+
 /// 通用 Supabase 表仓储：
 /// - 通过 tableName 指定目标表
 /// - 统一复用 DatabaseService 的重试与超时能力
@@ -27,12 +39,15 @@ class SupabaseTableRepository {
     required this.tableName,
     RawTableFetcher? rawFetcher,
     RawTableIlikeFetcher? rawIlikeFetcher,
+    RawTableWriter? rawWriter,
   }) : _rawFetcher = rawFetcher,
-       _rawIlikeFetcher = rawIlikeFetcher;
+       _rawIlikeFetcher = rawIlikeFetcher,
+       _rawWriter = rawWriter;
 
   final String tableName;
   final RawTableFetcher? _rawFetcher;
   final RawTableIlikeFetcher? _rawIlikeFetcher;
+  final RawTableWriter? _rawWriter;
 
   /// 读取当前表全部记录并返回原始行数据。
   /// 可选参数：
@@ -157,5 +172,105 @@ class SupabaseTableRepository {
       limit: limit,
     );
     return rows.map<T>(mapper).toList(growable: false);
+  }
+
+  /// 插入单条记录并返回写入后的行（含数据库生成的默认值，如 id）。
+  Future<Map<String, dynamic>> insertRaw(Map<String, dynamic> row) async {
+    final response = await DatabaseService.runQueryWithRetry(
+      () => _write(operation: 'insert', row: row),
+      operationName: 'insertRaw($tableName)',
+    );
+    final rows = DatabaseService.normalizeRows(response);
+    if (rows.isEmpty) {
+      throw Exception('数据库写入失败：insertRaw($tableName) 未返回数据');
+    }
+    return rows.first;
+  }
+
+  /// 批量插入记录。
+  Future<void> insertAllRaw(List<Map<String, dynamic>> rows) async {
+    if (rows.isEmpty) return;
+    await DatabaseService.runQueryWithRetry(
+      () => _write(operation: 'insertAll', rows: rows),
+      operationName: 'insertAllRaw($tableName)',
+    );
+  }
+
+  /// 按等值条件更新记录。
+  Future<void> updateRaw({
+    required Map<String, dynamic> equals,
+    required Map<String, dynamic> values,
+  }) async {
+    if (values.isEmpty) return;
+    await DatabaseService.runQueryWithRetry(
+      () => _write(operation: 'update', equals: equals, values: values),
+      operationName: 'updateRaw($tableName)',
+    );
+  }
+
+  /// 按等值条件删除记录。
+  Future<void> deleteRaw(Map<String, dynamic> equals) async {
+    await DatabaseService.runQueryWithRetry(
+      () => _write(operation: 'delete', equals: equals),
+      operationName: 'deleteRaw($tableName)',
+    );
+  }
+
+  Future<dynamic> _write({
+    required String operation,
+    Map<String, dynamic>? row,
+    List<Map<String, dynamic>>? rows,
+    Map<String, dynamic>? equals,
+    Map<String, dynamic>? values,
+  }) async {
+    try {
+      final writer = _rawWriter;
+      if (writer != null) {
+        return await writer(
+          tableName: tableName,
+          operation: operation,
+          row: row,
+          rows: rows,
+          equals: equals,
+          values: values,
+        );
+      }
+
+      switch (operation) {
+        case 'insert':
+          return await DatabaseService.client
+              .from(tableName)
+              .insert(row!)
+              .select();
+        case 'insertAll':
+          return await DatabaseService.client.from(tableName).insert(rows!);
+        case 'update':
+          dynamic query = DatabaseService.client
+              .from(tableName)
+              .update(values!);
+          equals!.forEach((key, value) {
+            query = query.eq(key, value);
+          });
+          return await query;
+        case 'delete':
+          dynamic query = DatabaseService.client.from(tableName).delete();
+          equals!.forEach((key, value) {
+            query = query.eq(key, value);
+          });
+          return await query;
+        default:
+          throw ArgumentError('未知写操作: $operation');
+      }
+    } catch (error, stackTrace) {
+      final rowCount = rows?.length ?? (row == null ? 0 : 1);
+      developer.log(
+        'SUPABASE_WRITE_FAILED table=$tableName operation=$operation '
+        'row_count=$rowCount',
+        name: 'SageRoute.SupabaseTableRepository',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
   }
 }

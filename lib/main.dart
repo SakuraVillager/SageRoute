@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:amap_map/amap_map.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,8 @@ import 'package:x_amap_base/x_amap_base.dart';
 
 import 'theme.dart';
 import 'components/bottom_nav.dart';
-import 'models/new_route_draft.dart';
+import 'data/user_route_repository.dart';
+import 'models/saved_route.dart';
 import 'pages/celebrity_selection/celebrity_selection_page.dart';
 import 'views/landing_page.dart';
 import 'views/home_page.dart';
@@ -270,9 +272,9 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
-  final _newRouteDrafts = ValueNotifier<List<NewRouteDraft>>(
-    const <NewRouteDraft>[],
-  );
+  final _savedRoutes = ValueNotifier<List<SavedRoute>>(const <SavedRoute>[]);
+
+  static const _routeRepository = UserRouteRepository();
 
   // 惰性 tab 构建：只有访问过的 tab 才会被构建，避免首次进入时
   // IndexedStack 同时构建全部 4 个页面导致主线程过载 (ANR)。
@@ -288,25 +290,63 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _tabs = [
-      HomePage(createdRoutesListenable: _newRouteDrafts),
+      HomePage(
+        createdRoutesListenable: _savedRoutes,
+        onRefreshRoutes: _loadSavedRoutes,
+      ),
       const FiguresListPage(),
       const SavedRoutesPage(),
       ProfilePage(onDebugRouteTap: _pushCreateRouteWizard),
     ];
+    _loadSavedRoutes();
+  }
+
+  /// 从 Supabase 拉取当前用户的路线（新→旧）。
+  Future<void> _loadSavedRoutes() async {
+    try {
+      final routes = await _routeRepository.fetchUserRoutes();
+      if (!mounted) return;
+      final remoteIds = routes.map((route) => route.id).toSet();
+      final localOnly = _savedRoutes.value.where(
+        (route) => !remoteIds.contains(route.id),
+      );
+      _savedRoutes.value = [...localOnly, ...routes];
+    } catch (error, stackTrace) {
+      developer.log(
+        'Failed to sync saved routes on app start',
+        name: 'SageRoute.MainScreen',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('历史行程同步失败，可在首页下拉重试'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
   }
 
   @override
   void dispose() {
-    _newRouteDrafts.dispose();
+    _savedRoutes.dispose();
     super.dispose();
   }
 
   Future<void> _pushCreateRouteWizard() async {
-    final draft = await Navigator.of(
+    final saved = await Navigator.of(
       context,
-    ).push<NewRouteDraft>(slideFromRightRoute(const CreateRouteWizard()));
-    if (draft == null || !mounted) return;
-    _newRouteDrafts.value = [draft, ..._newRouteDrafts.value];
+    ).push<SavedRoute>(slideFromRightRoute(const CreateRouteWizard()));
+    if (saved == null || !mounted) return;
+    if (saved.id.isNotEmpty) {
+      _savedRoutes.value = [saved, ..._savedRoutes.value];
+    } else {
+      // 路线 id 未回传时兜底：重新拉取列表。
+      await _loadSavedRoutes();
+    }
     setState(() {
       _selectedIndex = 0;
       _builtTabs.add(0);

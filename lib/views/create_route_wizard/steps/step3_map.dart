@@ -2,6 +2,7 @@ import 'package:amap_map/amap_map.dart';
 import 'package:flutter/material.dart';
 import 'package:x_amap_base/x_amap_base.dart';
 
+import '../../../components/map/category_marker_icons.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../route_planning/models/transport_type.dart';
@@ -10,12 +11,27 @@ import '../../../services/native_amap_gateway.dart';
 import '../../../theme/color_schemes.dart';
 import 'add_place_page.dart';
 
+enum Step3Mode { edit, preview }
+
 class Step3Map extends StatefulWidget {
   final CelebrityProfile? figure;
   final List<RoutePlace> selectedPlaces;
   final ValueChanged<List<RoutePlace>> onLocationsChanged;
   final ValueChanged<RoutePreviewStatus> onPreviewStatusChanged;
   final Future<void> Function() onSaveRequested;
+
+  /// 编辑或预览；默认 [Step3Mode.edit]。
+  final Step3Mode mode;
+
+  /// 预览模式下 footer「开始导航」按钮回调。
+  final VoidCallback? onStartNavigation;
+
+  /// 交通方式变更时回传（key 为 `fromId:fromName->toId:toName`，持久化用）。
+  final ValueChanged<Map<String, TransportType>>? onTransportTypesChanged;
+
+  /// 初始每段交通方式（与 [selectedPlaces] 顺序对齐，长度 = 地点数 - 1），
+  /// 缺省段按驾车处理。
+  final List<TransportType>? initialSegmentTransports;
 
   const Step3Map({
     super.key,
@@ -24,10 +40,18 @@ class Step3Map extends StatefulWidget {
     required this.onLocationsChanged,
     required this.onPreviewStatusChanged,
     required this.onSaveRequested,
+    this.mode = Step3Mode.edit,
+    this.onStartNavigation,
+    this.onTransportTypesChanged,
+    this.initialSegmentTransports,
   });
 
   @override
   State<Step3Map> createState() => _Step3MapState();
+
+  /// 路段 key（持久化/恢复交通方式时使用，格式 `fromId:fromName->toId:toName`）。
+  static String segmentKey(RoutePlace from, RoutePlace to) =>
+      '${from.id}:${from.name}->${to.id}:${to.name}';
 }
 
 class _Step3MapState extends State<Step3Map> {
@@ -38,6 +62,7 @@ class _Step3MapState extends State<Step3Map> {
   late List<RoutePlace> _selected;
 
   final Map<String, TransportType> _segmentTransportTypes = {};
+  Map<CategoryMarkerKind, BitmapDescriptor> _categoryMarkerIcons = const {};
   RoutePreviewStatus _previewStatus = RoutePreviewStatus.insufficient;
   List<List<double>> _polyline = [];
   List<RouteSegmentPreview> _segmentPreviews = [];
@@ -49,14 +74,36 @@ class _Step3MapState extends State<Step3Map> {
 
   AMapController? _mapController;
 
+  bool get _isPreview => widget.mode == Step3Mode.preview;
+
   @override
   void initState() {
     super.initState();
     _selected = List<RoutePlace>.from(widget.selectedPlaces);
+    final initialTransports = widget.initialSegmentTransports;
+    if (initialTransports != null) {
+      for (
+        var i = 0;
+        i < initialTransports.length && i < _selected.length - 1;
+        i++
+      ) {
+        _segmentTransportTypes[_segmentKey(_selected[i], _selected[i + 1])] =
+            initialTransports[i];
+      }
+    }
     _routeCoordinator = RoutePreviewCoordinator(
       gateway: const NativeAmapGateway(),
     );
+    _loadCategoryMarkerIcons();
     _scheduleRoute();
+  }
+
+  Future<void> _loadCategoryMarkerIcons() async {
+    final icons = await buildCategoryMarkerIcons(
+      fillColor: AppColors.sageAccent,
+    );
+    if (!mounted) return;
+    setState(() => _categoryMarkerIcons = icons);
   }
 
   @override
@@ -99,7 +146,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   String _segmentKey(RoutePlace from, RoutePlace to) =>
-      '${from.id}:${from.name}->${to.id}:${to.name}';
+      Step3Map.segmentKey(from, to);
 
   List<TransportType> get _currentTransportTypes => <TransportType>[
     for (var index = 0; index < _selected.length - 1; index++)
@@ -111,10 +158,14 @@ class _Step3MapState extends State<Step3Map> {
   ];
 
   void _selectSegmentTransportType(int index, TransportType type) {
+    if (_isPreview) return;
     if (index < 0 || index >= _selected.length - 1) return;
     final key = _segmentKey(_selected[index], _selected[index + 1]);
     if ((_segmentTransportTypes[key] ?? TransportType.driving) == type) return;
     setState(() => _segmentTransportTypes[key] = type);
+    widget.onTransportTypesChanged?.call(
+      Map<String, TransportType>.of(_segmentTransportTypes),
+    );
     _scheduleRoute();
   }
 
@@ -143,6 +194,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   void _removePlace(RoutePlace place) {
+    if (_isPreview) return;
     setState(() {
       // 按名称移除（数据库 id 可能重复）
       _selected = _selected
@@ -159,6 +211,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   void _clearAllPlaces() {
+    if (_isPreview) return;
     setState(() {
       _selected = const [];
     });
@@ -332,6 +385,12 @@ class _Step3MapState extends State<Step3Map> {
                     );
                     final marker = Marker(
                       position: LatLng(place.latitude, place.longitude),
+                      icon: _categoryMarkerIcons.isEmpty
+                          ? BitmapDescriptor.defaultMarker
+                          : _categoryMarkerIcons[categoryMarkerKindFor(
+                              place.categories,
+                            )]!,
+                      anchor: const Offset(0.5, 0.5),
                       infoWindow: InfoWindow(
                         title: selectedIndex >= 0
                             ? '${selectedIndex + 1}. ${place.name}'
@@ -383,9 +442,11 @@ class _Step3MapState extends State<Step3Map> {
       RoutePreviewStatus.failed => '路线预览失败',
     };
     final statusSubtitle = switch (_previewStatus) {
-      RoutePreviewStatus.insufficient => '至少选择 2 个地点后自动生成路线',
+      RoutePreviewStatus.insufficient =>
+        _isPreview ? '该路线暂无途经点' : '至少选择 2 个地点后自动生成路线',
       RoutePreviewStatus.planning => '正在更新各路段的距离与耗时…',
-      RoutePreviewStatus.ready => '点击地点间的交通信息，可单独切换驾车或步行',
+      RoutePreviewStatus.ready =>
+        _isPreview ? '上滑面板查看完整行程路线' : '点击地点间的交通信息，可单独切换驾车或步行',
       RoutePreviewStatus.failed => _routeError ?? '可继续调整地点或直接保存',
     };
     return Column(
@@ -471,7 +532,7 @@ class _Step3MapState extends State<Step3Map> {
                         ),
                       ),
                     const SizedBox(width: 8),
-                    if (_selected.isNotEmpty)
+                    if (!_isPreview && _selected.isNotEmpty)
                       Tooltip(
                         message: '清空地点',
                         child: IconButton(
@@ -484,26 +545,27 @@ class _Step3MapState extends State<Step3Map> {
                           ),
                         ),
                       ),
-                    Tooltip(
-                      message: '添加地点',
-                      child: Material(
-                        color: AppColors.sageText,
-                        borderRadius: BorderRadius.circular(12),
-                        child: InkWell(
-                          onTap: _navigateToAddPlace,
+                    if (!_isPreview)
+                      Tooltip(
+                        message: '添加地点',
+                        child: Material(
+                          color: AppColors.sageText,
                           borderRadius: BorderRadius.circular(12),
-                          child: const SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: Icon(
-                              Icons.add_location_alt_outlined,
-                              size: 19,
-                              color: Colors.white,
+                          child: InkWell(
+                            onTap: _navigateToAddPlace,
+                            borderRadius: BorderRadius.circular(12),
+                            child: const SizedBox(
+                              width: 40,
+                              height: 40,
+                              child: Icon(
+                                Icons.add_location_alt_outlined,
+                                size: 19,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
                     const SizedBox(width: 5),
                     Icon(
                       compact
@@ -521,9 +583,9 @@ class _Step3MapState extends State<Step3Map> {
         Container(height: 0.5, color: AppColors.sageBorder),
         Expanded(
           child: _selected.isEmpty
-              ? const _EmptyHint(
+              ? _EmptyHint(
                   icon: Icons.add_location_alt_outlined,
-                  text: '点击面板右上角按钮添加地点',
+                  text: _isPreview ? '该路线暂无途经点' : '点击面板右上角按钮添加地点',
                 )
               : compact
               ? ListView.separated(
@@ -536,8 +598,17 @@ class _Step3MapState extends State<Step3Map> {
                     return _SelectedPlaceChip(
                       index: index,
                       place: place,
-                      onRemove: () => _removePlace(place),
+                      onRemove: _isPreview ? null : () => _removePlace(place),
                     );
+                  },
+                )
+              : _isPreview
+              ? ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+                  itemCount: _selected.length,
+                  itemBuilder: (_, i) {
+                    final place = _selected[i];
+                    return _timelineTile(place, i);
                   },
                 )
               : ReorderableListView.builder(
@@ -562,22 +633,10 @@ class _Step3MapState extends State<Step3Map> {
                   },
                   itemBuilder: (_, i) {
                     final place = _selected[i];
-                    final segment = _segmentPreviewAt(i);
-                    final transportType = i < _selected.length - 1
-                        ? _currentTransportTypes[i]
-                        : null;
-                    return _ItineraryTimelineTile(
+                    return _timelineTile(
+                      place,
+                      i,
                       key: ValueKey('timeline-${place.id}-${place.name}'),
-                      place: place,
-                      index: i,
-                      visitWindow: _visitWindowLabel(i),
-                      transportType: transportType,
-                      segment: segment,
-                      isPlanning: _previewStatus == RoutePreviewStatus.planning,
-                      onTransportChanged: transportType == null
-                          ? null
-                          : (type) => _selectSegmentTransportType(i, type),
-                      onRemove: () => _confirmRemovePlace(place),
                     );
                   },
                 ),
@@ -592,6 +651,27 @@ class _Step3MapState extends State<Step3Map> {
       if (segment.index == index) return segment;
     }
     return null;
+  }
+
+  Widget _timelineTile(RoutePlace place, int i, {Key? key}) {
+    final segment = _segmentPreviewAt(i);
+    final transportType = i < _selected.length - 1
+        ? _currentTransportTypes[i]
+        : null;
+    return _ItineraryTimelineTile(
+      key: key ?? ValueKey('timeline-${place.id}-${place.name}'),
+      place: place,
+      index: i,
+      visitWindow: _visitWindowLabel(i),
+      transportType: transportType,
+      segment: segment,
+      isPlanning: _previewStatus == RoutePreviewStatus.planning,
+      interactive: !_isPreview,
+      onTransportChanged: transportType == null || _isPreview
+          ? null
+          : (type) => _selectSegmentTransportType(i, type),
+      onRemove: _isPreview ? null : () => _confirmRemovePlace(place),
+    );
   }
 
   String _visitWindowLabel(int index) {
@@ -620,6 +700,11 @@ class _Step3MapState extends State<Step3Map> {
       previewStatus: _previewStatus,
     );
     final saveEnabled = saveAction != RouteSaveAction.disabled;
+    final primaryLabel = _isPreview
+        ? '开始导航'
+        : _previewStatus == RoutePreviewStatus.planning
+        ? '规划中…'
+        : '保存行程';
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 9, 14, 10),
       decoration: const BoxDecoration(
@@ -647,7 +732,11 @@ class _Step3MapState extends State<Step3Map> {
             width: 118,
             height: 48,
             child: ElevatedButton(
-              onPressed: saveEnabled ? widget.onSaveRequested : null,
+              onPressed: _isPreview
+                  ? widget.onStartNavigation
+                  : saveEnabled
+                  ? widget.onSaveRequested
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.sageDeep,
                 foregroundColor: Colors.white,
@@ -662,7 +751,7 @@ class _Step3MapState extends State<Step3Map> {
                 ),
               ),
               child: Text(
-                _previewStatus == RoutePreviewStatus.planning ? '规划中…' : '保存行程',
+                primaryLabel,
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -689,6 +778,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   void _reorderSelectedPlaces(int oldIndex, int newIndex) {
+    if (_isPreview) return;
     if (newIndex > oldIndex) newIndex -= 1;
     if (oldIndex < 0 || oldIndex >= _selected.length) return;
     if (newIndex < 0 || newIndex >= _selected.length) return;
@@ -704,6 +794,7 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   Future<void> _navigateToAddPlace() async {
+    if (_isPreview) return;
     final result = await showModalBottomSheet<List<RoutePlace>>(
       context: context,
       isScrollControlled: true,
@@ -803,15 +894,16 @@ class _SelectedPlaceChip extends StatelessWidget {
   const _SelectedPlaceChip({
     required this.index,
     required this.place,
-    required this.onRemove,
+    this.onRemove,
   });
 
   final int index;
   final RoutePlace place;
-  final VoidCallback onRemove;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
+    final onRemove = this.onRemove;
     return Container(
       constraints: const BoxConstraints(maxWidth: 190),
       padding: const EdgeInsets.fromLTRB(8, 6, 5, 6),
@@ -854,14 +946,15 @@ class _SelectedPlaceChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 3),
-          InkWell(
-            onTap: onRemove,
-            borderRadius: BorderRadius.circular(12),
-            child: const Padding(
-              padding: EdgeInsets.all(3),
-              child: Icon(Icons.close, size: 15, color: AppColors.sageMuted),
+          if (onRemove != null)
+            InkWell(
+              onTap: onRemove,
+              borderRadius: BorderRadius.circular(12),
+              child: const Padding(
+                padding: EdgeInsets.all(3),
+                child: Icon(Icons.close, size: 15, color: AppColors.sageMuted),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -877,6 +970,7 @@ class _ItineraryTimelineTile extends StatelessWidget {
     required this.transportType,
     required this.segment,
     required this.isPlanning,
+    this.interactive = true,
     required this.onTransportChanged,
     required this.onRemove,
   });
@@ -887,12 +981,33 @@ class _ItineraryTimelineTile extends StatelessWidget {
   final TransportType? transportType;
   final RouteSegmentPreview? segment;
   final bool isPlanning;
+
+  /// 编辑模式下显示排序拖柄、删除按钮，交通信息可点击切换；
+  /// 预览模式下仅为只读展示。
+  final bool interactive;
   final ValueChanged<TransportType>? onTransportChanged;
-  final VoidCallback onRemove;
+  final VoidCallback? onRemove;
 
   @override
   Widget build(BuildContext context) {
     final hasNext = transportType != null;
+    final numberCircle = Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: const BoxDecoration(
+        color: AppColors.sageAccent,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        '${index + 1}',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+          color: Colors.white,
+        ),
+      ),
+    );
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -901,26 +1016,13 @@ class _ItineraryTimelineTile extends StatelessWidget {
             width: 40,
             child: Column(
               children: [
-                ReorderableDragStartListener(
-                  index: index,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: AppColors.sageAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+                if (interactive)
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: numberCircle,
+                  )
+                else
+                  numberCircle,
                 if (hasNext)
                   const Expanded(
                     child: CustomPaint(
@@ -963,29 +1065,31 @@ class _ItineraryTimelineTile extends StatelessWidget {
                         ],
                       ),
                     ),
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: Icon(
-                          Icons.drag_indicator,
-                          size: 18,
-                          color: AppColors.sageMuted,
+                    if (interactive) ...[
+                      ReorderableDragStartListener(
+                        index: index,
+                        child: const Padding(
+                          padding: EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.drag_indicator,
+                            size: 18,
+                            color: AppColors.sageMuted,
+                          ),
                         ),
                       ),
-                    ),
-                    InkWell(
-                      onTap: onRemove,
-                      borderRadius: BorderRadius.circular(14),
-                      child: const Padding(
-                        padding: EdgeInsets.all(5),
-                        child: Icon(
-                          Icons.close,
-                          size: 18,
-                          color: AppColors.sageMuted,
+                      InkWell(
+                        onTap: onRemove,
+                        borderRadius: BorderRadius.circular(14),
+                        child: const Padding(
+                          padding: EdgeInsets.all(5),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: AppColors.sageMuted,
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
                 if (hasNext) ...[
@@ -994,7 +1098,10 @@ class _ItineraryTimelineTile extends StatelessWidget {
                     value: transportType!,
                     segment: segment,
                     isPlanning: isPlanning,
-                    onChanged: onTransportChanged!,
+                    interactive: interactive,
+                    onChanged: (type) {
+                      if (interactive) onTransportChanged?.call(type);
+                    },
                   ),
                   const SizedBox(height: 9),
                 ] else
@@ -1013,12 +1120,16 @@ class _SegmentTransportRow extends StatelessWidget {
     required this.value,
     required this.segment,
     required this.isPlanning,
+    this.interactive = true,
     required this.onChanged,
   });
 
   final TransportType value;
   final RouteSegmentPreview? segment;
   final bool isPlanning;
+
+  /// 预览模式下仅展示交通信息，不可点击切换。
+  final bool interactive;
   final ValueChanged<TransportType> onChanged;
 
   @override
@@ -1031,6 +1142,66 @@ class _SegmentTransportRow extends StatelessWidget {
     final duration = segment == null
         ? '--'
         : '${segment!.travelDuration.inMinutes} 分钟';
+    final content = Container(
+      constraints: const BoxConstraints(minHeight: 38),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.brandWash,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            value == TransportType.driving
+                ? Icons.directions_car_filled_outlined
+                : Icons.directions_walk,
+            size: 17,
+            color: AppColors.sageAccent,
+          ),
+          const SizedBox(width: 7),
+          Text(
+            value == TransportType.driving ? '驾车' : '步行',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.sageAccent,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text('|', style: TextStyle(color: AppColors.sageBorder)),
+          const SizedBox(width: 8),
+          if (isPlanning) ...[
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 1.6),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              '更新中…',
+              style: TextStyle(fontSize: 11, color: AppColors.sageMuted),
+            ),
+          ] else ...[
+            Text(
+              distance,
+              style: const TextStyle(fontSize: 11, color: AppColors.sageMuted),
+            ),
+            const SizedBox(width: 8),
+            const Text('|', style: TextStyle(color: AppColors.sageBorder)),
+            const SizedBox(width: 8),
+            Text(
+              duration,
+              style: const TextStyle(fontSize: 11, color: AppColors.sageMuted),
+            ),
+          ],
+          if (interactive) ...[
+            const Spacer(),
+            const Icon(Icons.expand_more, size: 16, color: AppColors.sageMuted),
+          ],
+        ],
+      ),
+    );
+    if (!interactive) return content;
     return PopupMenuButton<TransportType>(
       initialValue: value,
       onSelected: onChanged,
@@ -1058,69 +1229,7 @@ class _SegmentTransportRow extends StatelessWidget {
           ),
         ),
       ],
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 38),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.brandWash,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              value == TransportType.driving
-                  ? Icons.directions_car_filled_outlined
-                  : Icons.directions_walk,
-              size: 17,
-              color: AppColors.sageAccent,
-            ),
-            const SizedBox(width: 7),
-            Text(
-              value == TransportType.driving ? '驾车' : '步行',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.sageAccent,
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Text('|', style: TextStyle(color: AppColors.sageBorder)),
-            const SizedBox(width: 8),
-            if (isPlanning) ...[
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1.6),
-              ),
-              const SizedBox(width: 6),
-              const Text(
-                '更新中…',
-                style: TextStyle(fontSize: 11, color: AppColors.sageMuted),
-              ),
-            ] else ...[
-              Text(
-                distance,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.sageMuted,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text('|', style: TextStyle(color: AppColors.sageBorder)),
-              const SizedBox(width: 8),
-              Text(
-                duration,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: AppColors.sageMuted,
-                ),
-              ),
-            ],
-            const Spacer(),
-            const Icon(Icons.expand_more, size: 16, color: AppColors.sageMuted),
-          ],
-        ),
-      ),
+      child: content,
     );
   }
 }

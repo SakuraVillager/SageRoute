@@ -28,6 +28,24 @@ class CelebrityRepository {
     );
   }
 
+  /// 按 id 取单个人物；不存在时返回 null。
+  Future<CelebrityProfile?> fetchById(int id) async {
+    if (_fetcher != null) {
+      final celebrities = await _fetcher();
+      for (final celebrity in celebrities) {
+        if (celebrity.id == id) return celebrity;
+      }
+      return null;
+    }
+
+    final rows = await _tableRepository.fetchAllRaw(
+      limit: 1,
+      equals: <String, dynamic>{'id': id},
+    );
+    if (rows.isEmpty) return null;
+    return CelebrityProfile.fromMap(rows.first);
+  }
+
   Future<List<CelebrityProfile>> searchByName(String query) async {
     final normalizedQuery = query.trim();
     if (normalizedQuery.isEmpty) return const <CelebrityProfile>[];

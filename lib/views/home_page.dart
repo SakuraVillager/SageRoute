@@ -2,8 +2,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../components/ticket_card.dart';
-import '../models/new_route_draft.dart';
+import '../models/saved_route.dart';
 import '../theme/color_schemes.dart';
+import '../utils/slide_route.dart';
+import 'route_preview/route_preview_page.dart';
 
 /// Home page matching the Web version's Home.tsx layout.
 ///
@@ -13,25 +15,30 @@ import '../theme/color_schemes.dart';
 ///
 /// Navigation is handled via optional callbacks.
 class HomePage extends StatefulWidget {
-  const HomePage({super.key, this.createdRoutesListenable});
+  const HomePage({
+    super.key,
+    this.createdRoutesListenable,
+    this.onRefreshRoutes,
+  });
 
-  final ValueListenable<List<NewRouteDraft>>? createdRoutesListenable;
+  final ValueListenable<List<SavedRoute>>? createdRoutesListenable;
+  final Future<void> Function()? onRefreshRoutes;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-  late List<NewRouteDraft> _items;
+  GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
+  late List<SavedRoute> _items;
   VoidCallback? _listener;
 
   @override
   void initState() {
     super.initState();
     _items = widget.createdRoutesListenable != null
-        ? List<NewRouteDraft>.from(widget.createdRoutesListenable!.value)
-        : <NewRouteDraft>[];
+        ? List<SavedRoute>.from(widget.createdRoutesListenable!.value)
+        : <SavedRoute>[];
     if (widget.createdRoutesListenable != null) {
       _listener = _onCreatedRoutesChanged;
       widget.createdRoutesListenable!.addListener(_listener!);
@@ -40,73 +47,62 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    if (_listener != null)
+    if (_listener != null) {
       widget.createdRoutesListenable!.removeListener(_listener!);
+    }
     super.dispose();
   }
 
   void _onCreatedRoutesChanged() {
-    try {
-      final newList = widget.createdRoutesListenable!.value;
-      if (newList.length > _items.length) {
-        // New item inserted at front.
-        final inserted = newList.firstWhere(
-          (n) => !_items.any((o) => o.id == n.id),
-          orElse: () => newList.first,
+    final newList = widget.createdRoutesListenable!.value;
+    if (listEquals(_items, newList) || !mounted) return;
+
+    // Only a single newly saved route needs the insertion animation. Initial
+    // sync can return many records at once; AnimatedList must be recreated
+    // with the complete item count in that case.
+    final insertedAtFront =
+        newList.length == _items.length + 1 &&
+        listEquals(
+          newList.skip(1).map((route) => route.id).toList(),
+          _items.map((route) => route.id).toList(),
         );
-
-        if (!mounted) return;
-        // Defer BOTH _items update and insertItem to postFrameCallback.
-        // The MainScreen needs to rebuild first (showing HomePage tab)
-        // so AnimatedList is created with the correct (old) initialItemCount.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _items = [inserted, ..._items];
-          try {
-            _listKey.currentState?.insertItem(
-              0,
-              duration: const Duration(milliseconds: 450),
-            );
-          } catch (e, st) {
-            debugPrint('AnimatedList insertItem error: $e\n$st');
-          }
-        });
-        return;
-      }
-
-      // For removals/resets — use setState since we aren't animating those.
-      if (newList.length < _items.length) {
-        if (!mounted) return;
-        setState(() => _items = List<NewRouteDraft>.from(newList));
-        return;
-      }
-
-      // Same length, different content — replace.
-      if (!listEquals(_items, newList)) {
-        if (!mounted) return;
-        setState(() => _items = List<NewRouteDraft>.from(newList));
-      }
-    } catch (e, st) {
-      debugPrint('Error in _onCreatedRoutesChanged: $e\n$st');
+    if (insertedAtFront && _listKey.currentState != null) {
+      _items = List<SavedRoute>.from(newList);
+      _listKey.currentState!.insertItem(
+        0,
+        duration: const Duration(milliseconds: 450),
+      );
+      return;
     }
+
+    setState(() {
+      _items = List<SavedRoute>.from(newList);
+      _listKey = GlobalKey<AnimatedListState>();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('[HomePage.build] items=${_items.map((i) => i.id).toList()}');
+    final content = SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 32),
+          _buildTicketSection(),
+        ],
+      ),
+    );
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 32),
-              _buildTicketSection(),
-            ],
-          ),
-        ),
+        child: widget.onRefreshRoutes == null
+            ? content
+            : RefreshIndicator(
+                onRefresh: widget.onRefreshRoutes!,
+                child: content,
+              ),
       ),
     );
   }
@@ -175,11 +171,13 @@ class _HomePageState extends State<HomePage> {
                   offset: Offset(0, 2),
                 ),
               ],
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150',
-                ),
+            ),
+            child: ClipOval(
+              child: Image.network(
+                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=150',
                 fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    const Icon(Icons.person_outline, color: AppColors.sageText),
               ),
             ),
           ),
@@ -218,6 +216,14 @@ class _HomePageState extends State<HomePage> {
                     memberText: '全新规划的旅程',
                     duration: route.duration,
                     distance: route.distance,
+                    onTap: () => Navigator.of(context).push(
+                      slideFromRightRoute(
+                        RoutePreviewPage(
+                          routeId: route.id,
+                          initialRoute: route,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -231,7 +237,7 @@ class _HomePageState extends State<HomePage> {
             memberText: '共 2 名成员同行',
             duration: '4天3晚',
             distance: '12.5 KM',
-            onTap: () {},
+            onTap: _showExampleRouteNotice,
           ),
           const SizedBox(height: 16),
           TicketCard(
@@ -242,10 +248,22 @@ class _HomePageState extends State<HomePage> {
             distance: '3.2 KM',
             stampLine1: 'WEEKEND',
             stampLine2: 'WALK',
-            onTap: () {},
+            onTap: _showExampleRouteNotice,
           ),
         ],
       ),
     );
+  }
+
+  void _showExampleRouteNotice() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('仅占位示例行程，暂不可查看'),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
   }
 }

@@ -71,7 +71,9 @@ class LocationRecord {
         : const <String>[];
 
     return LocationRecord(
-      id: (map['id'] as num?)?.toInt() ?? 0,
+      // The live Location table names its primary key "id (PK)".
+      // Keep "id" as a fallback for older fixtures and data sources.
+      id: (map['id (PK)'] as num? ?? map['id'] as num?)?.toInt() ?? 0,
       nameModern: (map['name_modern'] ?? '').toString(),
       nameAncient: map['name_ancient']?.toString(),
       description: map['description']?.toString(),
@@ -89,7 +91,7 @@ class LocationRecord {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id (PK)': id,
       'name_modern': nameModern,
       'name_ancient': nameAncient,
       'description': description,
@@ -123,19 +125,19 @@ class LocationRecord {
 
   @override
   int get hashCode => Object.hash(
-        id,
-        nameModern,
-        nameAncient,
-        description,
-        averageVisitDurationMin,
-        address,
-        openTime,
-        closeTime,
-        isArEnabled,
-        topic,
-        Object.hashAll(categories),
-        Object.hashAll(coordinates),
-      );
+    id,
+    nameModern,
+    nameAncient,
+    description,
+    averageVisitDurationMin,
+    address,
+    openTime,
+    closeTime,
+    isArEnabled,
+    topic,
+    Object.hashAll(categories),
+    Object.hashAll(coordinates),
+  );
 
   LocationRecord copyWith({
     int? id,
@@ -150,22 +152,21 @@ class LocationRecord {
     String? topic,
     List<String>? categories,
     List<double>? coordinates,
-  }) =>
-      LocationRecord(
-        id: id ?? this.id,
-        nameModern: nameModern ?? this.nameModern,
-        nameAncient: nameAncient ?? this.nameAncient,
-        description: description ?? this.description,
-        averageVisitDurationMin: averageVisitDurationMin ??
-            this.averageVisitDurationMin,
-        address: address ?? this.address,
-        openTime: openTime ?? this.openTime,
-        closeTime: closeTime ?? this.closeTime,
-        isArEnabled: isArEnabled ?? this.isArEnabled,
-        topic: topic ?? this.topic,
-        categories: categories ?? this.categories,
-        coordinates: coordinates ?? this.coordinates,
-      );
+  }) => LocationRecord(
+    id: id ?? this.id,
+    nameModern: nameModern ?? this.nameModern,
+    nameAncient: nameAncient ?? this.nameAncient,
+    description: description ?? this.description,
+    averageVisitDurationMin:
+        averageVisitDurationMin ?? this.averageVisitDurationMin,
+    address: address ?? this.address,
+    openTime: openTime ?? this.openTime,
+    closeTime: closeTime ?? this.closeTime,
+    isArEnabled: isArEnabled ?? this.isArEnabled,
+    topic: topic ?? this.topic,
+    categories: categories ?? this.categories,
+    coordinates: coordinates ?? this.coordinates,
+  );
 
   @override
   String toString() =>

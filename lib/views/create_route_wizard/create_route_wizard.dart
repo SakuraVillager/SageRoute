@@ -3,11 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../data/user_route_repository.dart';
 import '../../models/celebrity_profile.dart';
-import '../../models/new_route_draft.dart';
+import '../../models/saved_route.dart';
 import '../../route_planning/models/route_place.dart';
+import '../../route_planning/models/transport_type.dart';
 import '../../route_planning/route_preview_coordinator.dart';
 import '../../theme/color_schemes.dart';
+import '../../utils/route_save_diagnostics.dart';
 import 'steps/step1_figure.dart';
 import 'steps/step3_map.dart';
 
@@ -54,6 +57,9 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   CelebrityProfile? _selectedFigure;
   List<RoutePlace> _selectedLocations = [];
   RoutePreviewStatus _routePreviewStatus = RoutePreviewStatus.insufficient;
+  Map<String, TransportType> _segmentTransportTypes = <String, TransportType>{};
+
+  final UserRouteRepository _routeRepository = const UserRouteRepository();
 
   // ── Archive animation ──
   bool _archiving = false;
@@ -221,17 +227,46 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
     setState(() => _archiving = true);
 
-    _later(const Duration(milliseconds: 1800), () {
-      if (!mounted) return;
-      final draft = NewRouteDraft(
-        id: 'new-route-${DateTime.now().microsecondsSinceEpoch}',
+    try {
+      final waypoints = <RouteWaypoint>[
+        for (var i = 0; i < _selectedLocations.length; i++)
+          RouteWaypoint.fromRoutePlace(
+            _selectedLocations[i],
+            transportToNext: i < _selectedLocations.length - 1
+                ? _segmentTransportTypes[Step3Map.segmentKey(
+                        _selectedLocations[i],
+                        _selectedLocations[i + 1],
+                      )] ??
+                      TransportType.driving
+                : null,
+          ),
+      ];
+      final draft = SavedRoute(
+        id: '',
         title: _title,
         dateRange: _dateRange,
         duration: _duration,
         distance: _distance,
+        figureId: _selectedFigure?.id,
+        figureName: _selectedFigure?.name,
+        waypoints: waypoints,
       );
-      Navigator.of(context).pop(draft);
-    });
+      final routeId = await _routeRepository.createRoute(draft);
+      if (!mounted) return;
+      // 保留短暂的归档动画再返回，与旧交互节奏一致。
+      _later(const Duration(milliseconds: 900), () {
+        if (!mounted) return;
+        Navigator.of(context).pop(draft.copyWith(id: routeId));
+      });
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      setState(() => _archiving = false);
+      await showRouteSaveDiagnostics(
+        context,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   // ── Snack bar ──
@@ -394,6 +429,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
           if (_routePreviewStatus == status) return;
           setState(() => _routePreviewStatus = status);
         },
+        onTransportTypesChanged: (types) => _segmentTransportTypes = types,
         onSaveRequested: _handleSave,
       ),
     ];

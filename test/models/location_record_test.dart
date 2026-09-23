@@ -19,6 +19,16 @@ void main() {
     };
 
     group('fromMap', () {
+      test('reads the live Location primary key column', () {
+        final record = LocationRecord.fromMap(const {
+          'id (PK)': 76,
+          'name_modern': '苏堤',
+          'coordinates': [120.13, 30.21],
+        });
+
+        expect(record.id, 76);
+      });
+
       test('parses full map correctly', () {
         final record = LocationRecord.fromMap(fullMap);
 
@@ -146,7 +156,6 @@ void main() {
         expect(record.topic, 'uppercase');
       });
 
-
       test('handles numeric id', () {
         final map = <String, dynamic>{
           'id': 42.5,
@@ -189,7 +198,7 @@ void main() {
         final record = LocationRecord.fromMap(fullMap);
         final map = record.toMap();
 
-        expect(map['id'], 1);
+        expect(map['id (PK)'], 1);
         expect(map['name_modern'], '大明宫国家遗址公园');
         expect(map['name_ancient'], '大明宫');
         expect(map['description'], '唐朝皇宫遗址');

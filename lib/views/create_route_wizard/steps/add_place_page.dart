@@ -152,14 +152,12 @@ class _AddPlacePageState extends State<AddPlacePage> {
     };
     final result = <RoutePlace>[];
     final addedNames = <String>{};
-    var fallbackId = 900000;
-
     RoutePlace fromLocation(LocationRecord location) {
       if (!_hasValidCoordinates(location)) {
         throw FormatException('地点“${location.nameModern}”缺少有效经纬度');
       }
       return RoutePlace(
-        id: location.id > 0 ? location.id : fallbackId++,
+        id: location.id,
         name: location.nameModern,
         latitude: location.coordinates[1],
         longitude: location.coordinates[0],

@@ -47,6 +47,12 @@ class DatabaseService {
       throw Exception('SUPABASE_URL 或 SUPABASE_ANON_KEY 未配置');
     }
 
+    // 诊断日志：确认运行时实际连接的 Supabase 项目（不含密钥）。
+    developer.log(
+      'Supabase 初始化: project=${Uri.parse(supabaseUrl).host}',
+      name: 'DatabaseService',
+    );
+
     final authStorage = SharedPreferencesLocalStorage(
       persistSessionKey:
           'sb-${Uri.parse(supabaseUrl).host.split('.').first}-auth-token',
