@@ -51,7 +51,6 @@ class FilterableDirectorySection<T> extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: AppColors.brandInk,
-              fontFamily: 'serif',
               fontWeight: FontWeight.w700,
             ),
           ),

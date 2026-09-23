@@ -16,6 +16,7 @@ import '../models/celebrity_profile.dart';
 import '../models/figure.dart';
 import '../models/topic_record.dart';
 import '../theme/color_schemes.dart';
+import '../utils/featured_card_metrics.dart';
 import '../utils/slide_route.dart';
 import 'article_detail_page.dart';
 import 'figure_detail_page.dart';
@@ -296,6 +297,14 @@ class _FiguresContent extends StatelessWidget {
         .map((article) => articleMedia[article.id]!)
         .toList(growable: false);
 
+    // 在 Scaffold 之外读取安全区：Scaffold 会给 body 套一层
+    // removePadding(removeTop: true) 的 MediaQuery，卡片内部读到的是 0。
+    final featuredMetrics = FeaturedCardMetrics.fromScreen(
+      width: MediaQuery.sizeOf(context).width,
+      height: MediaQuery.sizeOf(context).height,
+      padding: MediaQuery.paddingOf(context),
+    );
+
     return Scaffold(
       backgroundColor: AppColors.white,
       body: SafeArea(
@@ -312,7 +321,6 @@ class _FiguresContent extends StatelessWidget {
                         '人物',
                         style: Theme.of(context).textTheme.headlineMedium
                             ?.copyWith(
-                              fontFamily: 'serif',
                               color: AppColors.brandInk,
                               fontWeight: FontWeight.w700,
                             ),
@@ -348,13 +356,13 @@ class _FiguresContent extends StatelessWidget {
                         '精选文章',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: AppColors.brandInk,
-                          fontFamily: 'serif',
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                     _FeaturedArticle(
                       articles: featured,
+                      metrics: featuredMetrics,
                       onTap: onOpenFeaturedArticle,
                     ),
                   ],
@@ -419,9 +427,16 @@ class _FiguresContent extends StatelessWidget {
 }
 
 class _FeaturedArticle extends StatefulWidget {
-  const _FeaturedArticle({required this.articles, required this.onTap});
+  const _FeaturedArticle({
+    required this.articles,
+    required this.metrics,
+    required this.onTap,
+  });
 
   final List<ArticleMedia> articles;
+
+  /// 由页面级按屏幕尺寸推导，保证卡片占比稳定（见 FeaturedCardMetrics）。
+  final FeaturedCardMetrics metrics;
   final Future<void> Function(ArticleRecord) onTap;
 
   @override
@@ -519,7 +534,7 @@ class _FeaturedArticleState extends State<_FeaturedArticle> {
       children: [
         SizedBox(
           key: const Key('featured-page-view'),
-          height: 380,
+          height: widget.metrics.cardHeight,
           child: GestureDetector(
             onLongPressStart: _onHoldStart,
             onLongPressEnd: _onHoldEnd,
@@ -532,6 +547,7 @@ class _FeaturedArticleState extends State<_FeaturedArticle> {
                 return _FeaturedArticleCard(
                   key: Key('featured-virtual-page-$index'),
                   media: media,
+                  metrics: widget.metrics,
                   onTap: () => _openArticle(media.article),
                 );
               },
@@ -557,24 +573,30 @@ class _FeaturedArticleCard extends StatelessWidget {
   const _FeaturedArticleCard({
     super.key,
     required this.media,
+    required this.metrics,
     required this.onTap,
   });
 
   final ArticleMedia media;
+  final FeaturedCardMetrics metrics;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    container: true,
-    button: true,
-    label: '打开精选文章 ${media.article.title}',
-    child: ExcludeSemantics(
-      child: Material(
-        color: AppColors.brandNearBlack,
-        child: InkWell(
-          onTap: onTap,
-          child: SizedBox(
-            height: 380,
+  Widget build(BuildContext context) {
+    // 字号已随卡片尺寸插值，限制系统字号放大倍数避免小屏溢出。
+    final textScaler = MediaQuery.textScalerOf(
+      context,
+    ).clamp(maxScaleFactor: 1.3);
+
+    return Semantics(
+      container: true,
+      button: true,
+      label: '打开精选文章 ${media.article.title}',
+      child: ExcludeSemantics(
+        child: Material(
+          color: AppColors.brandNearBlack,
+          child: InkWell(
+            onTap: onTap,
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -595,17 +617,18 @@ class _FeaturedArticleCard extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  left: 15,
-                  right: 15,
-                  bottom: 18,
+                  left: metrics.horizontalInset,
+                  right: metrics.horizontalInset,
+                  bottom: metrics.bottomInset,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       _CoverMark(
                         key: Key('featured-poster-${media.article.id}'),
                         media: media,
+                        metrics: metrics,
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: metrics.posterGap),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,22 +638,25 @@ class _FeaturedArticleCard extends StatelessWidget {
                               media.article.summary,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: metrics.summaryFontSize,
+                                height: 1.35,
                               ),
+                              textScaler: textScaler,
                             ),
-                            const SizedBox(height: 5),
+                            SizedBox(height: metrics.titleGap),
                             Text(
                               media.article.title,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontFamily: 'serif',
-                                fontSize: 22,
+                                fontSize: metrics.titleFontSize,
+                                height: 1.2,
                                 fontWeight: FontWeight.w700,
                               ),
+                              textScaler: textScaler,
                             ),
                           ],
                         ),
@@ -643,8 +669,8 @@ class _FeaturedArticleCard extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ArticlePager extends StatelessWidget {
@@ -868,7 +894,6 @@ class _TopicCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: AppColors.brandInk,
-                  fontFamily: 'serif',
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -945,14 +970,15 @@ class _ArticleThumbnail extends StatelessWidget {
 }
 
 class _CoverMark extends StatelessWidget {
-  const _CoverMark({super.key, required this.media});
+  const _CoverMark({super.key, required this.media, required this.metrics});
 
   final ArticleMedia media;
+  final FeaturedCardMetrics metrics;
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    width: 48,
-    height: 70,
+    width: metrics.posterWidth,
+    height: metrics.posterHeight,
     child: ClipRect(
       child: _ArticleImage(
         article: media.article,

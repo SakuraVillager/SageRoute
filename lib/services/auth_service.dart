@@ -13,6 +13,8 @@ typedef PasswordSignIn =
       required String password,
     });
 
+typedef SignOutHandler = Future<void> Function();
+
 /// 封装 Supabase Auth 的常用操作。
 ///
 /// 负责：注册、登录、退出、会话状态监听。
@@ -23,15 +25,18 @@ class AuthService {
     PasswordResetSender? passwordResetSender,
     PasswordUpdater? passwordUpdater,
     PasswordSignIn? passwordSignIn,
+    SignOutHandler? signOutHandler,
   }) : _client = client,
        _passwordResetSender = passwordResetSender,
        _passwordUpdater = passwordUpdater,
-       _passwordSignIn = passwordSignIn;
+       _passwordSignIn = passwordSignIn,
+       _signOutHandler = signOutHandler;
 
   final SupabaseClient? _client;
   final PasswordResetSender? _passwordResetSender;
   final PasswordUpdater? _passwordUpdater;
   final PasswordSignIn? _passwordSignIn;
+  final SignOutHandler? _signOutHandler;
 
   static const passwordResetRedirectTo = 'sageroute://login-callback/';
 
@@ -87,6 +92,11 @@ class AuthService {
 
   /// 退出登录。
   Future<void> signOut() async {
+    final handler = _signOutHandler;
+    if (handler != null) {
+      await handler();
+      return;
+    }
     await _supabaseClient.auth.signOut();
     await DatabaseService.clearPersistedAuthSession();
   }

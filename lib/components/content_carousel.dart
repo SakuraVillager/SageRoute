@@ -73,7 +73,6 @@ class _ContentCarouselState<T> extends State<ContentCarousel<T>> {
               widget.title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: AppColors.brandInk,
-                fontFamily: 'serif',
                 fontWeight: FontWeight.w700,
               ),
             ),

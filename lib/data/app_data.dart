@@ -6,3 +6,4 @@ export 'mock_figures.dart';
 export 'mock_locations.dart';
 export 'mock_routes.dart';
 export 'mock_user.dart';
+export 'mock_achievements.dart';

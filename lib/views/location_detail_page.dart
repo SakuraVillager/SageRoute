@@ -129,7 +129,6 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
               style: TextStyle(
                 color: _text1,
                 fontSize: 20,
-                fontFamily: 'Georgia',
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1,
               ),
@@ -339,7 +338,6 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
                     l.pinyinName,
                     style: const TextStyle(
                       fontSize: 30,
-                      fontFamily: 'Georgia',
                       fontStyle: FontStyle.italic,
                       color: AppColors.sageDeep,
                     ),
