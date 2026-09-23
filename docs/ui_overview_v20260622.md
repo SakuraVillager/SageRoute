@@ -260,14 +260,19 @@
 
 **文件**: `lib/views/profile_page.dart`
 
-| 代码 | 行号 | 功能 |
-|------------------------|------------------------|------------------------|
-| Header | 96-152 | 头像(96px 圆 + 装饰环) + 名称 + 简介 + 设置图标(右上角) |
-| 统计行 | 180-229 | 解锁成就(陶土色) / 探索地点(绿) / 完成路线(金) → 竖线分隔 |
-| 成就卡片 | 246-353 | 横向滑动: 图标圆 + 名称 + 描述，未解锁半透明+锁 |
-| 成就映射 | 336-352 | icon 名→Material Icon 映射: book/compass/crown/star/camera/quote |
-| 设置列表 | 357-453 | 账号信息 / 旅行偏好 / 语言设置(简体中文) / Debug → 带箭头跳转 |
-| 退出按钮 | 457-484 | `退出登录` 按钮(米色背景 + 陶土色文字 + 图标) |
+所有原有按钮均已接通：回调留作覆盖，未传时页面内部走默认导航 / 行为，不会出现“死按钮”。
+
+| 代码 | 功能 |
+|------------------------|--------------------------------------------------------|
+| Header | 头像（ProfileAvatar 组件，96px 圆 + 装饰环）+ 昵称（本地昵称优先，其次账号昵称）+ 简介/邮箱 + 设置齿轮 → SettingsPage |
+| 统计行 | 解锁成就（按成就列表实时统计，当前 2）/ 探索地点 / 完成路线；后两项仍为 mock |
+| 成就数据 | `lib/data/local_achievement_repository.dart`：本地种子定义 + SharedPreferences 保存解锁时间，可通过构造函数注入 |
+| 成就卡片 | 横向滑动；点击任意卡片进入成就详情页 |
+| 成就详情页 | `lib/pages/achievement_detail_page.dart`：成就说明、获取方法、当前进度与获得时间 |
+| 偏好设置 | 账号信息 / 旅行偏好 / 语言设置 → 对应子页面（`onSettingItemTap` 可覆盖） |
+| Debug 行 | 仅 debug 构建且提供 `onDebugRouteTap` 时展示 |
+| 退出按钮 | 二次确认弹窗 → `AuthService.signOut`（`onLogout` 可覆盖），失败有 SnackBar |
+| 本地存储 | `lib/services/profile_preferences.dart`：昵称 / 简介 / 语言 / 旅行偏好 |
 
 ------------------------------------------------------------------------
 
@@ -324,14 +329,17 @@
 
 ------------------------------------------------------------------------
 
-## 15. 设置页 (SettingsPage)
+## 15. 设置页 (SettingsPage) 与子页面
 
-**文件**: `lib/pages/settings_page.dart`
+**文件**: `lib/pages/settings_page.dart`（设置中心）、`lib/pages/account_info_page.dart`、`lib/pages/travel_preferences_page.dart`、`lib/pages/language_page.dart`
 
 | 代码 | 功能 |
-|------------------------------------|------------------------------------|
-| 设置标题 | `设置` |
-| 切换人物 | Card + ListTile: 图标 + `切换人物` + 描述 + 箭头 → CelebritySelectionPage |
+|------------------------------------|--------------------------------------------------------------|
+| 设置中心 | Scaffold + AppBar；分组：账号（账号信息）/ 偏好（旅行偏好、语言设置）/ 同行人物（切换人物） |
+| 账号信息页 | 邮箱展示、昵称 / 简介编辑（本地保存）、修改密码（发送重置邮件到绑定邮箱） |
+| 旅行偏好页 | 偏好朝代 / 主题多选 + 旅行节奏 / 常用交通方式单选，本地保存 |
+| 语言设置页 | 简体中文可用；繁體中文 / English 标记“即将上线” |
+| 云端资料 | Phase 2 接入方案见 `docs/supabase_profile_schema.md` |
 
 ------------------------------------------------------------------------
 
@@ -390,11 +398,11 @@ brandWash     #F5EFEF   — 最浅品牌容器
 - ✅ 景点详情 (LocationDetailPage) — 5 段 Tab + 图片网格
 - ✅ 创建路线向导 (CreateRouteWizard) — 3 步流程：剧场入场+日历(Step1) → 人物(Step2) → 地点编辑+实时路线预览(Step3) + 归档动画
 - ✅ 收藏页 (SavedRoutesPage) — 路线卡片展示 + 空态
-- ✅ 个人页 (ProfilePage) — 头像 + 成就 + 设置列表
+- ✅ 个人页 (ProfilePage) — 头像 + 成就 + 设置列表；所有按钮已接通（成就弹层、退出确认、偏好子页、Debug 门控）
 - ✅ 地图探索 (MapExplorerPage) — AMap + UI 覆盖层
 - ✅ 导览页 (GuidePage) — AMap + 定位 + Marker
 - ✅ 名人选择 (CelebritySelectionPage) — 轮播选择器
-- ✅ 设置页 (SettingsPage) — 基本结构
+- ✅ 设置页 (SettingsPage) — 设置中心：账号信息 / 旅行偏好 / 语言设置 / 切换人物（本地存储）
 - ✅ 主题系统 — Material 3 亮/暗主题
 
 ### 待开发/已知占位
@@ -402,6 +410,9 @@ brandWash     #F5EFEF   — 最浅品牌容器
 - ⬜ 真实搜索功能
 - ⬜ 筛选逻辑（朝代/主题/类别）
 - ⬜ 后端数据对接（当前使用 mock 数据）
+- ⬜ 个人资料 / 统计上云（`profiles`；成就按本地优先，暂不上云，方案见 `docs/supabase_profile_schema.md`）
+- ⬜ 头像上传（Storage bucket + image_picker）
+- ⬜ 多语言界面（flutter_localizations + ARB；语言设置页已占位）
 - ⬜ 收藏/登录/社交登录真实功能
 - ⬜ 收藏页子 Tab（历史人物/地点）
 - ⬜ 路线规划完整性（保存/分享）

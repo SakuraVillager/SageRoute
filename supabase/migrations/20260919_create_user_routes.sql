@@ -3,6 +3,11 @@
 -- Waypoint coordinates are denormalized (name/lat/lon) so the preview and
 -- edit surfaces can render the map without joining the public Location table;
 -- location_id is kept as an optional reference back to the catalog row.
+-- Merged schema: the persistence contract (columns the Flutter client
+-- writes) plus the descriptive columns kept from the parallel branch
+-- (location_name / average_visit_duration_min / transport_type / topic /
+-- route_snapshot). Extra columns are nullable or defaulted so the client
+-- never has to fill them.
 create table if not exists public.user_routes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users on delete cascade,
@@ -12,6 +17,7 @@ create table if not exists public.user_routes (
   distance text,
   figure_id bigint,
   figure_name text,
+  route_snapshot jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -24,10 +30,16 @@ create table if not exists public.user_route_waypoints (
   latitude double precision not null,
   longitude double precision not null,
   location_id bigint,
+  location_name text,
   visit_duration_min integer,
+  average_visit_duration_min integer
+    check (average_visit_duration_min is null or average_visit_duration_min >= 0),
   categories text,
+  topic text,
   -- The final waypoint has no outgoing leg, so this value must be nullable.
   transport_to_next text null check (transport_to_next in ('driving', 'walking')),
+  transport_type text not null default 'driving'
+    check (transport_type in ('driving', 'walking')),
   created_at timestamptz not null default timezone('utc', now()),
   unique (route_id, sort_order)
 );

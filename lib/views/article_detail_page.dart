@@ -28,7 +28,6 @@ class ArticleDetailPage extends StatelessWidget {
               article.title,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: AppColors.brandInk,
-                fontFamily: 'serif',
                 fontWeight: FontWeight.w700,
               ),
             ),

@@ -9,6 +9,7 @@ import 'package:sageroute/models/article_image_record.dart';
 import 'package:sageroute/models/celebrity_profile.dart';
 import 'package:sageroute/models/topic_record.dart';
 import 'package:sageroute/theme/color_schemes.dart';
+import 'package:sageroute/utils/featured_card_metrics.dart';
 import 'package:sageroute/views/figures_list_page.dart';
 
 void main() {
@@ -268,6 +269,84 @@ void main() {
     expect(find.bySemanticsLabel('精选文章，第 2 篇，共 2 篇'), findsOneWidget);
   });
 
+  testWidgets('featured cards keep a screen-relative hero height', (
+    tester,
+  ) async {
+    final measured = <String, Size>{
+      '320x568': await _featuredCardSize(
+        tester,
+        const Size(320, 568),
+        topInset: 24,
+      ),
+      '360x800': await _featuredCardSize(
+        tester,
+        const Size(360, 800),
+        topInset: 24,
+      ),
+      '390x844': await _featuredCardSize(
+        tester,
+        const Size(390, 844),
+        topInset: 59,
+      ),
+      '430x932': await _featuredCardSize(
+        tester,
+        const Size(430, 932),
+        topInset: 59,
+        bottomInset: 34,
+      ),
+      '540x1100': await _featuredCardSize(
+        tester,
+        const Size(540, 1100),
+        topInset: 59,
+        bottomInset: 34,
+      ),
+    };
+
+    // 统一目标：可用高度（屏高 − 安全区 − 首屏头部）× 44%，夹在 [310, 390]，
+    // 再整体放大 25%（heightScale）——所以每台机都比初版高 1/4。
+    final available = <String, double>{
+      '320x568': 568 - 24 - _featuredHeaderHeight,
+      '360x800': 800 - 24 - _featuredHeaderHeight,
+      '390x844': 844 - 59 - _featuredHeaderHeight,
+      '430x932': 932 - 59 - 34 - _featuredHeaderHeight,
+      '540x1100': 1100 - 59 - 34 - _featuredHeaderHeight,
+    };
+    for (final entry in measured.entries) {
+      final base =
+          (available[entry.key]! * FeaturedCardMetrics.baseHeightFactor).clamp(
+            FeaturedCardMetrics.baseMinHeight,
+            FeaturedCardMetrics.baseMaxHeight,
+          );
+
+      expect(
+        measured[entry.key]!.height,
+        closeTo(base * FeaturedCardMetrics.heightScale, 0.5),
+        reason: entry.key,
+      );
+    }
+
+    // 小屏不顶满首屏：卡片占整机高度不超过 70%，首屏仍看得到下方内容。
+    expect(measured['320x568']!.height / 568, lessThan(0.7));
+    // 大屏不显得单薄：卡片至少占整机高度 40%。
+    expect(measured['540x1100']!.height / 1100, greaterThan(0.4));
+  });
+
+  testWidgets('landscape featured cards stay compact', (tester) async {
+    final size = await _featuredCardSize(
+      tester,
+      const Size(844, 390),
+      topInset: 24,
+    );
+
+    expect(
+      size.height,
+      inInclusiveRange(
+        FeaturedCardMetrics.minLandscapeHeight,
+        FeaturedCardMetrics.maxLandscapeHeight,
+      ),
+    );
+  });
+
   testWidgets('featured cards use dedicated featured and poster media', (
     tester,
   ) async {
@@ -424,6 +503,53 @@ Future<void> _scrollToStart(WidgetTester tester) async {
     await tester.pumpAndSettle();
   }
 }
+
+/// 在指定屏幕上渲染人物页，返回精选文章主图的实测尺寸。
+///
+/// 安全区通过替换 [MediaQueryData] 注入：测试环境里 view 的 padding 恒为 0，
+/// 而 `MediaQuery.fromView` 会依据 view 重建 padding，`copyWith` 覆盖不住。
+Future<Size> _featuredCardSize(
+  WidgetTester tester,
+  Size screen, {
+  double topInset = 0,
+  double bottomInset = 0,
+}) async {
+  tester.view.physicalSize = screen;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  final insets = EdgeInsets.only(top: topInset, bottom: bottomInset);
+  await tester.pumpWidget(
+    MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQueryData(
+          size: screen,
+          padding: insets,
+          viewPadding: insets,
+        ),
+        child: child!,
+      ),
+      home: FiguresListPage(
+        articleRepository: ArticleRepository(fetcher: () async => _articles),
+        articleImageRepository: ArticleImageRepository(
+          fetcher: () async => _articleImages,
+        ),
+        celebrityRepository: CelebrityRepository(
+          fetcher: () async => _celebrities,
+        ),
+        topicRepository: TopicRepository(fetcher: () async => _topics),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  return tester.getSize(find.byKey(const Key('featured-page-view')));
+}
+
+/// 人物页首屏中精选卡片之上的固定高度：
+/// 标题行（上 18 + 行高 48 + 下 8）+「精选文章」标题块（上 6 + 文本约 34 + 下 10）。
+/// 与 FeaturedCardMetrics.chromeHeight 保持一致。
+const _featuredHeaderHeight = 124.0;
 
 const _articles = <ArticleRecord>[
   ArticleRecord(

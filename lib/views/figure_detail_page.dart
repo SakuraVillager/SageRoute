@@ -122,7 +122,6 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
               style: TextStyle(
                 color: _text1,
                 fontSize: 20,
-                fontFamily: 'Georgia',
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1,
               ),
@@ -260,7 +259,6 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
                     figure.pinyinName,
                     style: const TextStyle(
                       fontSize: 32,
-                      fontFamily: 'Georgia',
                       fontStyle: FontStyle.italic,
                       color: _text1,
                     ),
