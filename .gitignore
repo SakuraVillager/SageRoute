@@ -50,6 +50,9 @@ app.*.map.json
 dart_define.json
 assets/env.env
 
+# Local Eclipse Buildship preference
+/android/.settings/org.eclipse.buildship.core.prefs
+
 # Temporary files
 tmp*.dart
 broken.txt
