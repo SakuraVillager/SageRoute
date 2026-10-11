@@ -48,7 +48,11 @@ app.*.map.json
 
 # Sensitive configuration
 dart_define.json
+dart_define.web.json
 assets/env.env
+
+# Local Eclipse Buildship preference
+/android/.settings/org.eclipse.buildship.core.prefs
 
 # Temporary files
 tmp*.dart
