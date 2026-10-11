@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {"productName":"SageRoute 人物页","platform":"cross-platform","sourceUxPath":"ux-architecture.json","wireframeMode":"low-fidelity","confidence":"medium"},
+  "assumptions":["S1 保留既定模块顺序，但只定义区域优先级，不定义最终样式。","搜索 S2 为全屏或覆盖式专注任务，关闭后恢复 S1。","文章正文与人物详情的内部内容暂不改变。"],
+  "navigation":{"destinations":["S1 人物页","S3 文章页","S4 人物详情页"],"globalOverlays":["S2 全局搜索"],"systemHandoffs":["周期推送深链接；无效目标回 S1"]},
+  "screens":[
+    {"sourceScreenId":"S1","name":"人物页","userQuestion":"我可以从哪些文章、主题和人物线索继续探索？","primaryAction":"打开精选/主题推送文章或人物详情。","stateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"entryPoints":["底部人物入口","有效内容返回","无效深链接恢复"],"exitPoints":["S2 搜索","S3 文章","S4 人物详情"],"regions":[
+      {"id":"S1-R1","order":1,"name":"安全区与页面身份","semanticRole":"context","layoutBehavior":"fixed safe-area","contentPressure":"短标题和搜索入口必须在大字模式下换行或压缩","stateBehavior":"初始加载时保持页面身份可见"},
+      {"id":"S1-R2","order":2,"name":"精选文章入口","semanticRole":"primary content action","layoutBehavior":"scroll","contentPressure":"单个主要文章身份、加载与失败说明","stateBehavior":"文章不可用时保留重试或继续浏览"},
+      {"id":"S1-R3","order":3,"name":"主题推送文章区域","semanticRole":"filtered article discovery","layoutBehavior":"scroll with independent inline feedback","contentPressure":"主题筛选、最多七篇文章、展开动作、空/失败恢复","stateBehavior":"ST3/ST5 只替换本区域，不影响人物目录"},
+      {"id":"S1-R4","order":4,"name":"人物目录区域","semanticRole":"filtered figure discovery","layoutBehavior":"scroll with independent inline feedback","contentPressure":"朝代筛选、最多七位人物、展开动作、空/失败恢复","stateBehavior":"ST4/ST6 只替换本区域，不影响主题文章"},
+      {"id":"S1-R5","order":5,"name":"全局反馈","semanticRole":"page recovery","layoutBehavior":"inline or centered loading within owning region","contentPressure":"简短状态、重试和退出路径","stateBehavior":"ST1/ST2 占据内容区但不覆盖系统返回"},
+      {"id":"S1-R6","order":6,"name":"底部导航","semanticRole":"persistent destination navigation","layoutBehavior":"fixed above system inset","contentPressure":"可访问标签与触达尺寸","stateBehavior":"S1 任何局部加载都不改变其可达性"}
+    ]},
+    {"sourceScreenId":"S2","name":"全局搜索","userQuestion":"哪些人物、文章或主题与我的关键词相关？","primaryAction":"选择带类型和目标标识的结果。","stateIds":["ST7","ST8","ST9"],"entryPoints":["S1 搜索入口"],"exitPoints":["关闭回 S1 原上下文","文章结果到 S3","人物结果到 S4"],"regions":[
+      {"id":"S2-R1","order":1,"name":"安全区与关闭动作","semanticRole":"task cancellation","layoutBehavior":"fixed safe-area","contentPressure":"关闭始终可达，系统返回同义","stateBehavior":"任何搜索状态下均可关闭"},
+      {"id":"S2-R2","order":2,"name":"关键词输入","semanticRole":"search query input","layoutBehavior":"fixed keyboard-avoiding","contentPressure":"长关键词、中文输入法和清除动作","stateBehavior":"ST7 查询中可取消或修改"},
+      {"id":"S2-R3","order":3,"name":"分组结果或恢复反馈","semanticRole":"search results and recovery","layoutBehavior":"scroll keyboard-avoiding","contentPressure":"人物/文章/主题类型、标题、结果目标、空/失败动作","stateBehavior":"ST8 提供改词/清除；ST9 提供重试/关闭"}
+    ]},
+    {"sourceScreenId":"S3","name":"文章页","userQuestion":"这篇文章的内容是什么，我怎样安全返回原浏览位置？","primaryAction":"阅读文章。","stateIds":["ST10"],"entryPoints":["S1 精选或主题推送文章","S2 文章结果"],"exitPoints":["右向或系统返回 S1"],"regions":[
+      {"id":"S3-R1","order":1,"name":"安全区与返回","semanticRole":"hierarchical navigation","layoutBehavior":"fixed safe-area","contentPressure":"标题与返回动作不能互相遮挡","stateBehavior":"失败时返回动作保留"},
+      {"id":"S3-R2","order":2,"name":"文章内容","semanticRole":"reading content","layoutBehavior":"scroll","contentPressure":"现有文章正文、加载进度与错误说明","stateBehavior":"ST10 显示重试与返回原上下文"}
+    ]},
+    {"sourceScreenId":"S4","name":"人物详情页","userQuestion":"这位人物有哪些相关内容和数据？","primaryAction":"浏览人物资料。","stateIds":["ST10"],"entryPoints":["S1 人物目录","S2 人物结果"],"exitPoints":["系统或应用返回 S1"],"regions":[
+      {"id":"S4-R1","order":1,"name":"安全区与返回","semanticRole":"hierarchical navigation","layoutBehavior":"fixed safe-area","contentPressure":"人物身份与返回动作","stateBehavior":"失败时仍可返回"},
+      {"id":"S4-R2","order":2,"name":"人物内容","semanticRole":"figure information","layoutBehavior":"scroll","contentPressure":"人物数据、关联内容、加载与失败反馈","stateBehavior":"ST10 提供重试与返回原上下文"}
+    ]}
+  ],
+  "overlays":[{"id":"OV1","kind":"global search overlay","trigger":"S1 搜索入口或可访问快捷动作","consequence":"获取输入焦点并展示独立搜索状态，不修改 S1 筛选。","dismissal":"关闭动作、iOS 返回或 Android 系统返回。","recovery":"恢复 S1 的滚动、筛选与展开状态。"},{"id":"OV2","kind":"system deep link handoff","trigger":"周期推送打开内容目标","consequence":"验证目标后进入 S3/S4 或 S1 恢复。","dismissal":"目标失效时不展示空白详情。","recovery":"说明原因并提供重试或 S1 浏览入口。"}],
+  "flowFrames":[
+    {"id":"WF1","flowId":"F1","before":"S1 保留当前上下文和可点击文章身份。","during":"保存上下文，左向进入 S3 并显示内容加载。","after":"阅读后右向返回 S1。","failureRecovery":"S3 失败提供重试或返回，S1 上下文仍完整。"},
+    {"id":"WF2","flowId":"F2","before":"S1 目录筛选和滚动已保存。","during":"S2 接管焦点并显示查询中/结果。","after":"关闭 S2 恢复 S1，或打开详情。","failureRecovery":"空结果可改词/清除；失败可重试/关闭。"},
+    {"id":"WF3","flowId":"F3","before":"S1 两个目录分别展示当前结果。","during":"主题或朝代只让所属区域加载。","after":"显示前七项并允许展开。","failureRecovery":"空/失败区域给出清除或重试，另一目录不变。"},
+    {"id":"WF4","flowId":"F4","before":"系统将用户带到目标。","during":"验证深链接对象。","after":"有效目标进入详情，失效目标进入 S1。","failureRecovery":"显示原因并提供重试或浏览人物页。"}
+  ],
+  "coverage":[
+    {"sourceScreenId":"S1","requiredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"coveredStateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"acceptanceSignals":["两个筛选各自只改变所属区域。","每个目录第八项后可展开。","初始与局部失败均有恢复动作。"]},
+    {"sourceScreenId":"S2","requiredStateIds":["ST7","ST8","ST9"],"coveredStateIds":["ST7","ST8","ST9"],"acceptanceSignals":["关闭搜索后目录状态不变。","空结果和失败分别有清除/重试。"]},
+    {"sourceScreenId":"S3","requiredStateIds":["ST10"],"coveredStateIds":["ST10"],"acceptanceSignals":["文章失败时可重试或返回保存的 S1 上下文。"]},
+    {"sourceScreenId":"S4","requiredStateIds":["ST10"],"coveredStateIds":["ST10"],"acceptanceSignals":["人物详情失败时可重试或返回保存的 S1 上下文。"]}
+  ],
+  "openQuestions":["文章页和人物详情页的内容结构在 UI 设计前仍需以现有实现为输入核对。","搜索排序、别名和拼音支持需在实现前验证。","推送授权和落地页策略在通知功能范围内另行定义。"]
+}

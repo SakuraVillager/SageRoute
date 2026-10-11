@@ -11,6 +11,7 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+.env
 
 # IntelliJ related
 *.iml
@@ -40,6 +41,31 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
+/android/.kotlin/
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Sensitive configuration
+dart_define.json
+assets/env.env
+
+# Temporary files
+tmp*.dart
+broken.txt
+
+.sisyphus/
+
+/sageroute/
+# claude
+CLAUDE.md
+.claude
+.gitignore
+
+# Local design and browser evidence (never ship with product sources)
+.playwright-mcp/
+.superpowers/
+figures-directions-desktop.png
+figures-visual-directions.png
+v6-preview.png
+

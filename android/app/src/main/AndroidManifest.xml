@@ -1,8 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
     <application
         android:label="sageroute"
         android:name="${applicationName}"
+        android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher">
+        <!-- 高德地图 SDK Key（地图显示 + 路径规划共用） -->
+        <meta-data
+            android:name="com.amap.api.v2.apikey"
+            android:value="836383abb3d61b9ec862c4fff1b4a435" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -20,9 +30,21 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- 禁用 Impeller 渲染后端：该设备 Vulkan 实现与 Impeller 不兼容，
+                 导致 Gralloc 格式分配失败和主线程阻塞。回退到 Skia/OpenGL ES。 -->
+            <meta-data
+              android:name="io.flutter.embedding.android.EnableImpeller"
+              android:value="false" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- Deep link for Supabase auth callbacks (email confirmation, password reset) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="sageroute"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "0.1.0",
+  "meta": {"productName": "SageRoute 人物页", "mode": "feature", "platform": "cross-platform", "generatedAt": "2026-08-26"},
+  "sourceBrief": {"path": "product-brief.json", "schemaVersion": "0.1.0"},
+  "requirements": [
+    {"id":"R1","statement":"用户可从人物页发现并打开相关推送文章或人物页。","priority":"must","sourcePath":"product-brief.json","kind":"value"},
+    {"id":"R2","statement":"搜索对人物名、文章标题、主题名分别使用 Supabase/Postgres ILIKE '%query%' 子串匹配，合并后标明结果类型与跳转目标。","priority":"must","sourcePath":"product-brief.json","kind":"functional"},
+    {"id":"R3","statement":"主题筛选只影响按主题组织的推送文章列表；人物朝代筛选只影响人物目录。","priority":"must","sourcePath":"product-brief.json","kind":"functional"},
+    {"id":"R4","statement":"两个目录默认最多显示七项，超过七项时可展开与收起。","priority":"must","sourcePath":"product-brief.json","kind":"functional"},
+    {"id":"R5","statement":"加载、空结果和失败状态必须区分，并提供重试或清除条件的恢复动作。","priority":"must","sourcePath":"product-brief.json","kind":"recovery"},
+    {"id":"R6","statement":"文章进入左向运动、返回右向运动；人物页返回后恢复搜索、筛选、展开和滚动上下文。","priority":"must","sourcePath":"product-brief.json","kind":"recovery"},
+    {"id":"R7","statement":"状态不得只依赖颜色，加载与结果语义须可被辅助技术识别。","priority":"must","sourcePath":"product-brief.json","kind":"accessibility"},
+    {"id":"R8","statement":"iOS 与 Android 具备同等的发现、恢复和返回结果，且遵循各自系统返回行为。","priority":"must","sourcePath":"product-brief.json","kind":"platform"},
+    {"id":"R9","statement":"周期推送不是核心价值的唯一入口；失效深链接必须可恢复到人物页。","priority":"should","sourcePath":"product-brief.json","kind":"constraint"}
+  ],
+  "assumptions": [
+    {"id":"AS1","statement":"全局搜索进入独立覆盖层，不修改主题文章或人物朝代筛选；关闭搜索后恢复原上下文。","status":"decision","source":"user confirmation 2026-08-26"},
+    {"id":"AS2","statement":"首版搜索对人物名、文章标题、主题名分别执行 Supabase/Postgres ILIKE '%query%'；不支持错别字、拼音、别名、繁简转换或复杂排序。","status":"decision","source":"user confirmation 2026-08-26"}
+  ],
+  "actors": [
+    {"id":"A1","name":"内容阅读用户","goal":"从人物、文章或主题线索进入相关内容并继续阅读。","authority":"可浏览、搜索、筛选、展开目录和进入详情；不能改变内容数据。"},
+    {"id":"A2","name":"内容服务","goal":"返回人物、文章、主题匹配及可恢复失败信息。","authority":"拥有检索和内容可用性的系统真相；不能代替用户选择筛选条件。"}
+  ],
+  "objects": [
+    {"id":"O1","name":"Search session","owner":"A1","lifecycleStates":["idle","querying","results","empty","failed","dismissed"],"transitions":[{"from":"idle","to":"querying","trigger":"submit query"},{"from":"querying","to":"results","trigger":"matches returned"},{"from":"querying","to":"empty","trigger":"no matches"},{"from":"querying","to":"failed","trigger":"recoverable request failure"},{"from":"results","to":"dismissed","trigger":"close search"},{"from":"empty","to":"dismissed","trigger":"clear or close"},{"from":"failed","to":"querying","trigger":"retry"}]},
+    {"id":"O2","name":"Topic article directory","owner":"A2","lifecycleStates":["loading","ready-collapsed","ready-expanded","empty","failed"],"transitions":[{"from":"loading","to":"ready-collapsed","trigger":"articles returned"},{"from":"ready-collapsed","to":"ready-expanded","trigger":"show more"},{"from":"ready-expanded","to":"ready-collapsed","trigger":"show less"},{"from":"loading","to":"empty","trigger":"no matching articles"},{"from":"loading","to":"failed","trigger":"request failure"},{"from":"failed","to":"loading","trigger":"retry or topic change"}]},
+    {"id":"O3","name":"Figure directory","owner":"A2","lifecycleStates":["loading","ready-collapsed","ready-expanded","empty","failed"],"transitions":[{"from":"loading","to":"ready-collapsed","trigger":"figures returned"},{"from":"ready-collapsed","to":"ready-expanded","trigger":"show more"},{"from":"ready-expanded","to":"ready-collapsed","trigger":"show less"},{"from":"loading","to":"empty","trigger":"no dynasty matches"},{"from":"loading","to":"failed","trigger":"request failure"},{"from":"failed","to":"loading","trigger":"retry or dynasty change"}]},
+    {"id":"O4","name":"Browse context","owner":"A1","lifecycleStates":["active","preserved","restored","stale"],"transitions":[{"from":"active","to":"preserved","trigger":"open article or figure"},{"from":"preserved","to":"restored","trigger":"back to figures page"},{"from":"preserved","to":"stale","trigger":"process recreation without cached data"},{"from":"stale","to":"active","trigger":"reload with retained filters where valid"}]}
+  ],
+  "scenarios": [
+    {"id":"SC1","name":"浏览推送文章","actorIds":["A1"],"trigger":"从人物入口或有效深链接进入","outcome":"用户打开一篇文章，返回后保留人物页上下文。","priority":"critical","requirementIds":["R1","R5","R6","R7","R8"]},
+    {"id":"SC2","name":"跨对象模糊搜索","actorIds":["A1"],"trigger":"用户打开搜索并输入关键词","outcome":"用户识别结果类型后打开文章或人物页，或从空/失败状态恢复。","priority":"critical","requirementIds":["R1","R2","R5","R6","R7","R8"]},
+    {"id":"SC3","name":"独立目录筛选与展开","actorIds":["A1"],"trigger":"用户选择主题或朝代筛选，或需要浏览第八项以后内容","outcome":"仅所属目录改变，用户可打开文章或人物页。","priority":"critical","requirementIds":["R1","R3","R4","R5","R7"]},
+    {"id":"SC4","name":"失效推送恢复","actorIds":["A1"],"trigger":"推送深链接目标不存在、不可用或加载失败","outcome":"用户理解原因并可转到人物页浏览或重试。","priority":"important","requirementIds":["R5","R8","R9"]}
+  ],
+  "journeys": [
+    {"id":"J1","scenarioId":"SC1","stages":[{"action":"进入人物页","feedback":"中心加载指示与可读状态文本","recovery":"加载失败可重试"},{"action":"点选精选或主题推送文章","feedback":"左向进入并显示文章加载","recovery":"文章失败返回原上下文或重试"},{"action":"返回","feedback":"右向返回人物页","recovery":"恢复原滚动、筛选与展开状态"}]},
+    {"id":"J2","scenarioId":"SC2","stages":[{"action":"输入关键词","feedback":"独立搜索层显示查询中","recovery":"可取消"},{"action":"查看分组结果","feedback":"人物/文章/主题命中有明确类型和目标","recovery":"空结果可清除或改词，失败可重试"},{"action":"关闭搜索","feedback":"回到保留的目录上下文","recovery":"不清除目录筛选"}]}
+  ],
+  "flows": [
+    {"id":"F1","scenarioId":"SC1","name":"打开文章并返回","entryConditions":"人物页可达；深链接目标失效时转 F4。","nodes":[{"id":"F1-N1","type":"entry","description":"进入人物页","next":["F1-N2"],"screenId":"S1"},{"id":"F1-N2","type":"system","description":"加载页面内容，超时或失败转恢复","next":["F1-N3","F1-N6"],"screenId":"S1"},{"id":"F1-N3","type":"action","description":"选择精选或主题推送文章","next":["F1-N4"],"screenId":"S1"},{"id":"F1-N4","type":"system","description":"保存浏览上下文并左向进入文章","next":["F1-N5","F1-N6"],"screenId":"S3"},{"id":"F1-N5","type":"completion","description":"阅读后右向返回并恢复上下文","next":[],"screenId":"S1"},{"id":"F1-N6","type":"recovery","description":"显示可读失败原因；可重试或留在人物页","next":["F1-N2","F1-N5"],"screenId":"S3"}],"completion":"文章打开或安全返回人物页。","interruption":"上下文在离开人物页前保存；重复进入不会修改内容。","requirementIds":["R1","R5","R6","R7","R8"]},
+    {"id":"F2","scenarioId":"SC2","name":"全局搜索","entryConditions":"人物页已打开或由顶部搜索入口进入。","nodes":[{"id":"F2-N1","type":"action","description":"打开搜索覆盖层并输入查询","next":["F2-N2","F2-N6"],"screenId":"S2"},{"id":"F2-N2","type":"system","description":"执行模糊检索","next":["F2-N3","F2-N4","F2-N5"],"screenId":"S2"},{"id":"F2-N3","type":"feedback","description":"显示带类型和跳转目标的结果","next":["F2-N6","F2-N7"],"screenId":"S2"},{"id":"F2-N4","type":"recovery","description":"显示无结果，可改词或清除搜索","next":["F2-N1","F2-N6"],"screenId":"S2"},{"id":"F2-N5","type":"recovery","description":"显示查询失败，可重试或关闭","next":["F2-N2","F2-N6"],"screenId":"S2"},{"id":"F2-N6","type":"completion","description":"关闭搜索并恢复原目录上下文","next":[],"screenId":"S1"},{"id":"F2-N7","type":"action","description":"选择文章或人物结果进入详情","next":["F2-N6"],"screenId":"S2"}],"completion":"用户进入对应详情或安全返回原上下文。","interruption":"查询可取消；关闭搜索不清除目录筛选。","requirementIds":["R1","R2","R5","R6","R7","R8"]},
+    {"id":"F3","scenarioId":"SC3","name":"独立目录筛选与展开","entryConditions":"人物页内容已可用。","nodes":[{"id":"F3-N1","type":"action","description":"选择主题或朝代筛选","next":["F3-N2"],"screenId":"S1"},{"id":"F3-N2","type":"system","description":"仅刷新所属目录","next":["F3-N3","F3-N4","F3-N5"],"screenId":"S1"},{"id":"F3-N3","type":"feedback","description":"显示所属目录结果和前七项","next":["F3-N6","F3-N7"],"screenId":"S1"},{"id":"F3-N4","type":"recovery","description":"显示所属目录空结果及清除筛选","next":["F3-N1"],"screenId":"S1"},{"id":"F3-N5","type":"recovery","description":"显示所属目录失败及重试","next":["F3-N2","F3-N1"],"screenId":"S1"},{"id":"F3-N6","type":"action","description":"展开或收起超过七项的目录","next":["F3-N3"],"screenId":"S1"},{"id":"F3-N7","type":"completion","description":"打开文章或人物详情","next":[],"screenId":"S3"}],"completion":"用户打开目标内容或保留筛选后的目录。","interruption":"两组筛选、展开状态分别保存，恢复时分别校验有效性。","requirementIds":["R1","R3","R4","R5","R7"]},
+    {"id":"F4","scenarioId":"SC4","name":"失效深链接恢复","entryConditions":"推送打开的文章或人物目标不可用。","nodes":[{"id":"F4-N1","type":"entry","description":"接收深链接","next":["F4-N2"]},{"id":"F4-N2","type":"system","description":"验证目标可用性","next":["F4-N3","F4-N4"]},{"id":"F4-N3","type":"completion","description":"打开有效目标","next":[]},{"id":"F4-N4","type":"recovery","description":"说明目标不可用，提供重试或进入人物页浏览","next":["F4-N2","F4-N5"],"screenId":"S1"},{"id":"F4-N5","type":"completion","description":"进入人物页默认浏览状态","next":[],"screenId":"S1"}],"completion":"打开目标或落在可浏览的人物页。","interruption":"重复点击深链接安全；不可用目标不保留为假成功。","requirementIds":["R5","R8","R9"]}
+  ],
+  "informationArchitecture": {"model":"人物页为持久入口；文章页和人物页为层级详情；搜索为全局覆盖层。","destinations":["S1 人物页","S3 文章页","S4 人物详情页"],"focusedTasks":[],"overlays":["S2 全局搜索"],"systemHandoffs":["周期推送深链接"],"deepLinks":["有效目标直达文章或人物详情；无效目标恢复到 S1"],"statePreservation":["从 S1 离开时保存滚动、搜索词、两组独立筛选和两个目录展开状态；从 S2 关闭时恢复 S1，不更改筛选。"]},
+  "screens": [
+    {"id":"S1","name":"人物页","responsibility":"发现内容，并分别浏览主题推送文章与人物目录。","requirementIds":["R1","R3","R4","R5","R6","R7","R8","R9"],"flowIds":["F1","F3","F4"],"entryPoints":["底部人物入口","无效深链接恢复","文章/人物详情返回"],"primaryAction":"打开精选或主题推送文章；打开人物详情。","secondaryActions":["打开搜索","选择主题","选择朝代","展开/收起两个目录","重试或清除筛选"],"objectIds":["O2","O3","O4"],"stateIds":["ST1","ST2","ST3","ST4","ST5","ST6"],"exits":["S2","S3","S4"],"platformNotes":"使用系统兼容的滚动与返回；不抢占系统返回手势。"},
+    {"id":"S2","name":"全局搜索","responsibility":"检索人物、文章和主题名，不改变人物页目录状态。","requirementIds":["R1","R2","R5","R6","R7","R8"],"flowIds":["F2"],"entryPoints":["S1 搜索入口"],"primaryAction":"提交或修改查询；选择明确类型的结果。","secondaryActions":["关闭搜索","清除查询","重试"],"objectIds":["O1","O4"],"stateIds":["ST7","ST8","ST9"],"exits":["S1","S3","S4"],"platformNotes":"关闭操作与系统返回均回到 S1 原上下文；读屏按结果类型、标题、目标顺序播报。"},
+    {"id":"S3","name":"文章页","responsibility":"展示当前文章；本阶段沿用既有正文形式。","requirementIds":["R1","R5","R6","R7","R8"],"flowIds":["F1","F2","F3"],"entryPoints":["S1 推送文章","S2 文章结果"],"primaryAction":"阅读文章。","secondaryActions":["返回人物页","重试文章加载"],"objectIds":["O4"],"stateIds":["ST10"],"exits":["S1"],"platformNotes":"进入为左向层级运动；iOS 边缘返回与 Android 系统返回均回 S1。"},
+    {"id":"S4","name":"人物详情页","responsibility":"展示选中人物的现有内容与数据。","requirementIds":["R1","R5","R7","R8"],"flowIds":["F2","F3"],"entryPoints":["S1 人物目录","S2 人物结果"],"primaryAction":"浏览人物资料。","secondaryActions":["返回人物页","重试人物资料加载"],"objectIds":["O4"],"stateIds":["ST10"],"exits":["S1"],"platformNotes":"返回恢复进入前的人物页上下文；详情内容范围在后续页面设计中定义。"}
+  ],
+  "stateMatrix": [
+    {"id":"ST1","name":"人物页初始加载","scope":"S1","trigger":"首次进入或有效缓存失效","meaning":"内容正在获取","availableActions":["等待","在超时后重试"],"recovery":"失败转 ST2","ownerIds":["S1"],"requirementIds":["R5","R7"]},
+    {"id":"ST2","name":"人物页加载失败","scope":"S1","trigger":"初始请求失败或超时","meaning":"未成功获得页面内容","availableActions":["重试","返回其他主入口"],"recovery":"重试转 ST1","ownerIds":["S1"],"requirementIds":["R5","R7","R8"]},
+    {"id":"ST3","name":"主题文章筛选加载","scope":"S1 topic article directory","trigger":"主题筛选改变","meaning":"仅主题文章列表正在更新","availableActions":["等待","更改或清除主题"],"recovery":"失败转 ST5","ownerIds":["S1"],"requirementIds":["R3","R5","R7"]},
+    {"id":"ST4","name":"人物朝代筛选加载","scope":"S1 figure directory","trigger":"朝代筛选改变","meaning":"仅人物目录正在更新","availableActions":["等待","更改或清除朝代"],"recovery":"失败转 ST6","ownerIds":["S1"],"requirementIds":["R3","R5","R7"]},
+    {"id":"ST5","name":"主题文章空结果或失败","scope":"S1 topic article directory","trigger":"无文章或请求失败","meaning":"该主题没有可展示文章，或暂无法获得文章","availableActions":["清除主题","重试"],"recovery":"清除恢复默认列表；重试回 ST3","ownerIds":["S1"],"requirementIds":["R3","R5","R7"]},
+    {"id":"ST6","name":"人物目录空结果或失败","scope":"S1 figure directory","trigger":"无朝代人物或请求失败","meaning":"该朝代没有人物，或暂无法获得人物","availableActions":["清除朝代","重试"],"recovery":"清除恢复默认目录；重试回 ST4","ownerIds":["S1"],"requirementIds":["R3","R5","R7"]},
+    {"id":"ST7","name":"搜索查询中","scope":"S2","trigger":"提交非空查询","meaning":"跨对象匹配正在进行","availableActions":["取消","修改查询"],"recovery":"取消回 S1 原上下文","ownerIds":["S2"],"requirementIds":["R2","R5","R7"]},
+    {"id":"ST8","name":"搜索空结果","scope":"S2","trigger":"无匹配项","meaning":"未找到人物、文章或主题名匹配","availableActions":["改词","清除","关闭"],"recovery":"关闭回 S1 原上下文","ownerIds":["S2"],"requirementIds":["R2","R5","R7"]},
+    {"id":"ST9","name":"搜索失败","scope":"S2","trigger":"查询失败或超时","meaning":"当前不能完成搜索","availableActions":["重试","关闭"],"recovery":"重试回 ST7；关闭回 S1 原上下文","ownerIds":["S2"],"requirementIds":["R2","R5","R7"]},
+    {"id":"ST10","name":"详情加载失败","scope":"S3/S4","trigger":"文章或人物详情不可用","meaning":"目标当前无法打开","availableActions":["重试","返回人物页"],"recovery":"返回恢复 O4","ownerIds":["S3","S4"],"requirementIds":["R5","R6","R7","R8"]}
+  ],
+  "permissions": [],
+  "deviceSurfaces": [{"name":"周期推送深链接","activation":"用户已选择接收推送时由系统投递","fallback":"底部人物入口始终可达","failure":"目标失效时转 S1 并说明原因","requirementIds":["R9"]}],
+  "platformDifferences": [{"area":"返回与转场","ios":"使用系统导航栈及边缘返回；不以全屏右滑覆盖系统手势。","android":"系统返回/预测返回回到 S1 的保存上下文；左向进入不替代返回。","requirementIds":["R6","R8"]},{"area":"可访问状态","ios":"VoiceOver 获得加载、空结果和错误焦点。","android":"TalkBack 按对象类型、标题、操作顺序读取。","requirementIds":["R7","R8"]}],
+  "traceability": [
+    {"requirementId":"R1","scenarioIds":["SC1","SC2","SC3"],"flowIds":["F1","F2","F3"],"screenIds":["S1","S2","S3","S4"],"stateIds":["ST1","ST3","ST4"],"acceptanceSignals":["可从精选、主题推送文章、人物目录或搜索进入对应详情。"]},
+    {"requirementId":"R2","scenarioIds":["SC2"],"flowIds":["F2"],"screenIds":["S2"],"stateIds":["ST7","ST8","ST9"],"acceptanceSignals":["结果显示人物、文章、主题类型与目标。"]},
+    {"requirementId":"R3","scenarioIds":["SC3"],"flowIds":["F3"],"screenIds":["S1"],"stateIds":["ST3","ST4","ST5","ST6"],"acceptanceSignals":["更改主题不改变人物目录；更改朝代不改变主题文章列表。"]},
+    {"requirementId":"R4","scenarioIds":["SC3"],"flowIds":["F3"],"screenIds":["S1"],"stateIds":["ST3","ST4"],"acceptanceSignals":["八项以上时默认七项，可展开和收起。"]},
+    {"requirementId":"R5","scenarioIds":["SC1","SC2","SC3","SC4"],"flowIds":["F1","F2","F3","F4"],"screenIds":["S1","S2","S3","S4"],"stateIds":["ST1","ST2","ST5","ST6","ST8","ST9","ST10"],"acceptanceSignals":["每种失败或空状态均有清除、重试或返回动作。"]},
+    {"requirementId":"R6","scenarioIds":["SC1","SC2"],"flowIds":["F1","F2"],"screenIds":["S1","S2","S3"],"stateIds":["ST10"],"acceptanceSignals":["回到 S1 后恢复滚动、筛选、展开和搜索上下文。"]},
+    {"requirementId":"R7","scenarioIds":["SC1","SC2","SC3"],"flowIds":["F1","F2","F3"],"screenIds":["S1","S2","S3","S4"],"stateIds":["ST1","ST2","ST7","ST8","ST9","ST10"],"acceptanceSignals":["读屏可获得加载、结果类型、空结果和错误语义。"]},
+    {"requirementId":"R8","scenarioIds":["SC1","SC2","SC4"],"flowIds":["F1","F2","F4"],"screenIds":["S1","S2","S3","S4"],"stateIds":["ST2","ST10"],"acceptanceSignals":["两端系统返回均恢复合理上下文。"]}
+  ],
+  "openQuestions": ["推送频率、授权时机与落地目标仍待产品决定。","三类搜索字段的实际列名和结果合并展示顺序由实现确认。","人物详情页的具体内容结构在后续页面设计中定义。"],
+  "confidence": "medium"
+}
