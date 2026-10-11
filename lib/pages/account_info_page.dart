@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -119,7 +120,7 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('账号信息已保存')));
-      Navigator.of(context).pop(true);
+      finishAppPage(context, true);
     } catch (_) {
       if (!mounted) return;
       setState(() => _errorMessage = '保存失败，请稍后重试');
@@ -183,6 +184,10 @@ class _AccountInfoPageState extends State<AccountInfoPage> {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
         backgroundColor: AppColors.sageBg,
         foregroundColor: AppColors.sageText,
         elevation: 0,

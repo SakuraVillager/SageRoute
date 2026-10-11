@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'browser_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database_service.dart';
@@ -38,7 +40,11 @@ class AuthService {
   final PasswordSignIn? _passwordSignIn;
   final SignOutHandler? _signOutHandler;
 
-  static const passwordResetRedirectTo = 'sageroute://login-callback/';
+  static String get passwordResetRedirectTo => kIsWeb
+      ? Uri.base
+            .replace(path: '/auth/callback', query: '', fragment: '')
+            .toString()
+      : 'sageroute://login-callback/';
 
   SupabaseClient get _supabaseClient => _client ?? DatabaseService.client;
 
@@ -65,7 +71,7 @@ class AuthService {
       email: email.trim(),
       password: password.trim(),
       data: {'nickname': nickname.trim()},
-      emailRedirectTo: 'sageroute://login-callback/',
+      emailRedirectTo: passwordResetRedirectTo,
     );
     final session = response.session;
     if (session != null) await DatabaseService.persistAuthSession(session);
@@ -92,6 +98,7 @@ class AuthService {
 
   /// 退出登录。
   Future<void> signOut() async {
+    clearRouteDrafts();
     final handler = _signOutHandler;
     if (handler != null) {
       await handler();
@@ -114,6 +121,14 @@ class AuthService {
     await _supabaseClient.auth.resetPasswordForEmail(
       normalizedEmail,
       redirectTo: passwordResetRedirectTo,
+    );
+  }
+
+  Future<void> resendVerification(String email) async {
+    await _supabaseClient.auth.resend(
+      type: OtpType.signup,
+      email: email.trim(),
+      emailRedirectTo: passwordResetRedirectTo,
     );
   }
 

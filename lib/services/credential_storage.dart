@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,11 +40,13 @@ typedef CredentialDelete = Future<void> Function(String key);
 /// 所有读写方法都可通过构造参数注入，便于单元测试。
 class CredentialStorage {
   CredentialStorage({
+    bool? persistPassword,
     CredentialRead? read,
     CredentialWrite? write,
     CredentialDelete? delete,
     DateTime Function()? now,
-  }) : _read = read ?? _readFromPreferences,
+  }) : persistPassword = !kIsWeb && (persistPassword ?? true),
+       _read = read ?? _readFromPreferences,
        _write = write ?? _writeToPreferences,
        _delete = delete ?? _deleteFromPreferences,
        _now = now ?? DateTime.now;
@@ -57,6 +60,7 @@ class CredentialStorage {
   static const String passwordKey = 'savedLoginPassword';
   static const String timestampKey = 'savedLoginAt';
 
+  final bool persistPassword;
   final CredentialRead _read;
   final CredentialWrite _write;
   final CredentialDelete _delete;
@@ -76,7 +80,11 @@ class CredentialStorage {
   /// 登录成功后调用：记住邮箱与密码，并刷新时间戳。
   Future<void> save({required String email, required String password}) async {
     await _write(emailKey, email);
-    await _write(passwordKey, _encode(password));
+    if (persistPassword) {
+      await _write(passwordKey, _encode(password));
+    } else {
+      await _delete(passwordKey);
+    }
     await _write(timestampKey, _now().millisecondsSinceEpoch.toString());
   }
 
@@ -90,7 +98,12 @@ class CredentialStorage {
     String? timestampRaw;
     try {
       email = await _read(emailKey);
-      encodedPassword = await _read(passwordKey);
+      if (persistPassword) {
+        encodedPassword = await _read(passwordKey);
+      } else {
+        await _delete(passwordKey);
+        encodedPassword = '';
+      }
       timestampRaw = await _read(timestampKey);
     } catch (_) {
       // 读取失败视同没有保存过，不影响登录流程。
@@ -114,6 +127,9 @@ class CredentialStorage {
       return null;
     }
 
+    if (!persistPassword) {
+      return SavedCredentials(email: email, password: '', savedAt: savedAt);
+    }
     final password = _decode(encodedPassword);
     if (password == null || password.isEmpty) {
       await _clearQuietly();
@@ -138,6 +154,10 @@ class CredentialStorage {
     required String email,
     required String newPassword,
   }) async {
+    if (!persistPassword) {
+      await _delete(passwordKey);
+      return;
+    }
     final savedEmail = await _read(emailKey);
     if (savedEmail == null || savedEmail != email) return;
     await _write(passwordKey, _encode(newPassword));

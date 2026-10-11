@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../navigation/app_navigation.dart';
 
 import '../components/settings_card.dart';
 import '../services/profile_preferences.dart';
@@ -67,6 +68,10 @@ class _LanguagePageState extends State<LanguagePage> {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
         backgroundColor: AppColors.sageBg,
         foregroundColor: AppColors.sageText,
         elevation: 0,

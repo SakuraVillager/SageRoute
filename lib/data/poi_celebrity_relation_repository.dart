@@ -9,7 +9,8 @@ class PoiCelebrityRelationRepository {
     RelationFetcher? fetcher,
     SupabaseTableRepository? tableRepository,
   }) : _fetcher = fetcher,
-       _tableRepository = tableRepository ??
+       _tableRepository =
+           tableRepository ??
            const SupabaseTableRepository(tableName: 'poi_celebrity_relatian');
 
   final RelationFetcher? _fetcher;
@@ -29,7 +30,13 @@ class PoiCelebrityRelationRepository {
   /// 按人物名过滤关系。
   Future<List<PoiCelebrityRelationRecord>> fetchRelationsByCelebrity(
     String celebrityName,
-  ) {
+  ) async {
+    if (_fetcher != null) {
+      final relations = await _fetcher();
+      return relations
+          .where((relation) => relation.celebrityName == celebrityName)
+          .toList(growable: false);
+    }
     return _tableRepository.fetchAll<PoiCelebrityRelationRecord>(
       mapper: PoiCelebrityRelationRecord.fromMap,
       equals: {'celebrity_name': celebrityName},

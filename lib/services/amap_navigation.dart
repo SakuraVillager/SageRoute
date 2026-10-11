@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/saved_route.dart';
 
 /// Opens AMap's native route planner for the first stop. With no start
@@ -14,6 +15,16 @@ Uri buildAmapNavigationUri(RouteWaypoint firstStop) {
     throw const FormatException('首站缺少有效坐标');
   }
 
+  if (kIsWeb) {
+    return Uri.https('uri.amap.com', '/navigation', {
+      'to':
+          '$longitude,$latitude,${firstStop.name.trim().replaceAll(',', ' ')}',
+      'mode': 'car',
+      'coordinate': 'gaode',
+      'src': 'SageRoute',
+      'callnative': '1',
+    });
+  }
   final name = firstStop.name.trim().replaceAll(',', ' ');
   return Uri(
     scheme: 'amapuri',

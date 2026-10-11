@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
@@ -17,7 +18,6 @@ import '../models/figure.dart';
 import '../models/topic_record.dart';
 import '../theme/color_schemes.dart';
 import '../utils/featured_card_metrics.dart';
-import '../utils/slide_route.dart';
 import 'article_detail_page.dart';
 import 'figure_detail_page.dart';
 
@@ -93,27 +93,23 @@ class _FiguresListPageState extends State<FiguresListPage> {
   void _retry() => setState(() => _pageFuture = _loadPage());
 
   void _openArticle(ArticleRecord article) {
-    Navigator.of(
-      context,
-    ).push(slideFromRightRoute(ArticleDetailPage(article: article)));
+    openAppPage(context, ArticleDetailPage(article: article));
   }
 
-  Future<void> _openFeaturedArticle(ArticleRecord article) => Navigator.of(
-    context,
-  ).push(slideFromRightRoute(ArticleDetailPage(article: article)));
+  Future<void> _openFeaturedArticle(ArticleRecord article) =>
+      openAppPage(context, ArticleDetailPage(article: article));
 
   void _openFigure(CelebrityProfile celebrity) {
-    Navigator.of(context).push(
-      slideFromRightRoute(
-        FigureDetailPage(
-          figure: Figure(
-            id: celebrity.id.toString(),
-            name: celebrity.name,
-            dynasty: celebrity.dynasty,
-            shortDesc: celebrity.bioShort,
-            description: celebrity.bioFull,
-            imageUrl: celebrity.avatarUrl,
-          ),
+    openAppPage(
+      context,
+      FigureDetailPage(
+        figure: Figure(
+          id: celebrity.id.toString(),
+          name: celebrity.name,
+          dynasty: celebrity.dynasty,
+          shortDesc: celebrity.bioShort,
+          description: celebrity.bioFull,
+          imageUrl: celebrity.avatarUrl,
         ),
       ),
     );

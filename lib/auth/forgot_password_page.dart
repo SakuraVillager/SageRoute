@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -64,16 +66,26 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sageBg,
+      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+          ? Colors.white
+          : AppColors.sageBg,
       appBar: AppBar(
-        backgroundColor: AppColors.sageBg,
+        leading: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
+        backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+            ? Colors.white
+            : AppColors.sageBg,
         foregroundColor: AppColors.sageText,
         elevation: 0,
       ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          child: _emailSent ? _buildEmailSent() : _buildForm(),
+          child: SingleChildScrollView(
+            child: _emailSent ? _buildEmailSent() : _buildForm(),
+          ),
         ),
       ),
     );
@@ -99,6 +111,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         const SizedBox(height: 32),
         TextField(
           controller: _emailController,
+          autofillHints: const [AutofillHints.email],
           focusNode: _emailFocus,
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
@@ -166,9 +179,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           textAlign: TextAlign.center,
           style: TextStyle(color: AppColors.sageMuted, fontSize: 14),
         ),
-        const Spacer(),
+        const SizedBox(height: 32),
         ElevatedButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => finishAppPage(context),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.sageDeep,
             foregroundColor: Colors.white,

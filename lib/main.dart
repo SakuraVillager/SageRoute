@@ -1,12 +1,17 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-import 'package:amap_map/amap_map.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:x_amap_base/x_amap_base.dart';
+import 'services/map_initialization.dart';
+import 'navigation/web_app.dart';
+import 'navigation/app_navigation.dart';
+import 'navigation/platform_url.dart';
+import 'components/adaptive_content.dart';
+import 'components/web/web_workspace.dart';
 
 import 'theme.dart';
 import 'components/bottom_nav.dart';
@@ -22,7 +27,6 @@ import 'views/profile_page.dart';
 import 'services/database_service.dart';
 import 'auth/auth_gate.dart';
 import 'auth/login_page.dart';
-import 'utils/slide_route.dart';
 
 /// 高德地图 Android Key，通过 --dart-define 或 --dart-define-from-file 注入。
 const String _amapAndroidKeyFromDefine = String.fromEnvironment(
@@ -65,16 +69,11 @@ Future<ResolvedAmapKey> _resolveAmapKey() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  configureUrlStrategy();
   debugPrint('[SageRoute] app starting...');
 
   // 高德 SDK 隐私合规声明需在调用任何地图接口前设置。
-  AMapInitializer.updatePrivacyAgree(
-    const AMapPrivacyStatement(
-      hasContains: true,
-      hasShow: true,
-      hasAgree: true,
-    ),
-  );
+  prepareMapPrivacy();
 
   // 不要在此处 await 任何耗时操作——先渲染 UI，再异步初始化。
   // 调试模式下 JIT + 网络初始化若阻塞 runApp，会触发 Android ANR。
@@ -108,6 +107,7 @@ class _SageRouteAppState extends State<SageRouteApp> {
       debugPrint('[SageRoute] DatabaseService init failed: $e');
       rethrow;
     }
+    if (kIsWeb) return const ResolvedAmapKey(key: '', source: 'web');
     final key = await _resolveAmapKey();
     debugPrint(
       '[SageRoute] AMap key resolved (source=${key.source}, length=${key.key.length})',
@@ -126,15 +126,13 @@ class _SageRouteAppState extends State<SageRouteApp> {
     // 延迟到首帧之后再初始化 AMap，避免在 build 阶段做原生调用。
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      AMapInitializer.init(
-        context,
-        apiKey: key.key.isEmpty ? null : AMapApiKey(androidKey: key.key),
-      );
+      initializeNativeMap(context, key.key);
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return WebSageRouteApp(initialization: _initFuture);
     return MaterialApp(
       title: 'SageRoute',
       theme: AppTheme.lightTheme,
@@ -263,36 +261,51 @@ class _AppLaunchDeciderState extends State<AppLaunchDecider> {
 }
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  const MainScreen({
+    super.key,
+    this.initialIndex = 0,
+    this.onTabSelected,
+    this.workspaceChild,
+  });
+  final Widget? workspaceChild;
+  final int initialIndex;
+  final ValueChanged<int>? onTabSelected;
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
+  final _contentKey = GlobalKey();
   int _selectedIndex = 0;
   bool _showCelebrityOverlay = false;
   final _savedRoutes = ValueNotifier<List<SavedRoute>>(const <SavedRoute>[]);
+  final Set<String> _deletedRouteIds = <String>{};
+  int _syncRequestId = 0;
 
   static const _routeRepository = UserRouteRepository();
 
   // 惰性 tab 构建：只有访问过的 tab 才会被构建，避免首次进入时
   // IndexedStack 同时构建全部 4 个页面导致主线程过载 (ANR)。
-  // 索引: 0=首页, 1=人物, 2=收藏, 3=我的（规划通过 push 独立页面进入）
+  // 索引: 0=首页, 1=人物, 2=收藏, 3=我的；Web 规划位于工作区子路由。
   late final List<Widget> _tabs;
   final Set<int> _builtTabs = {0}; // 首页立即构建
 
   /// 底部导航栏 index → _tabs index 的映射。
-  /// 导航栏中间的"规划"按钮（navIndex=2）不对应 tab，而是 push 新页面。
+  /// 规划（navIndex=2）在 Android push 页面，在 Web 切换工作区子路由。
   static const _navToTab = {0: 0, 1: 1, 3: 2, 4: 3};
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _selectedIndex = widget.initialIndex;
+    _builtTabs.add(_navToTab[_selectedIndex] ?? 0);
     _tabs = [
       HomePage(
         createdRoutesListenable: _savedRoutes,
         onRefreshRoutes: _loadSavedRoutes,
+        onDeleteRoute: _deleteSavedRoute,
       ),
       const FiguresListPage(),
       const SavedRoutesPage(),
@@ -301,14 +314,31 @@ class _MainScreenState extends State<MainScreen> {
     _loadSavedRoutes();
   }
 
+  @override
+  void didUpdateWidget(covariant MainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.workspaceChild != null && widget.workspaceChild == null) {
+      _loadSavedRoutes();
+    }
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _selectedIndex = widget.initialIndex;
+      _builtTabs.add(_navToTab[_selectedIndex] ?? 0);
+    }
+  }
+
   /// 从 Supabase 拉取当前用户的路线（新→旧）。
   Future<void> _loadSavedRoutes() async {
+    final requestId = ++_syncRequestId;
+    final idsAtStart = _savedRoutes.value.map((route) => route.id).toSet();
     try {
-      final routes = await _routeRepository.fetchUserRoutes();
-      if (!mounted) return;
+      final routes = (await _routeRepository.fetchUserRoutes())
+          .where((route) => !_deletedRouteIds.contains(route.id))
+          .toList(growable: false);
+      if (!mounted || requestId != _syncRequestId) return;
       final remoteIds = routes.map((route) => route.id).toSet();
       final localOnly = _savedRoutes.value.where(
-        (route) => !remoteIds.contains(route.id),
+        (route) =>
+            !idsAtStart.contains(route.id) && !remoteIds.contains(route.id),
       );
       _savedRoutes.value = [...localOnly, ...routes];
     } catch (error, stackTrace) {
@@ -318,29 +348,56 @@ class _MainScreenState extends State<MainScreen> {
         error: error,
         stackTrace: stackTrace,
       );
-      if (!mounted) return;
+      if (!mounted || requestId != _syncRequestId) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(
-            content: Text('历史行程同步失败，可在首页下拉重试'),
+          SnackBar(
+            content: const Text('历史行程同步失败，可在首页下拉重试'),
             behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              SageRouteBottomNav.barHeight +
+                  MediaQuery.paddingOf(context).bottom +
+                  12,
+            ),
           ),
         );
     }
   }
 
+  Future<void> _deleteSavedRoute(String routeId) async {
+    await _routeRepository.deleteRoute(routeId);
+    if (!mounted) return;
+    _deletedRouteIds.add(routeId);
+    _savedRoutes.value = _savedRoutes.value
+        .where((route) => route.id != routeId)
+        .toList(growable: false);
+  }
+
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _savedRoutes.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _selectedIndex == 0) {
+      _loadSavedRoutes();
+    }
+  }
+
   Future<void> _pushCreateRouteWizard() async {
-    final saved = await Navigator.of(
+    final saved = await openAppPage<SavedRoute>(
       context,
-    ).push<SavedRoute>(slideFromRightRoute(const CreateRouteWizard()));
+      const CreateRouteWizard(),
+    );
     if (saved == null || !mounted) return;
+    widget.onTabSelected?.call(0);
     if (saved.id.isNotEmpty) {
       _savedRoutes.value = [saved, ..._savedRoutes.value];
     } else {
@@ -355,21 +412,34 @@ class _MainScreenState extends State<MainScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        const SnackBar(
-          content: Text('行程已保存'),
+        SnackBar(
+          content: const Text('行程已保存'),
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          margin: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            SageRouteBottomNav.barHeight +
+                MediaQuery.paddingOf(context).bottom +
+                12,
+          ),
+          duration: const Duration(seconds: 2),
         ),
       );
   }
 
   void _onItemTapped(int navIndex) {
     if (_showCelebrityOverlay) return;
-    if (navIndex == 2) {
+    if (navIndex == 2 && (!kIsWeb || widget.onTabSelected == null)) {
       _pushCreateRouteWizard();
       return;
     }
+    if (widget.onTabSelected != null) {
+      widget.onTabSelected!(navIndex);
+      return;
+    }
     final tabIndex = _navToTab[navIndex]!;
+    if (tabIndex == 0) _loadSavedRoutes();
     setState(() {
       _selectedIndex = navIndex;
       _builtTabs.add(tabIndex);
@@ -388,38 +458,54 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Scaffold(
-          extendBody: true,
-          body: Stack(
-            fit: StackFit.expand,
-            children: List.generate(_tabs.length, (index) {
-              if (!_builtTabs.contains(index)) {
-                return const SizedBox.shrink();
-              }
-              final tabIndex = _navToTab[_selectedIndex] ?? 0;
-              return Offstage(offstage: tabIndex != index, child: _tabs[index]);
-            }),
-          ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SageRouteBottomNav(
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-          ),
-        ),
-        if (_showCelebrityOverlay)
-          Positioned.fill(
-            child: CelebritySelectionPage(
-              onContinue: _closeCelebrityOverlay,
-              onSkip: _closeCelebrityOverlay,
+    final desktop = kIsWeb && MediaQuery.sizeOf(context).width >= 1024;
+    final content = KeyedSubtree(
+      key: _contentKey,
+      child: Stack(
+        children: [
+          Scaffold(
+            extendBody: true,
+            body: Stack(
+              fit: StackFit.expand,
+              children: List.generate(_tabs.length, (index) {
+                if (!_builtTabs.contains(index)) {
+                  return const SizedBox.shrink();
+                }
+                final tabIndex = _navToTab[_selectedIndex] ?? 0;
+                return Offstage(
+                  offstage: widget.workspaceChild != null || tabIndex != index,
+                  child: AdaptiveContent(child: _tabs[index]),
+                );
+              }),
             ),
           ),
-      ],
+          if (widget.workspaceChild != null)
+            Positioned.fill(child: widget.workspaceChild!),
+          if (!desktop && widget.workspaceChild == null)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SageRouteBottomNav(
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+              ),
+            ),
+          if (_showCelebrityOverlay)
+            Positioned.fill(
+              child: CelebritySelectionPage(
+                onContinue: _closeCelebrityOverlay,
+                onSkip: _closeCelebrityOverlay,
+              ),
+            ),
+        ],
+      ),
+    );
+    if (!desktop) return content;
+    return WebWorkspace(
+      selectedIndex: _selectedIndex,
+      onSelected: _onItemTapped,
+      child: content,
     );
   }
 }

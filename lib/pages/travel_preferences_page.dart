@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/travel_preferences.dart';
@@ -59,7 +60,7 @@ class _TravelPreferencesPageState extends State<TravelPreferencesPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('旅行偏好已保存')));
-      Navigator.of(context).pop(true);
+      finishAppPage(context, true);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -75,6 +76,10 @@ class _TravelPreferencesPageState extends State<TravelPreferencesPage> {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
         backgroundColor: AppColors.sageBg,
         foregroundColor: AppColors.sageText,
         elevation: 0,

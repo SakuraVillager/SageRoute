@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -126,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
         await _forgetCredentials();
       }
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
+      completeLogin(context);
     } on AuthException catch (e) {
       debugPrint(
         '[Auth] signIn failed: code=${e.code}, status=${e.statusCode}, '
@@ -188,15 +190,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _goToRegister() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => RegisterPage(authService: _auth)));
+    openAppPage(context, RegisterPage(authService: _auth));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+          ? Colors.white
+          : _pageBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -204,13 +206,22 @@ class _LoginPageState extends State<LoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 40),
-              _buildBrandSection(),
-              const SizedBox(height: 48),
+              if (!kIsWeb || MediaQuery.sizeOf(context).width < 900) ...[
+                _buildBrandSection(),
+                const SizedBox(height: 48),
+              ],
               _buildWelcomeSection(),
               const SizedBox(height: 32),
-              _buildEmailField(),
-              const SizedBox(height: 16),
-              _buildPasswordField(),
+              AutofillGroup(
+                child: Column(
+                  children: [
+                    _buildEmailField(),
+                    const SizedBox(height: 16),
+                    _buildPasswordField(),
+                  ],
+                ),
+              ),
+
               if (_errorMessage != null) ...[
                 const SizedBox(height: 12),
                 _buildErrorText(),
@@ -231,11 +242,11 @@ class _LoginPageState extends State<LoginPage> {
   // ── Brand: "Sage — Route" + tagline ──
 
   Widget _buildBrandSection() {
-    return Center(
+    return const Center(
       child: Column(
         children: [
-          const _BrandTitle(),
-          const SizedBox(height: 12),
+          FittedBox(fit: BoxFit.scaleDown, child: _BrandTitle()),
+          SizedBox(height: 12),
           Text(
             '穿越历史的旅程',
             style: TextStyle(
@@ -253,7 +264,7 @@ class _LoginPageState extends State<LoginPage> {
   // ── Welcome text ──
 
   Widget _buildWelcomeSection() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -264,7 +275,7 @@ class _LoginPageState extends State<LoginPage> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           '登录以继续您的旅程',
           style: TextStyle(
@@ -282,12 +293,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailField() {
     return TextField(
       controller: _emailController,
+      autofillHints: const [AutofillHints.username, AutofillHints.email],
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       autocorrect: false,
       textInputAction: TextInputAction.next,
       style: const TextStyle(fontSize: 15, color: _textColor),
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         hintText: '邮箱地址',
         prefixIcon: Icon(Icons.email_outlined, size: 20, color: _mutedColor),
       ),
@@ -300,13 +312,18 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildPasswordField() {
     return TextField(
       controller: _passwordController,
+      autofillHints: const [AutofillHints.password],
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
       textInputAction: TextInputAction.done,
       style: const TextStyle(fontSize: 15, color: _textColor),
       decoration: InputDecoration(
         hintText: '密码',
-        prefixIcon: Icon(Icons.lock_outlined, size: 20, color: _mutedColor),
+        prefixIcon: const Icon(
+          Icons.lock_outlined,
+          size: 20,
+          color: _mutedColor,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword
@@ -327,12 +344,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildErrorText() {
     return Row(
       children: [
-        Icon(Icons.error_outline, size: 16, color: _errorColor),
+        const Icon(Icons.error_outline, size: 16, color: _errorColor),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             _errorMessage!,
-            style: TextStyle(color: _errorColor, fontSize: 13),
+            style: const TextStyle(color: _errorColor, fontSize: 13),
           ),
         ),
       ],
@@ -358,8 +375,8 @@ class _LoginPageState extends State<LoginPage> {
         GestureDetector(
           onTap: _loading ? null : _toggleRememberPassword,
           behavior: HitTestBehavior.opaque,
-          child: Text(
-            '记住密码',
+          child: const Text(
+            kIsWeb ? '记住邮箱' : '记住密码',
             style: TextStyle(color: _mutedColor, fontSize: 13),
           ),
         ),
@@ -367,16 +384,15 @@ class _LoginPageState extends State<LoginPage> {
         GestureDetector(
           onTap: _loading ? null : _showRememberPasswordInfo,
           behavior: HitTestBehavior.opaque,
-          child: Icon(Icons.info_outline, size: 14, color: _mutedColor),
+          child: const Icon(Icons.info_outline, size: 14, color: _mutedColor),
         ),
         const Spacer(),
         TextButton(
           onPressed: _loading
               ? null
-              : () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ForgotPasswordPage(authService: _auth),
-                  ),
+              : () => openAppPage(
+                  context,
+                  ForgotPasswordPage(authService: _auth),
                 ),
           style: TextButton.styleFrom(
             foregroundColor: _mutedColor,
@@ -405,21 +421,23 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: AppColors.sageBorder),
           ),
-          title: Text(
-            '记住密码说明',
-            style: const TextStyle(
+          title: const Text(
+            kIsWeb ? '记住邮箱说明' : '记住密码说明',
+            style: TextStyle(
               color: AppColors.sageText,
               fontSize: 18,
               fontWeight: FontWeight.w700,
             ),
           ),
           content: const Text(
-            '勾选后，登录成功时会把邮箱和密码保存在这台设备上：\n\n'
-            '· 下次打开登录页时自动填充\n'
-            '· 自本次登录成功起保留 7 天，超过 7 天自动删除\n'
-            '· 退出登录不会删除；重置密码后会自动同步为新密码\n'
-            '· 凭据仅保存在本机，不会上传到服务器\n\n'
-            '不勾选时登录，将清除本机已保存的记录。',
+            kIsWeb
+                ? '仅保存邮箱，登录会话会自动恢复。密码可由浏览器密码管理器保存，网页不会自行保存密码。'
+                : '勾选后，登录成功时会把邮箱和密码保存在这台设备上：\n\n'
+                      '· 下次打开登录页时自动填充\n'
+                      '· 自本次登录成功起保留 7 天，超过 7 天自动删除\n'
+                      '· 退出登录不会删除；重置密码后会自动同步为新密码\n'
+                      '· 凭据仅保存在本机，不会上传到服务器\n\n'
+                      '不勾选时登录，将清除本机已保存的记录。',
             style: TextStyle(
               color: AppColors.sageText,
               fontSize: 13,
@@ -453,7 +471,7 @@ class _LoginPageState extends State<LoginPage> {
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(kIsWeb ? 8 : 16),
           ),
         ),
         child: _loading
@@ -483,7 +501,10 @@ class _LoginPageState extends State<LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('还没有账号？', style: TextStyle(color: _mutedColor, fontSize: 14)),
+        const Text(
+          '还没有账号？',
+          style: TextStyle(color: _mutedColor, fontSize: 14),
+        ),
         TextButton(
           onPressed: _goToRegister,
           style: TextButton.styleFrom(

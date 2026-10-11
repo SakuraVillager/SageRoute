@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart';
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -172,9 +173,7 @@ class _ProfilePageState extends State<ProfilePage> {
       override();
       return;
     }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (context) => const SettingsPage()));
+    await openAppPage<void>(context, const SettingsPage());
     if (!mounted) return;
     await _loadLocalProfile();
   }
@@ -200,9 +199,7 @@ class _ProfilePageState extends State<ProfilePage> {
         page = const LanguagePage();
     }
 
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (context) => page));
+    await openAppPage<void>(context, page);
     if (!mounted) return;
     await _loadLocalProfile();
   }
@@ -274,6 +271,9 @@ class _ProfilePageState extends State<ProfilePage> {
         // 用昵称首字作为头像占位（没有头像 URL 时）
         final avatarLetter = displayName.isNotEmpty ? displayName[0] : '旅';
 
+        if (kIsWeb && MediaQuery.sizeOf(context).width >= 1024) {
+          return _buildWebProfile(displayName, email, avatarLetter);
+        }
         return Scaffold(
           backgroundColor: _pageBg,
           body: SafeArea(
@@ -309,6 +309,94 @@ class _ProfilePageState extends State<ProfilePage> {
       },
     );
   }
+
+  Widget _buildWebProfile(String name, String email, String letter) => Scaffold(
+    backgroundColor: AppColors.neutralSoft,
+    body: SingleChildScrollView(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '个人中心',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: AppColors.sageBorder),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                ProfileAvatar(letter: letter),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        _resolvedSubtitle(email),
+                        style: const TextStyle(color: AppColors.sageMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  key: const Key('profile-settings-button'),
+                  onPressed: _openSettings,
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  label: const Text('账号设置'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('我的文史成就'),
+                    const SizedBox(height: 16),
+                    _buildStatsRow(),
+                    const SizedBox(height: 24),
+                    _buildAchievementsRow(),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 28),
+              SizedBox(
+                width: 340,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('偏好设置'),
+                    const SizedBox(height: 16),
+                    _buildSettingsList(),
+                    const SizedBox(height: 24),
+                    _buildLogoutButton(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 
   // ── Header ──
 
@@ -442,6 +530,16 @@ class _ProfilePageState extends State<ProfilePage> {
   // ── Achievements Horizontal Scroll ──
 
   Widget _buildAchievementsRow() {
+    if (kIsWeb && MediaQuery.sizeOf(context).width >= 1024) {
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          for (final entry in _achievements.asMap().entries)
+            _buildAchievementCard(entry.value, entry.key),
+        ],
+      );
+    }
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.only(bottom: 4),

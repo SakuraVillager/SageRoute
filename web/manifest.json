@@ -1,12 +1,12 @@
 {
-    "name": "sageroute",
-    "short_name": "sageroute",
+    "name": "SageRoute",
+    "short_name": "SageRoute",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F0F0F2",
+    "theme_color": "#96615A",
+    "description": "SageRoute — 跟随古人脚步的文旅导览应用",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

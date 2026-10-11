@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../data/mock_figures.dart';
@@ -9,7 +10,6 @@ import '../models/figure.dart';
 import '../models/location.dart';
 import '../theme/color_schemes.dart';
 import '../utils/detail_scroll_spy_controller.dart';
-import '../utils/slide_route.dart';
 import 'location_detail_page.dart';
 
 class FigureDetailPage extends StatefulWidget {
@@ -108,7 +108,7 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
             leadingWidth: 56,
             leading: Center(
               child: DetailCircleButton.back(
-                onTap: () => Navigator.of(context).pop(),
+                onTap: () => finishAppPage(context),
               ),
             ),
             actions: [
@@ -504,25 +504,24 @@ class _FigureDetailPageState extends State<FigureDetailPage> {
             .map(
               (loc) => _SiteCard(
                 location: loc,
-                onTap: () => Navigator.of(context).push(
-                  slideFromRightRoute(
-                    LocationDetailPage(
-                      location: Location(
-                        id: loc.id,
-                        name: loc.name,
-                        pinyinName: loc.pinyinName,
-                        region: loc.region,
-                        years: loc.years,
-                        tags: loc.tags,
-                        distance: loc.distance,
-                        recommendedTime: loc.recommendedTime,
-                        relatedPoems: loc.relatedPoems,
-                        rating: loc.rating,
-                        imageUrl: loc.imageUrl,
-                        description: loc.description,
-                      ),
-                      figureName: widget.figure.name,
+                onTap: () => openAppPage(
+                  context,
+                  LocationDetailPage(
+                    location: Location(
+                      id: loc.id,
+                      name: loc.name,
+                      pinyinName: loc.pinyinName,
+                      region: loc.region,
+                      years: loc.years,
+                      tags: loc.tags,
+                      distance: loc.distance,
+                      recommendedTime: loc.recommendedTime,
+                      relatedPoems: loc.relatedPoems,
+                      rating: loc.rating,
+                      imageUrl: loc.imageUrl,
+                      description: loc.description,
                     ),
+                    figureName: widget.figure.name,
                   ),
                 ),
               ),

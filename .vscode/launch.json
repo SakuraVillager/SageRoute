@@ -5,7 +5,7 @@
             "name": "SageRoute (debug)",
             "request": "launch",
             "type": "dart",
-            "args": [
+            "toolArgs": [
                 "--dart-define-from-file=dart_define.json"
             ]
         },
@@ -14,8 +14,21 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
-            "args": [
+            "toolArgs": [
                 "--dart-define-from-file=dart_define.json"
+            ]
+        },
+        {
+            "name": "SageRoute Web (Edge debug)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "cwd": "${workspaceFolder}",
+            "deviceId": "edge",
+            "flutterMode": "debug",
+            "toolArgs": [
+                "--dart-define-from-file=dart_define.web.json",
+                "--web-port=8080"
             ]
         }
     ]

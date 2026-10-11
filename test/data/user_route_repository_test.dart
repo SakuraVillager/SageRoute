@@ -172,6 +172,27 @@ void main() {
       expect(writes[1].rows!.single['name'], '仅一站');
     });
 
+    test('deleteRoute scopes deletion to the current owner', () async {
+      final writes = <_Write>[];
+      final repository = _buildRepository(writes: writes);
+
+      await repository.deleteRoute('route-1');
+
+      expect(writes, hasLength(1));
+      expect(writes.single.table, 'user_routes');
+      expect(writes.single.operation, 'deleteReturning');
+      expect(writes.single.equals, {'id': 'route-1', 'user_id': 'user-1'});
+    });
+
+    test('deleteRoute rejects an RLS-filtered or missing row', () async {
+      final repository = _buildRepository(deleteReturnsNoRows: true);
+
+      await expectLater(
+        repository.deleteRoute('route-1'),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('fetchRouteById returns null when missing', () async {
       final repository = _buildRepository(routeRows: const []);
 
@@ -206,6 +227,7 @@ UserRouteRepository _buildRepository({
   Map<String, List<Map<String, dynamic>>> waypointRows = const {},
   List<_Write>? writes,
   bool failWaypointInsert = false,
+  bool deleteReturnsNoRows = false,
 }) {
   final capturedWrites = writes ?? <_Write>[];
   return UserRouteRepository(
@@ -241,6 +263,13 @@ UserRouteRepository _buildRepository({
             );
             if (operation == 'insert') {
               return [routeRows.first];
+            }
+            if (operation == 'deleteReturning') {
+              return deleteReturnsNoRows
+                  ? <Map<String, dynamic>>[]
+                  : [
+                      <String, dynamic>{'id': equals?['id']},
+                    ];
             }
             return null;
           },

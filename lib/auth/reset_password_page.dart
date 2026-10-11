@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -102,11 +104,26 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.sageBg,
+      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+          ? Colors.white
+          : AppColors.sageBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-          child: _passwordUpdated ? _buildSuccess() : _buildForm(),
+          child: SingleChildScrollView(
+            child: _passwordUpdated
+                ? Column(
+                    children: [
+                      _buildSuccess(),
+                      if (kIsWeb)
+                        TextButton(
+                          onPressed: () => completeLogin(context),
+                          child: const Text('进入应用'),
+                        ),
+                    ],
+                  )
+                : _buildForm(),
+          ),
         ),
       ),
     );
@@ -132,6 +149,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         const SizedBox(height: 32),
         TextField(
           controller: _passwordController,
+          autofillHints: const [AutofillHints.newPassword],
           focusNode: _passwordFocus,
           obscureText: true,
           textInputAction: TextInputAction.next,
@@ -144,6 +162,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
         const SizedBox(height: 16),
         TextField(
           controller: _confirmPasswordController,
+          autofillHints: const [AutofillHints.newPassword],
           focusNode: _confirmPasswordFocus,
           obscureText: true,
           textInputAction: TextInputAction.done,

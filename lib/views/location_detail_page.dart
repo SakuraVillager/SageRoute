@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../components/detail_content_section.dart';
@@ -115,7 +116,7 @@ class _LocationDetailPageState extends State<LocationDetailPage> {
             leading: Center(
               child: DetailCircleButton.back(
                 onTap: () =>
-                    (widget.onBack ?? () => Navigator.of(context).pop()).call(),
+                    (widget.onBack ?? () => finishAppPage(context)).call(),
               ),
             ),
             actions: [

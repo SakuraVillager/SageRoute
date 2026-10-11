@@ -1,13 +1,14 @@
+import 'package:flutter/foundation.dart';
+import '../../services/location_service.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:amap_map/amap_map.dart';
+import '../../components/map/sage_map.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:x_amap_base/x_amap_base.dart';
 
 import '../../data/icon_repository.dart';
 import '../../data/location_repository.dart';
@@ -38,16 +39,17 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   final math.Random _previewRandom = math.Random();
   late final AnimationController _previewDriftController;
   late final AnimationController _previewSettleController;
-  AMapController? _mapController;
+  SageMapController? _mapController;
+  final _mapKey = GlobalKey();
   bool _hasAdjustedInitialViewport = false;
   PermissionStatus _locationPermissionStatus = PermissionStatus.denied;
   bool _locationPermissionChecked = false;
-  LatLng? _latestUserLatLng;
-  LatLng? _previewCurrentPoint;
-  LatLng? _previewDriftFrom;
-  LatLng? _previewDriftTo;
-  LatLng? _previewSettleFrom;
-  LatLng? _previewSettleTo;
+  MapCoordinate? _latestUserLatLng;
+  MapCoordinate? _previewCurrentPoint;
+  MapCoordinate? _previewDriftFrom;
+  MapCoordinate? _previewDriftTo;
+  MapCoordinate? _previewSettleFrom;
+  MapCoordinate? _previewSettleTo;
   bool _hasNativeLocationDot = false;
   bool _isCenteringToMyLocation = false;
   bool _isPrimingLocation = false;
@@ -56,7 +58,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   bool _pendingNativeDotReveal = false;
   bool _freezePreviewDriftAfterSettle = false;
   Color? _markerFillColor;
-  Set<Marker> _cachedScenicMarkers = const {};
+  Set<MapMarkerData> _cachedScenicMarkers = const {};
 
   bool get _isSettlingPreviewDot => _previewSettleController.isAnimating;
 
@@ -85,12 +87,12 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
           ..addListener(_onPreviewSettleTick)
           ..addStatusListener(_onPreviewSettleStatus);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _requestLocationPermission(this);
+      if (!kIsWeb) _requestLocationPermission(this);
     });
   }
 
   void _onPreviewDriftTick() {
-    // No setState — the AnimatedBuilder wrapping AMapWidget handles repaints.
+    // No setState — the AnimatedBuilder wrapping SageMap handles repaints.
   }
 
   void _onPreviewDriftStatus(AnimationStatus status) {
@@ -108,7 +110,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   }
 
   void _onPreviewSettleTick() {
-    // No setState — the AnimatedBuilder wrapping AMapWidget handles repaints.
+    // No setState — the AnimatedBuilder wrapping SageMap handles repaints.
   }
 
   void _onPreviewSettleStatus(AnimationStatus status) {
@@ -173,12 +175,13 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.28),
-      builder: (_) => _LocationDetailSheet(location: location),
+      builder: (_) =>
+          PointerInterceptor(child: _LocationDetailSheet(location: location)),
     );
   }
 
-  Set<Marker> _buildMapMarkers({required BitmapDescriptor? userLocationIcon}) {
-    final markers = Set<Marker>.from(_cachedScenicMarkers);
+  Set<MapMarkerData> _buildMapMarkers({required MapIcon? userLocationIcon}) {
+    final markers = Set<MapMarkerData>.from(_cachedScenicMarkers);
 
     // 始终使用自定义蓝色标记显示用户位置，确保粗定位和精定位使用同一个图标。
     if (_latestUserLatLng != null && userLocationIcon != null) {
@@ -189,7 +192,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
           ? _previewMarkerPosition(this, _latestUserLatLng!)
           : _latestUserLatLng!;
       markers.add(
-        Marker(
+        MapMarkerData(
           position: userPosition,
           icon: userLocationIcon,
           infoWindowEnable: false,
@@ -220,7 +223,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
             ? '当前没有可显示的地点数据。'
             : '导览地图已接入高德地图，可在此继续叠加景点、路线和讲解能力。';
         final permissionMessage = !_locationPermissionChecked
-            ? '正在申请定位权限...'
+            ? (kIsWeb ? '点击右下角定位按钮获取当前位置' : '正在申请定位权限...')
             : _locationPermissionStatus.isGranted
             ? null
             : _locationPermissionStatus.isPermanentlyDenied
@@ -228,7 +231,8 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
             : '定位权限未开启，无法显示你的位置。';
         final message = permissionMessage ?? mapMessage;
 
-        return Stack(
+        final desktop = kIsWeb && MediaQuery.sizeOf(context).width >= 1024;
+        final map = Stack(
           children: [
             RepaintBoundary(
               child: AnimatedBuilder(
@@ -240,11 +244,11 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                   final animatedMarkers = _buildMapMarkers(
                     userLocationIcon: assets?.userLocationIcon,
                   );
-                  return AMapWidget(
-                    initialCameraPosition: const CameraPosition(
+                  return SageMap(
+                    key: _mapKey,
+                    initialCameraPosition: const MapCameraPosition(
                       // 西安钟楼附近，作为导览初始中心点。
-                      target: LatLng(34.259462, 108.947151),
-                      zoom: 14,
+                      target: MapCoordinate(34.259462, 108.947151),
                     ),
                     markers: animatedMarkers,
                     onMapCreated: (controller) {
@@ -254,12 +258,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                     },
                     onLocationChanged: (location) =>
                         _handleLocationChanged(this, location),
-                    myLocationStyleOptions: MyLocationStyleOptions(
+                    myLocationStyleOptions: MapLocationStyle(
                       _locationPermissionStatus.isGranted,
                       icon: _transparentIcon,
-                      circleFillColor: const Color(0x00000000),
-                      circleStrokeColor: const Color(0x00000000),
-                      circleStrokeWidth: 0,
                     ),
                   );
                 },
@@ -269,31 +270,33 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
               top: 16,
               left: 16,
               right: 16,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerLowest.withValues(
-                    alpha: 0.96,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: colorScheme.outlineVariant),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1A000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
+              child: PointerInterceptor(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerLowest.withValues(
+                      alpha: 0.96,
                     ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1A000000),
+                        blurRadius: 16,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    message,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      message,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -304,26 +307,28 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
               Positioned(
                 right: 16,
                 bottom: 88,
-                child: FilledButton.icon(
-                  onPressed: _locationPermissionStatus.isPermanentlyDenied
-                      ? openAppSettings
-                      : () => _requestLocationPermission(this),
-                  icon: const Icon(Icons.my_location),
-                  label: Text(
-                    _locationPermissionStatus.isPermanentlyDenied
-                        ? '打开设置'
-                        : '允许定位',
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(999),
+                child: PointerInterceptor(
+                  child: FilledButton.icon(
+                    onPressed: _locationPermissionStatus.isPermanentlyDenied
+                        ? openAppSettings
+                        : () => _requestLocationPermission(this),
+                    icon: const Icon(Icons.my_location),
+                    label: Text(
+                      _locationPermissionStatus.isPermanentlyDenied
+                          ? '打开设置'
+                          : '允许定位',
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -331,17 +336,52 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
             Positioned(
               right: 16,
               bottom: 24,
-              child: FloatingActionButton.small(
-                heroTag: 'guide_page_locate_me',
-                onPressed: _isCenteringToMyLocation
-                    ? null
-                    : () => _focusOnMyLocation(this),
-                backgroundColor: colorScheme.surfaceContainerLowest,
-                foregroundColor: colorScheme.primary,
-                elevation: 2,
-                child: const Icon(Icons.my_location_rounded),
+              child: PointerInterceptor(
+                child: FloatingActionButton.small(
+                  heroTag: 'guide_page_locate_me',
+                  onPressed: _isCenteringToMyLocation
+                      ? null
+                      : () => _focusOnMyLocation(this),
+                  backgroundColor: colorScheme.surfaceContainerLowest,
+                  foregroundColor: colorScheme.primary,
+                  elevation: 2,
+                  child: const Icon(Icons.my_location_rounded),
+                ),
               ),
             ),
+          ],
+        );
+        if (!desktop) return map;
+        return Row(
+          children: [
+            SizedBox(
+              width: 360,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  Text(
+                    '地点导览',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(message),
+                  const SizedBox(height: 16),
+                  for (final marker in _cachedScenicMarkers)
+                    ListTile(
+                      leading: const Icon(Icons.place_outlined),
+                      title: Text(marker.infoWindow.title),
+                      onTap: () {
+                        _mapController?.moveCamera(
+                          MapCameraUpdate.newLatLngZoom(marker.position, 15),
+                        );
+                        marker.onTap?.call(marker.id ?? '');
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: map),
           ],
         );
       },

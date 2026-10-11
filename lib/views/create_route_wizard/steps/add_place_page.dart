@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/location_repository.dart';
+import '../../../data/poi_celebrity_relation_repository.dart';
 import '../../../data/topic_repository.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../models/location_record.dart';
@@ -16,10 +18,16 @@ class AddPlacePage extends StatefulWidget {
     super.key,
     required this.figure,
     required this.currentSelectedPlaces,
+    this.locationRepository = const LocationRepository(),
+    this.relationRepository = const PoiCelebrityRelationRepository(),
+    this.topicRepository = const TopicRepository(),
   });
 
   final CelebrityProfile? figure;
   final List<RoutePlace> currentSelectedPlaces;
+  final LocationRepository locationRepository;
+  final PoiCelebrityRelationRepository relationRepository;
+  final TopicRepository topicRepository;
 
   @override
   State<AddPlacePage> createState() => _AddPlacePageState();
@@ -31,6 +39,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
 
   List<LocationRecord> _allLocations = const <LocationRecord>[];
   List<TopicRecord> _topics = const <TopicRecord>[];
+  Set<String>? _relatedLocationNames;
   bool _loading = true;
   String? _error;
   String _query = '';
@@ -51,20 +60,29 @@ class _AddPlacePageState extends State<AddPlacePage> {
 
   Future<void> _loadData() async {
     try {
-      const locationRepo = LocationRepository();
       final locations = List<LocationRecord>.from(
-        await locationRepo.fetchLocations(),
+        await widget.locationRepository.fetchLocations(),
       );
       locations.removeWhere((location) => !_hasValidCoordinates(location));
+      final figure = widget.figure;
+      final relatedLocationNames = figure == null
+          ? null
+          : (await widget.relationRepository.fetchRelationsByCelebrity(
+                  figure.name,
+                ))
+                .map((relation) => relation.locationName?.trim() ?? '')
+                .where((name) => name.isNotEmpty)
+                .toSet();
       final topics = widget.figure == null
           ? <TopicRecord>[]
-          : await const TopicRepository().fetchTopicsByCelebrity(
+          : await widget.topicRepository.fetchTopicsByCelebrity(
               widget.figure!.name,
             );
       locations.sort((a, b) => a.nameModern.compareTo(b.nameModern));
       if (!mounted) return;
       setState(() {
         _allLocations = locations;
+        _relatedLocationNames = relatedLocationNames;
         _topics = topics;
         _loading = false;
       });
@@ -141,7 +159,11 @@ class _AddPlacePageState extends State<AddPlacePage> {
   List<LocationRecord> get _visibleLocations {
     return _allLocations
         .where(
-          (location) => _matchesTopic(location) && _matchesSearch(location),
+          (location) =>
+              (_relatedLocationNames?.contains(location.nameModern.trim()) ??
+                  true) &&
+              _matchesTopic(location) &&
+              _matchesSearch(location),
         )
         .toList();
   }
@@ -194,6 +216,7 @@ class _AddPlacePageState extends State<AddPlacePage> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
+    final desktop = kIsWeb && media.size.width >= 1024;
     final maxSheetHeight = media.size.height * 0.88;
     final minSheetHeight = maxSheetHeight < 300.0 ? maxSheetHeight : 300.0;
     final desiredSheetHeight = maxSheetHeight - media.viewInsets.bottom;
@@ -212,19 +235,23 @@ class _AddPlacePageState extends State<AddPlacePage> {
           height: sheetHeight,
           child: Material(
             color: AppColors.sageCard,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: desktop
+                ? BorderRadius.circular(8)
+                : const BorderRadius.vertical(top: Radius.circular(24)),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
-                const SizedBox(height: 9),
-                Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.sageBorder,
-                    borderRadius: BorderRadius.circular(4),
+                if (!desktop) ...[
+                  const SizedBox(height: 9),
+                  Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.sageBorder,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                ),
+                ],
                 _buildHeader(),
                 _buildSearchField(),
                 _buildTopicFilters(),
@@ -275,14 +302,27 @@ class _AddPlacePageState extends State<AddPlacePage> {
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       child: Row(
         children: [
-          const Expanded(
-            child: Text(
-              '添加地点',
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-                color: AppColors.sageText,
-              ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '添加地点',
+                  style: TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.sageText,
+                  ),
+                ),
+                if (widget.figure != null)
+                  Text(
+                    '仅显示${widget.figure!.name}相关景点',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.sageMuted,
+                    ),
+                  ),
+              ],
             ),
           ),
           if (_selectedCount > 0)

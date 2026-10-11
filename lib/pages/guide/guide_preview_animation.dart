@@ -49,12 +49,15 @@ void _syncPreviewDriftState(_GuidePageState state) {
   }
 }
 
-LatLng _previewMarkerPosition(_GuidePageState state, LatLng anchor) {
+MapCoordinate _previewMarkerPosition(
+  _GuidePageState state,
+  MapCoordinate anchor,
+) {
   if (state._isSettlingPreviewDot &&
       state._previewSettleFrom != null &&
       state._previewSettleTo != null) {
     final t = state._previewSettleController.value;
-    return LatLng(
+    return MapCoordinate(
       ui.lerpDouble(
         state._previewSettleFrom!.latitude,
         state._previewSettleTo!.latitude,
@@ -77,7 +80,7 @@ LatLng _previewMarkerPosition(_GuidePageState state, LatLng anchor) {
   }
 
   final t = state._previewDriftController.value;
-  return LatLng(
+  return MapCoordinate(
     ui.lerpDouble(
       state._previewDriftFrom!.latitude,
       state._previewDriftTo!.latitude,
@@ -91,9 +94,9 @@ LatLng _previewMarkerPosition(_GuidePageState state, LatLng anchor) {
   );
 }
 
-LatLng _randomNearbyPoint(
+MapCoordinate _randomNearbyPoint(
   _GuidePageState state,
-  LatLng anchor, {
+  MapCoordinate anchor, {
   double distanceMeters = _previewRandomDistanceMeters,
 }) {
   final angle = state._previewRandom.nextDouble() * 2 * math.pi;
@@ -104,7 +107,10 @@ LatLng _randomNearbyPoint(
   final lngOffset = metersPerLng < 1
       ? 0
       : (radius * math.cos(angle)) / metersPerLng;
-  return LatLng(anchor.latitude + latOffset, anchor.longitude + lngOffset);
+  return MapCoordinate(
+    anchor.latitude + latOffset,
+    anchor.longitude + lngOffset,
+  );
 }
 
 void _startNextPreviewDriftStep(_GuidePageState state) {
@@ -130,8 +136,8 @@ void _startNextPreviewDriftStep(_GuidePageState state) {
 
 void _startPreviewSettle(
   _GuidePageState state, {
-  required LatLng from,
-  required LatLng to,
+  required MapCoordinate from,
+  required MapCoordinate to,
   bool revealNativeAfter = false,
   bool freezeDriftAfterSettle = false,
 }) {

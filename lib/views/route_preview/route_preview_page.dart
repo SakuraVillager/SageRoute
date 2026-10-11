@@ -1,3 +1,6 @@
+import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:flutter/foundation.dart';
+import '../../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -6,7 +9,6 @@ import '../../models/saved_route.dart';
 import '../../route_planning/models/transport_type.dart';
 import '../../services/amap_navigation.dart';
 import '../../theme/color_schemes.dart';
-import '../../utils/slide_route.dart';
 import '../create_route_wizard/steps/step3_map.dart';
 import 'route_edit_page.dart';
 
@@ -72,10 +74,9 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
   Future<void> _openEdit() async {
     final route = _route;
     if (route == null) return;
-    final changed = await Navigator.of(context).push<bool>(
-      slideFromRightRoute(
-        RouteEditPage(route: route, repository: widget.repository),
-      ),
+    final changed = await openAppPage<bool>(
+      context,
+      RouteEditPage(route: route, repository: widget.repository),
     );
     if (changed == true) await _load();
   }
@@ -91,10 +92,24 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
       final uri = buildAmapNavigationUri(route.waypoints.first);
       final opened =
           await (widget.openNavigationUrl?.call(uri) ??
-              launchUrl(uri, mode: LaunchMode.externalApplication));
-      if (!opened && mounted) _showNavigationError('未找到高德地图 App，请先安装后重试');
+              launchUrl(
+                uri,
+                mode: kIsWeb
+                    ? LaunchMode.platformDefault
+                    : LaunchMode.externalApplication,
+                webOnlyWindowName: '_blank',
+              ));
+      if (!opened && mounted) {
+        _showNavigationError(
+          kIsWeb ? '无法打开导航页面，请检查浏览器弹窗设置' : '未找到高德地图 App，请先安装后重试',
+        );
+      }
     } catch (_) {
-      if (mounted) _showNavigationError('未找到高德地图 App，请先安装后重试');
+      if (mounted) {
+        _showNavigationError(
+          kIsWeb ? '无法打开导航页面，请检查浏览器弹窗设置' : '未找到高德地图 App，请先安装后重试',
+        );
+      }
     }
   }
 
@@ -178,35 +193,37 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
             ),
           ),
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-              child: Row(
-                children: [
-                  _CircleIconButton(
-                    icon: Icons.arrow_back,
-                    tooltip: '返回',
-                    onTap: () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      route.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.sageText,
-                        shadows: [Shadow(color: Colors.white, blurRadius: 6)],
+            child: PointerInterceptor(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                child: Row(
+                  children: [
+                    _CircleIconButton(
+                      icon: Icons.arrow_back,
+                      tooltip: '返回',
+                      onTap: () => finishAppPage(context),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        route.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.sageText,
+                          shadows: [Shadow(color: Colors.white, blurRadius: 6)],
+                        ),
                       ),
                     ),
-                  ),
-                  _CircleIconButton(
-                    icon: Icons.edit_outlined,
-                    tooltip: '编辑路线',
-                    onTap: _openEdit,
-                  ),
-                ],
+                    _CircleIconButton(
+                      icon: Icons.edit_outlined,
+                      tooltip: '编辑路线',
+                      onTap: _openEdit,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

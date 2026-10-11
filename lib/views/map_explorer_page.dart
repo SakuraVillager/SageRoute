@@ -1,13 +1,14 @@
-import 'package:amap_map/amap_map.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
+import '../components/map/sage_map.dart';
 import 'package:flutter/material.dart';
-import 'package:x_amap_base/x_amap_base.dart';
+import 'package:flutter/foundation.dart';
 
 import '../data/mock_locations.dart';
 import '../theme/color_schemes.dart';
 
 /// Map explorer page matching the Web version's [MapExplorer.tsx].
 ///
-/// Uses [AMapWidget] as the base map layer (same AMap engine as
+/// Uses [SageMap] as the base map layer (same AMap engine as
 /// [GuidePage]) with a styled UI overlay:
 /// - Top search bar (white pill, Search icon + placeholder + Filter button)
 /// - Horizontal filter capsules ("全部历史遗迹", "白居易路线 - 杭州", "宋代")
@@ -24,7 +25,8 @@ class MapExplorerPage extends StatefulWidget {
 
 class _MapExplorerPageState extends State<MapExplorerPage> {
   // ignore: unused_field — kept for future map interactions
-  AMapController? _mapController;
+  SageMapController? _mapController;
+  final _mapKey = GlobalKey();
 
   static const _filters = [
     ('全部历史遗迹', true),
@@ -34,42 +36,73 @@ class _MapExplorerPageState extends State<MapExplorerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final desktop = kIsWeb && MediaQuery.sizeOf(context).width >= 1024;
+    final map = SageMap(
+      key: _mapKey,
+      initialCameraPosition: const MapCameraPosition(
+        target: MapCoordinate(30.259462, 120.147151),
+      ),
+      onMapCreated: (controller) => _mapController = controller,
+    );
+    if (desktop) {
+      return Scaffold(
+        backgroundColor: AppColors.sageBg,
+        body: Row(
+          children: [
+            SizedBox(
+              width: 360,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildSearchBar(),
+                  const SizedBox(height: 16),
+                  _buildFilterCapsules(),
+                  const SizedBox(height: 24),
+                  _buildLocationPreview(),
+                ],
+              ),
+            ),
+            Expanded(child: map),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       body: Stack(
         children: [
           // ── Base map layer (AMap, preserves GuidePage engine) ──
-          AMapWidget(
-            initialCameraPosition: const CameraPosition(
-              // Centered near 杭州西湖, matching Web map area.
-              target: LatLng(30.259462, 120.147151),
-              zoom: 14,
-            ),
-            onMapCreated: (controller) {
-              _mapController = controller;
-            },
-          ),
+          map,
 
           // ── Top search bar ──
-          Positioned(top: 44, left: 24, right: 24, child: _buildSearchBar()),
+          Positioned(
+            top: 44,
+            left: 24,
+            right: 24,
+            child: PointerInterceptor(child: _buildSearchBar()),
+          ),
 
           // ── Filter capsules (horizontal scroll) ──
           Positioned(
             top: 104,
             left: 24,
             right: 24,
-            child: _buildFilterCapsules(),
+            child: PointerInterceptor(child: _buildFilterCapsules()),
           ),
 
           // ── Right floating action buttons ──
-          Positioned(right: 24, bottom: 140, child: _buildFloatingButtons()),
+          Positioned(
+            right: 24,
+            bottom: 140,
+            child: PointerInterceptor(child: _buildFloatingButtons()),
+          ),
 
           // ── Bottom location preview card ──
           Positioned(
             bottom: 80,
             left: 16,
             right: 16,
-            child: _buildLocationPreview(),
+            child: PointerInterceptor(child: _buildLocationPreview()),
           ),
         ],
       ),

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:amap_map/amap_map.dart';
+import 'sage_map.dart';
 import 'package:flutter/material.dart';
 
 import '../../utils/svg_path_parser.dart';
@@ -76,7 +76,7 @@ bool _containsAny(String value, List<String> keywords) =>
 
 /// Builds all category marker bitmaps once so map rebuilds never rasterize SVG
 /// paths on the UI hot path.
-Future<Map<CategoryMarkerKind, BitmapDescriptor>> buildCategoryMarkerIcons({
+Future<Map<CategoryMarkerKind, MapIcon>> buildCategoryMarkerIcons({
   required Color fillColor,
 }) async {
   final entries = await Future.wait(
@@ -88,10 +88,10 @@ Future<Map<CategoryMarkerKind, BitmapDescriptor>> buildCategoryMarkerIcons({
       return MapEntry(kind, icon);
     }),
   );
-  return Map<CategoryMarkerKind, BitmapDescriptor>.fromEntries(entries);
+  return Map<CategoryMarkerKind, MapIcon>.fromEntries(entries);
 }
 
-Future<BitmapDescriptor> _buildMarkerIcon({
+Future<MapIcon> _buildMarkerIcon({
   required Color fillColor,
   required String svgPathData,
 }) async {
@@ -144,7 +144,7 @@ Future<BitmapDescriptor> _buildMarkerIcon({
   if (byteData == null) {
     throw StateError('Unable to rasterize category marker icon');
   }
-  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  return MapIcon.fromBytes(byteData.buffer.asUint8List());
 }
 
 // Path data adapted from Lucide Icons (ISC), normalized into one path per icon.

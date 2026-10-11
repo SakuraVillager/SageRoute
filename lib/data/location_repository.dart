@@ -10,10 +10,27 @@ class LocationRepository {
     SupabaseTableRepository? tableRepository,
   }) : _fetcher = fetcher,
        _tableRepository =
-           tableRepository ?? const SupabaseTableRepository(tableName: 'Location');
+           tableRepository ??
+           const SupabaseTableRepository(tableName: 'Location');
 
   final LocationFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
+
+  Future<LocationRecord?> fetchById(int id) async {
+    final fetcher = _fetcher;
+    if (fetcher != null) {
+      for (final record in await fetcher()) {
+        if (record.id == id) return record;
+      }
+      return null;
+    }
+    final records = await _tableRepository.fetchAll<LocationRecord>(
+      mapper: LocationRecord.fromMap,
+      equals: {'id': id},
+      limit: 1,
+    );
+    return records.isEmpty ? null : records.first;
+  }
 
   /// 获取全部地点。
   Future<List<LocationRecord>> fetchLocations({int? limit}) {

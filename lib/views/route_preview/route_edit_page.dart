@@ -1,3 +1,9 @@
+import 'package:pointer_interceptor/pointer_interceptor.dart';
+import 'package:flutter/foundation.dart';
+import '../../services/route_draft_storage.dart';
+import '../../services/database_service.dart';
+import '../../components/draft_exit_guard.dart';
+import '../../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/celebrity_repository.dart';
@@ -33,6 +39,67 @@ class _RouteEditPageState extends State<RouteEditPage> {
   Map<String, TransportType> _transportTypes = <String, TransportType>{};
   CelebrityProfile? _figure;
   bool _saving = false;
+  bool _dirty = false;
+  bool _saved = false;
+  RouteDraftStorage? _draft;
+  void _persistDraft() {
+    if (!_dirty || _saved) return;
+    _draft?.save({
+      'places': _places.map((p) => p.toJson()).toList(),
+      'transports': _transportTypes.map(
+        (key, value) => MapEntry(key, value.name),
+      ),
+    });
+  }
+
+  void _restoreDraft() {
+    if (!kIsWeb) return;
+    final user = DatabaseService.client.auth.currentUser;
+    if (user == null) return;
+    _draft = RouteDraftStorage(
+      userId: user.id,
+      draftId: 'edit.${widget.route.id}',
+    );
+    final data = _draft!.load();
+    if (data == null) return;
+    try {
+      _places = (data['places'] as List)
+          .map((p) => RoutePlace.fromJson(Map<String, dynamic>.from(p as Map)))
+          .toList();
+      _transportTypes = (data['transports'] as Map).map(
+        (key, value) => MapEntry(
+          key as String,
+          TransportType.values.byName(value as String),
+        ),
+      );
+      _dirty = true;
+    } catch (_) {
+      _draft!.clear();
+    }
+  }
+
+  Future<void> _leave() async {
+    if (kIsWeb && _dirty) {
+      await requestDraftDiscard(
+        context,
+        () {
+          setState(() => _saved = true);
+          _draft?.clear();
+        },
+        () => WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) finishAppPage(context);
+        }),
+      );
+    } else {
+      finishAppPage(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _persistDraft();
+    super.dispose();
+  }
 
   UserRouteRepository get _repository =>
       widget.repository ?? const UserRouteRepository();
@@ -47,6 +114,7 @@ class _RouteEditPageState extends State<RouteEditPage> {
       _transportTypes[Step3Map.segmentKey(_places[i], _places[i + 1])] =
           widget.route.waypoints[i].transportToNext ?? TransportType.driving;
     }
+    _restoreDraft();
     _loadFigure();
   }
 
@@ -69,7 +137,9 @@ class _RouteEditPageState extends State<RouteEditPage> {
     try {
       await _repository.updateWaypoints(widget.route.id, _buildWaypoints());
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      _saved = true;
+      _draft?.clear();
+      finishAppPage(context, true);
     } catch (error, stackTrace) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -99,68 +169,87 @@ class _RouteEditPageState extends State<RouteEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.sageCard,
-      body: SizedBox.expand(
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: Step3Map(
-                figure: _figure,
-                selectedPlaces: _places,
-                onLocationsChanged: (places) =>
-                    _places = List<RoutePlace>.from(places),
-                onPreviewStatusChanged: (_) {},
-                onTransportTypesChanged: (types) => _transportTypes = types,
-                initialSegmentTransports: widget.route.waypoints
-                    .take(
-                      widget.route.waypoints.length > 1
-                          ? widget.route.waypoints.length - 1
-                          : 0,
-                    )
-                    .map(
-                      (waypoint) =>
-                          waypoint.transportToNext ?? TransportType.driving,
-                    )
-                    .toList(growable: false),
-                onSaveRequested: _handleSave,
-              ),
-            ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                child: Row(
-                  children: [
-                    _CircleIconButton(
-                      icon: Icons.arrow_back,
-                      tooltip: '返回',
-                      onTap: () => Navigator.of(context).maybePop(),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        '编辑路线',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.sageText,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_saving)
+    return DraftExitGuard(
+      dirty: kIsWeb && _dirty && !_saving,
+      onDiscard: () {
+        _saved = true;
+        _draft?.clear();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.sageCard,
+        body: SizedBox.expand(
+          child: Stack(
+            children: [
               Positioned.fill(
-                child: Container(
-                  color: const Color(0xCCF0F0F2),
-                  child: const Center(child: CircularProgressIndicator()),
+                child: Step3Map(
+                  figure: _figure,
+                  selectedPlaces: _places,
+                  onLocationsChanged: (places) {
+                    setState(() {
+                      _places = List<RoutePlace>.from(places);
+                      _dirty = true;
+                    });
+                    _persistDraft();
+                  },
+                  onPreviewStatusChanged: (_) {},
+                  onTransportTypesChanged: (types) {
+                    setState(() {
+                      _transportTypes = types;
+                      _dirty = true;
+                    });
+                    _persistDraft();
+                  },
+                  initialSegmentTransports: [
+                    for (var i = 0; i < _places.length - 1; i++)
+                      _transportTypes[Step3Map.segmentKey(
+                            _places[i],
+                            _places[i + 1],
+                          )] ??
+                          TransportType.driving,
+                  ],
+                  onSaveRequested: _handleSave,
                 ),
               ),
-          ],
+              SafeArea(
+                child: PointerInterceptor(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+                    child: Row(
+                      children: [
+                        _CircleIconButton(
+                          icon: Icons.arrow_back,
+                          tooltip: '返回',
+                          onTap: _leave,
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            '编辑路线',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.sageText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              if (_saving)
+                Positioned.fill(
+                  child: PointerInterceptor(
+                    child: Container(
+                      color: const Color(0xCCF0F0F2),
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

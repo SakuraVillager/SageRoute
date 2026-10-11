@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../components/settings_card.dart';
@@ -48,9 +49,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// push 子页面并在返回后刷新语言等展示信息。
   Future<void> _push(Widget page) async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (context) => page));
+    await openAppPage<void>(context, page);
     if (!mounted) return;
     await _loadLanguage();
   }
@@ -63,8 +62,8 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     _push(
       CelebritySelectionPage(
-        onContinue: () => Navigator.of(context).pop(),
-        onSkip: () => Navigator.of(context).pop(),
+        onContinue: () => finishAppPage(context),
+        onSkip: () => finishAppPage(context),
       ),
     );
   }
@@ -74,6 +73,10 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       appBar: AppBar(
+        leading: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
         backgroundColor: AppColors.sageBg,
         foregroundColor: AppColors.sageText,
         elevation: 0,

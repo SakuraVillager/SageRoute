@@ -9,6 +9,10 @@ enum _LocationStage { coarse, precise, native }
 /// ---------- top-level functions (location / permission logic) ----------
 
 Future<void> _requestLocationPermission(_GuidePageState state) async {
+  if (kIsWeb) {
+    await _focusOnMyLocation(state);
+    return;
+  }
   var status = await Permission.locationWhenInUse.status;
   if (!status.isGranted) {
     status = await Permission.locationWhenInUse.request();
@@ -33,6 +37,7 @@ Future<void> _primeUserLocation(
   _GuidePageState state, {
   bool force = false,
 }) async {
+  if (kIsWeb) return;
   if (!state._locationPermissionStatus.isGranted || state._isPrimingLocation) {
     return;
   }
@@ -54,7 +59,7 @@ Future<void> _primeUserLocation(
   }
 }
 
-Future<LatLng?> _resolveCoarseUserLocation(_GuidePageState state) async {
+Future<MapCoordinate?> _resolveCoarseUserLocation(_GuidePageState state) async {
   if (state._latestUserLatLng != null) {
     return state._latestUserLatLng;
   }
@@ -71,7 +76,7 @@ Future<LatLng?> _resolveCoarseUserLocation(_GuidePageState state) async {
   try {
     final lastKnown = await Geolocator.getLastKnownPosition();
     if (lastKnown != null) {
-      return LatLng(lastKnown.latitude, lastKnown.longitude);
+      return MapCoordinate(lastKnown.latitude, lastKnown.longitude);
     }
   } catch (_) {
     // 使用下一条链路兜底。
@@ -84,7 +89,7 @@ Future<LatLng?> _resolveCoarseUserLocation(_GuidePageState state) async {
         timeLimit: Duration(seconds: 2),
       ),
     );
-    return LatLng(coarse.latitude, coarse.longitude);
+    return MapCoordinate(coarse.latitude, coarse.longitude);
   } catch (_) {
     return null;
   }
@@ -92,7 +97,7 @@ Future<LatLng?> _resolveCoarseUserLocation(_GuidePageState state) async {
 
 Future<void> _refineUserLocationInBackground(
   _GuidePageState state, {
-  LatLng? coarseAnchor,
+  MapCoordinate? coarseAnchor,
   bool recenterOnUpdate = false,
 }) async {
   if (!state._locationPermissionStatus.isGranted || state._isRefiningLocation) {
@@ -107,7 +112,7 @@ Future<void> _refineUserLocationInBackground(
         timeLimit: Duration(seconds: 8),
       ),
     );
-    final preciseLatLng = LatLng(precise.latitude, precise.longitude);
+    final preciseLatLng = MapCoordinate(precise.latitude, precise.longitude);
     _cacheUserLocation(state, preciseLatLng, stage: _LocationStage.precise);
 
     if (!recenterOnUpdate || coarseAnchor == null) {
@@ -129,7 +134,7 @@ Future<void> _refineUserLocationInBackground(
     }
 
     await state._mapController!.moveCamera(
-      CameraUpdate.newLatLngZoom(preciseLatLng, 16),
+      MapCameraUpdate.newLatLngZoom(preciseLatLng, 16),
       duration: 420,
     );
   } catch (_) {
@@ -139,13 +144,13 @@ Future<void> _refineUserLocationInBackground(
   }
 }
 
-void _handleLocationChanged(_GuidePageState state, AMapLocation location) {
+void _handleLocationChanged(_GuidePageState state, MapUserLocation location) {
   _cacheUserLocation(state, location.latLng, stage: _LocationStage.native);
 }
 
 void _cacheUserLocation(
   _GuidePageState state,
-  LatLng latLng, {
+  MapCoordinate latLng, {
   _LocationStage stage = _LocationStage.coarse,
 }) {
   final previousAnchor = state._latestUserLatLng;
@@ -168,8 +173,7 @@ void _cacheUserLocation(
 
   if (stage == _LocationStage.precise) {
     // 精确定位成功后，立即将标记从当前漂移位置平滑拉回到真实位置，并停止后续漂移。
-    final fromPosition =
-        state._previewCurrentPoint ?? previousAnchor ?? latLng;
+    final fromPosition = state._previewCurrentPoint ?? previousAnchor ?? latLng;
     _startPreviewSettle(
       state,
       from: fromPosition,
@@ -185,8 +189,7 @@ void _cacheUserLocation(
     return;
   }
 
-  final shouldSettle =
-      previousAnchor != null && stage == _LocationStage.native;
+  final shouldSettle = previousAnchor != null && stage == _LocationStage.native;
 
   if (shouldSettle) {
     _startPreviewSettle(
@@ -227,6 +230,30 @@ Future<void> _focusOnMyLocation(_GuidePageState state) async {
     return;
   }
 
+  if (kIsWeb) {
+    state.setState(() => state._isCenteringToMyLocation = true);
+    final result = await LocationService.locate();
+    if (!state.mounted) return;
+    state.setState(() {
+      state._isCenteringToMyLocation = false;
+      state._locationPermissionChecked = true;
+      state._locationPermissionStatus = result.status == LocationStatus.ready
+          ? PermissionStatus.granted
+          : PermissionStatus.denied;
+    });
+    final coordinate = result.coordinate;
+    if (coordinate != null) {
+      _cacheUserLocation(state, coordinate, stage: _LocationStage.native);
+      await state._mapController!.moveCamera(
+        MapCameraUpdate.newLatLngZoom(coordinate, 15),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        state.context,
+      ).showSnackBar(SnackBar(content: Text(result.message ?? '定位失败，请重试')));
+    }
+    return;
+  }
   if (!state._locationPermissionStatus.isGranted) {
     await _requestLocationPermission(state);
     if (!state._locationPermissionStatus.isGranted) {
@@ -267,10 +294,7 @@ Future<void> _focusOnMyLocation(_GuidePageState state) async {
 
   try {
     await state._mapController!
-        .moveCamera(
-          CameraUpdate.newLatLngZoom(target, 15),
-          duration: 300,
-        )
+        .moveCamera(MapCameraUpdate.newLatLngZoom(target, 15))
         .timeout(
           const Duration(seconds: 2),
           onTimeout: () {
@@ -314,7 +338,7 @@ Future<void> _fitAllLocationsOnMap(
   try {
     if (assets.locationBounds != null) {
       await state._mapController!.moveCamera(
-        CameraUpdate.newLatLngBounds(assets.locationBounds!, 120),
+        MapCameraUpdate.newLatLngBounds(assets.locationBounds!, 120),
         animated: false,
       );
       state._hasAdjustedInitialViewport = true;
@@ -323,7 +347,7 @@ Future<void> _fitAllLocationsOnMap(
 
     if (assets.focusPoint != null) {
       await state._mapController!.moveCamera(
-        CameraUpdate.newLatLngZoom(assets.focusPoint!, 14),
+        MapCameraUpdate.newLatLngZoom(assets.focusPoint!, 14),
         animated: false,
       );
       state._hasAdjustedInitialViewport = true;

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -178,7 +180,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   void _goToLogin() {
-    Navigator.of(context).pop();
+    finishAppPage(context);
   }
 
   @override
@@ -189,7 +191,9 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+          ? Colors.white
+          : _pageBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -231,11 +235,11 @@ class _RegisterPageState extends State<RegisterPage> {
       alignment: Alignment.centerLeft,
       child: Material(
         color: AppColors.sageBg,
-        shape: CircleBorder(side: BorderSide(color: _borderColor)),
+        shape: const CircleBorder(side: BorderSide(color: _borderColor)),
         child: InkWell(
-          onTap: () => Navigator.of(context).pop(),
+          onTap: () => finishAppPage(context),
           customBorder: const CircleBorder(),
-          child: SizedBox(
+          child: const SizedBox(
             width: 40,
             height: 40,
             child: Icon(Icons.arrow_back, size: 18, color: _textColor),
@@ -248,7 +252,7 @@ class _RegisterPageState extends State<RegisterPage> {
   // ── Header ──
 
   Widget _buildHeader() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
@@ -259,7 +263,7 @@ class _RegisterPageState extends State<RegisterPage> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Text(
           '开启您的文化之旅',
           style: TextStyle(
@@ -277,10 +281,11 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildNicknameField() {
     return TextField(
       controller: _nicknameController,
+      autofillHints: const [AutofillHints.nickname],
       focusNode: _nicknameFocus,
       textInputAction: TextInputAction.next,
       style: const TextStyle(fontSize: 15, color: _textColor),
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         hintText: '昵称',
         prefixIcon: Icon(Icons.person_outlined, size: 20, color: _mutedColor),
       ),
@@ -293,12 +298,13 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildEmailField() {
     return TextField(
       controller: _emailController,
+      autofillHints: const [AutofillHints.email],
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
       autocorrect: false,
       textInputAction: TextInputAction.next,
       style: const TextStyle(fontSize: 15, color: _textColor),
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         hintText: '邮箱地址',
         prefixIcon: Icon(Icons.email_outlined, size: 20, color: _mutedColor),
       ),
@@ -311,13 +317,18 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildPasswordField() {
     return TextField(
       controller: _passwordController,
+      autofillHints: const [AutofillHints.newPassword],
       focusNode: _passwordFocus,
       obscureText: _obscurePassword,
       textInputAction: TextInputAction.next,
       style: const TextStyle(fontSize: 15, color: _textColor),
       decoration: InputDecoration(
         hintText: '密码（至少 6 位）',
-        prefixIcon: Icon(Icons.lock_outlined, size: 20, color: _mutedColor),
+        prefixIcon: const Icon(
+          Icons.lock_outlined,
+          size: 20,
+          color: _mutedColor,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscurePassword
@@ -338,13 +349,18 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildConfirmPasswordField() {
     return TextField(
       controller: _confirmPasswordController,
+      autofillHints: const [AutofillHints.newPassword],
       focusNode: _confirmPasswordFocus,
       obscureText: _obscureConfirm,
       textInputAction: TextInputAction.done,
       style: const TextStyle(fontSize: 15, color: _textColor),
       decoration: InputDecoration(
         hintText: '确认密码',
-        prefixIcon: Icon(Icons.lock_outlined, size: 20, color: _mutedColor),
+        prefixIcon: const Icon(
+          Icons.lock_outlined,
+          size: 20,
+          color: _mutedColor,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
             _obscureConfirm
@@ -365,12 +381,12 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildErrorText() {
     return Row(
       children: [
-        Icon(Icons.error_outline, size: 16, color: _errorColor),
+        const Icon(Icons.error_outline, size: 16, color: _errorColor),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             _errorMessage!,
-            style: TextStyle(color: _errorColor, fontSize: 13),
+            style: const TextStyle(color: _errorColor, fontSize: 13),
           ),
         ),
       ],
@@ -419,12 +435,12 @@ class _RegisterPageState extends State<RegisterPage> {
   // ── Terms text ──
 
   Widget _buildTermsText() {
-    return Center(
+    return const Center(
       child: Text.rich(
         TextSpan(
           style: TextStyle(color: _mutedColor, fontSize: 12, height: 1.5),
           children: [
-            const TextSpan(text: '继续即表示您同意我们的'),
+            TextSpan(text: '继续即表示您同意我们的'),
             TextSpan(
               text: '使用条款',
               style: TextStyle(
@@ -433,7 +449,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 decorationThickness: 1,
               ),
             ),
-            const TextSpan(text: '与'),
+            TextSpan(text: '与'),
             TextSpan(
               text: '隐私政策',
               style: TextStyle(
@@ -455,7 +471,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text('已有账号？', style: TextStyle(color: _mutedColor, fontSize: 14)),
+        const Text('已有账号？', style: TextStyle(color: _mutedColor, fontSize: 14)),
         TextButton(
           onPressed: _goToLogin,
           style: TextButton.styleFrom(
@@ -474,7 +490,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Widget _buildEmailSentScreen() {
     return Scaffold(
-      backgroundColor: _pageBg,
+      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
+          ? Colors.white
+          : _pageBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -504,10 +522,14 @@ class _RegisterPageState extends State<RegisterPage> {
             color: AppColors.sageBorder,
             shape: BoxShape.circle,
           ),
-          child: Icon(Icons.email_outlined, size: 36, color: _accentColor),
+          child: const Icon(
+            Icons.email_outlined,
+            size: 36,
+            color: _accentColor,
+          ),
         ),
         const SizedBox(height: 24),
-        Text(
+        const Text(
           '验证邮件已发送',
           style: TextStyle(
             color: _textColor,
@@ -516,7 +538,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
+        const Text(
           '我们已向您的邮箱发送了验证链接，\n请查收并点击链接完成注册。',
           style: TextStyle(color: _mutedColor, fontSize: 14, height: 1.6),
           textAlign: TextAlign.center,
@@ -524,7 +546,7 @@ class _RegisterPageState extends State<RegisterPage> {
         const SizedBox(height: 16),
         Text(
           _emailController.text.trim(),
-          style: TextStyle(
+          style: const TextStyle(
             color: _textColor,
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -543,7 +565,7 @@ class _RegisterPageState extends State<RegisterPage> {
             onPressed: _goToLogin,
             style: OutlinedButton.styleFrom(
               foregroundColor: _textColor,
-              side: BorderSide(color: _borderColor),
+              side: const BorderSide(color: _borderColor),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

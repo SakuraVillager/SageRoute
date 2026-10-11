@@ -15,6 +15,7 @@ class TicketCard extends StatelessWidget {
     this.stampLine1 = 'MY TRIP',
     this.stampLine2 = 'PASSED',
     this.onTap,
+    this.onLongPress,
   });
 
   final String title;
@@ -25,6 +26,7 @@ class TicketCard extends StatelessWidget {
   final String stampLine1;
   final String stampLine2;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   // ── Colors ──
   static const _ticketLeftBg = Colors.white;
@@ -41,6 +43,7 @@ class TicketCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: SizedBox(
         height: 156,
         child: Stack(

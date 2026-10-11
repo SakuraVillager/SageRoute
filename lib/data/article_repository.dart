@@ -16,6 +16,22 @@ class ArticleRepository {
   final ArticleFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
 
+  Future<ArticleRecord?> fetchById(int id) async {
+    final fetcher = _fetcher;
+    if (fetcher != null) {
+      for (final record in await fetcher()) {
+        if (record.id == id) return record;
+      }
+      return null;
+    }
+    final records = await _tableRepository.fetchAll<ArticleRecord>(
+      mapper: ArticleRecord.fromMap,
+      equals: {'id': id},
+      limit: 1,
+    );
+    return records.isEmpty ? null : records.first;
+  }
+
   Future<List<ArticleRecord>> fetchArticles({int? limit}) async {
     final fetcher = _fetcher;
     if (fetcher != null) {

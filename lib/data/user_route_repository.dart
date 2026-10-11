@@ -122,6 +122,19 @@ class UserRouteRepository {
     return routeId;
   }
 
+  /// Deletes one route owned by the signed-in user. The database cascades to
+  /// its waypoints. An empty return means no owned row was actually removed.
+  Future<void> deleteRoute(String routeId) async {
+    final userId = _requireUserId(action: '删除');
+    final deleted = await _routesTable.deleteReturningRaw(<String, dynamic>{
+      'id': routeId,
+      'user_id': userId,
+    });
+    if (deleted.isEmpty) {
+      throw StateError('行程不存在或无权删除，请刷新后重试');
+    }
+  }
+
   /// 全量替换某条路线的途经点（编辑保存）。
   Future<void> updateWaypoints(
     String routeId,
@@ -185,10 +198,10 @@ class UserRouteRepository {
     ];
   }
 
-  String _requireUserId() {
+  String _requireUserId({String action = '保存'}) {
     final userId = _currentUserId();
     if (userId == null || userId.isEmpty) {
-      throw StateError('需登录后才能保存路线');
+      throw StateError('需登录后才能$action路线');
     }
     return userId;
   }

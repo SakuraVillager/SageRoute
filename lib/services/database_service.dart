@@ -1,7 +1,8 @@
 import 'dart:developer' as developer;
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
+import 'network_errors.dart';
+import 'client_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
@@ -35,11 +36,15 @@ class DatabaseService {
       return;
     }
 
-    if (env == null) {
+    if (env == null && !kIsWeb && ClientConfig.supabaseUrl.isEmpty) {
       await dotenv.load(fileName: 'assets/env.env');
     }
 
-    final sourceEnv = env ?? dotenv.env;
+    final sourceEnv =
+        env ??
+        (kIsWeb || ClientConfig.supabaseUrl.isNotEmpty
+            ? ClientConfig.environment
+            : dotenv.env);
     final supabaseUrl = sourceEnv['SUPABASE_URL'] ?? '';
     final supabaseKey = sourceEnv['SUPABASE_ANON_KEY'] ?? '';
 
@@ -57,7 +62,10 @@ class DatabaseService {
       persistSessionKey:
           'sb-${Uri.parse(supabaseUrl).host.split('.').first}-auth-token',
     );
-    final authOptions = FlutterAuthClientOptions(localStorage: authStorage);
+    final authOptions = FlutterAuthClientOptions(
+      localStorage: authStorage,
+      detectSessionInUri: !kIsWeb,
+    );
     final init =
         initializer ??
         (
@@ -145,9 +153,10 @@ class DatabaseService {
         return await operation();
       } on TimeoutException catch (error) {
         lastError = error;
-      } on SocketException catch (error) {
-        lastError = error;
       } on http.ClientException catch (error) {
+        lastError = error;
+      } catch (error) {
+        if (!isPlatformNetworkError(error)) rethrow;
         lastError = error;
       }
 

@@ -1,13 +1,14 @@
-import 'package:amap_map/amap_map.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pointer_interceptor/pointer_interceptor.dart';
+import '../../../components/map/sage_map.dart';
 import 'package:flutter/material.dart';
-import 'package:x_amap_base/x_amap_base.dart';
 
 import '../../../components/map/category_marker_icons.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../route_planning/models/transport_type.dart';
 import '../../../route_planning/route_preview_coordinator.dart';
-import '../../../services/native_amap_gateway.dart';
+import '../../../services/route_gateway.dart';
 import '../../../theme/color_schemes.dart';
 import 'add_place_page.dart';
 
@@ -62,7 +63,7 @@ class _Step3MapState extends State<Step3Map> {
   late List<RoutePlace> _selected;
 
   final Map<String, TransportType> _segmentTransportTypes = {};
-  Map<CategoryMarkerKind, BitmapDescriptor> _categoryMarkerIcons = const {};
+  Map<CategoryMarkerKind, MapIcon> _categoryMarkerIcons = const {};
   RoutePreviewStatus _previewStatus = RoutePreviewStatus.insufficient;
   List<List<double>> _polyline = [];
   List<RouteSegmentPreview> _segmentPreviews = [];
@@ -72,7 +73,8 @@ class _Step3MapState extends State<Step3Map> {
   String? _diagInfo;
   late final RoutePreviewCoordinator _routeCoordinator;
 
-  AMapController? _mapController;
+  final _mapKey = GlobalKey();
+  SageMapController? _mapController;
 
   bool get _isPreview => widget.mode == Step3Mode.preview;
 
@@ -91,9 +93,7 @@ class _Step3MapState extends State<Step3Map> {
             initialTransports[i];
       }
     }
-    _routeCoordinator = RoutePreviewCoordinator(
-      gateway: const NativeAmapGateway(),
-    );
+    _routeCoordinator = RoutePreviewCoordinator(gateway: createRouteGateway());
     _loadCategoryMarkerIcons();
     _scheduleRoute();
   }
@@ -296,7 +296,7 @@ class _Step3MapState extends State<Step3Map> {
     return nearest;
   }
 
-  void _onMapCreated(AMapController ctrl) {
+  void _onMapCreated(SageMapController ctrl) {
     _mapController = ctrl;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _fitMapToMarkers();
@@ -337,10 +337,10 @@ class _Step3MapState extends State<Step3Map> {
     }
 
     _mapController!.moveCamera(
-      CameraUpdate.newLatLngBounds(
-        LatLngBounds(
-          southwest: LatLng(minLat, minLon),
-          northeast: LatLng(maxLat, maxLon),
+      MapCameraUpdate.newLatLngBounds(
+        MapBounds(
+          southwest: MapCoordinate(minLat, minLon),
+          northeast: MapCoordinate(maxLat, maxLon),
         ),
         60,
       ),
@@ -357,74 +357,90 @@ class _Step3MapState extends State<Step3Map> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final panelH = constraints.maxHeight * _panelFraction;
+        final desktop = kIsWeb && constraints.maxWidth >= 760;
+        final map = SageMap(
+          key: _mapKey,
+          initialCameraPosition: const MapCameraPosition(
+            target: MapCoordinate(30.259462, 120.147151),
+            zoom: 13,
+          ),
+          onMapCreated: _onMapCreated,
+          polylines: {
+            for (final segment in _segmentPreviews)
+              MapPolylineData(
+                points: segment.polyline
+                    .map((p) => MapCoordinate(p[0], p[1]))
+                    .toList(),
+                color: segment.transportType == TransportType.walking
+                    ? AppColors.sageAccent
+                    : AppColors.primaryLight,
+              )..setIdForCopy('route-segment-${segment.index}'),
+          },
+          markers: _markerPlaces.map((place) {
+            final selectedIndex = _selected.indexWhere(
+              (item) => item.name == place.name,
+            );
+            final marker = MapMarkerData(
+              position: MapCoordinate(place.latitude, place.longitude),
+              icon: _categoryMarkerIcons.isEmpty
+                  ? MapIcon.defaultMarker
+                  : _categoryMarkerIcons[categoryMarkerKindFor(
+                      place.categories,
+                    )]!,
+              anchor: const Offset(0.5, 0.5),
+              infoWindow: MapInfoWindow(
+                title: selectedIndex >= 0
+                    ? '${selectedIndex + 1}. ${place.name}'
+                    : place.name,
+              ),
+            );
+            marker.setIdForCopy('marker-${place.id}-${place.name}');
+            return marker;
+          }).toSet(),
+        );
+        final panel = PointerInterceptor(
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.sageCard,
+              borderRadius: desktop
+                  ? BorderRadius.zero
+                  : const BorderRadius.vertical(top: Radius.circular(20)),
+              border: desktop
+                  ? const Border(right: BorderSide(color: AppColors.sageBorder))
+                  : null,
+              boxShadow: desktop
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x1A202124),
+                        blurRadius: 16,
+                        offset: Offset(0, -4),
+                      ),
+                    ],
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: _buildPanelContent(),
+          ),
+        );
+        if (desktop) {
+          return Row(
+            children: [
+              SizedBox(width: 360, child: panel),
+              Expanded(child: map),
+            ],
+          );
+        }
         return Stack(
           children: [
-            Positioned.fill(
-              child: RepaintBoundary(
-                child: AMapWidget(
-                  initialCameraPosition: const CameraPosition(
-                    target: LatLng(30.259462, 120.147151),
-                    zoom: 13,
-                  ),
-                  onMapCreated: _onMapCreated,
-                  polylines: _polyline.isEmpty
-                      ? const <Polyline>{}
-                      : {
-                          Polyline(
-                            points: _polyline
-                                .map((point) => LatLng(point[0], point[1]))
-                                .toList(growable: false),
-                            width: 7,
-                            color: AppColors.primaryLight,
-                          )..setIdForCopy('route-preview-main'),
-                        },
-                  markers: _markerPlaces.map((place) {
-                    final selectedIndex = _selected.indexWhere(
-                      (item) => item.name == place.name,
-                    );
-                    final marker = Marker(
-                      position: LatLng(place.latitude, place.longitude),
-                      icon: _categoryMarkerIcons.isEmpty
-                          ? BitmapDescriptor.defaultMarker
-                          : _categoryMarkerIcons[categoryMarkerKindFor(
-                              place.categories,
-                            )]!,
-                      anchor: const Offset(0.5, 0.5),
-                      infoWindow: InfoWindow(
-                        title: selectedIndex >= 0
-                            ? '${selectedIndex + 1}. ${place.name}'
-                            : place.name,
-                      ),
-                    );
-                    marker.setIdForCopy('marker-${place.id}-${place.name}');
-                    return marker;
-                  }).toSet(),
-                ),
-              ),
-            ),
+            Positioned.fill(child: RepaintBoundary(child: map)),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 180),
               curve: Curves.easeOutCubic,
               left: 0,
               right: 0,
               bottom: 0,
-              height: panelH,
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: AppColors.sageCard,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x1A202124),
-                      blurRadius: 16,
-                      offset: Offset(0, -4),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _buildPanelContent(),
-              ),
+              height: constraints.maxHeight * _panelFraction,
+              child: panel,
             ),
           ],
         );
@@ -433,7 +449,10 @@ class _Step3MapState extends State<Step3Map> {
   }
 
   Widget _buildPanelContent() {
-    final compact = _panelFraction <= 0.32;
+    final desktop = kIsWeb && MediaQuery.sizeOf(context).width >= 1024;
+    final compact =
+        _panelFraction <= 0.32 &&
+        (!kIsWeb || MediaQuery.sizeOf(context).width < 1024);
     final statusTitle = switch (_previewStatus) {
       RoutePreviewStatus.insufficient =>
         _selected.isEmpty ? '尚未添加地点' : '已选 ${_selected.length} 个地点',
@@ -446,33 +465,39 @@ class _Step3MapState extends State<Step3Map> {
         _isPreview ? '该路线暂无途经点' : '至少选择 2 个地点后自动生成路线',
       RoutePreviewStatus.planning => '正在更新各路段的距离与耗时…',
       RoutePreviewStatus.ready =>
-        _isPreview ? '上滑面板查看完整行程路线' : '点击地点间的交通信息，可单独切换驾车或步行',
+        _isPreview
+            ? (desktop ? '查看途经点顺序与交通方式' : '上滑面板查看完整行程路线')
+            : '点击地点间的交通信息，可单独切换驾车或步行',
       RoutePreviewStatus.failed => _routeError ?? '可继续调整地点或直接保存',
     };
     return Column(
       children: [
         GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onVerticalDragUpdate: _dragPanel,
-          onVerticalDragEnd: _settlePanel,
-          onTap: () {
-            setState(() {
-              _panelFraction = compact ? 0.56 : 0.32;
-            });
-          },
+          onVerticalDragUpdate: desktop ? null : _dragPanel,
+          onVerticalDragEnd: desktop ? null : _settlePanel,
+          onTap: desktop
+              ? null
+              : () {
+                  setState(() {
+                    _panelFraction = compact ? 0.56 : 0.32;
+                  });
+                },
           child: Padding(
             padding: const EdgeInsets.fromLTRB(14, 9, 14, 8),
             child: Column(
               children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.sageBorder,
-                    borderRadius: BorderRadius.circular(2),
+                if (!desktop) ...[
+                  Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.sageBorder,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
+                ],
                 Row(
                   children: [
                     const Icon(
@@ -795,16 +820,32 @@ class _Step3MapState extends State<Step3Map> {
 
   Future<void> _navigateToAddPlace() async {
     if (_isPreview) return;
-    final result = await showModalBottomSheet<List<RoutePlace>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.28),
-      builder: (context) =>
-          AddPlacePage(figure: widget.figure, currentSelectedPlaces: _selected),
+    final desktop = kIsWeb && MediaQuery.sizeOf(context).width >= 1024;
+    final picker = AddPlacePage(
+      figure: widget.figure,
+      currentSelectedPlaces: _selected,
     );
+    final pending = desktop
+        ? showDialog<List<RoutePlace>>(
+            context: context,
+            builder: (_) => Dialog(
+              child: SizedBox(
+                width: 720,
+                height: MediaQuery.sizeOf(context).height * .82,
+                child: picker,
+              ),
+            ),
+          )
+        : showModalBottomSheet<List<RoutePlace>>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            barrierColor: Colors.black.withValues(alpha: 0.28),
+            builder: (_) => picker,
+          );
 
-    if (result == null) return;
+    final result = await pending;
+    if (result == null || !mounted) return;
     setState(() {
       // Replace the complete selection so removals made in the picker take effect.
       _selected = List<RoutePlace>.from(result);

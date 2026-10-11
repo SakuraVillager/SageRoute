@@ -1,3 +1,4 @@
+import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/article_record.dart';
@@ -12,7 +13,13 @@ class ArticleDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.white,
-    appBar: AppBar(backgroundColor: AppColors.white),
+    appBar: AppBar(
+      backgroundColor: AppColors.white,
+      leading: IconButton(
+        onPressed: () => finishAppPage(context),
+        icon: const Icon(Icons.arrow_back),
+      ),
+    ),
     body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),

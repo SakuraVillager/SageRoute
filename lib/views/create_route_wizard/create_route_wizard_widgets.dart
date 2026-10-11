@@ -202,35 +202,47 @@ class _DayCell extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (rangeBackground != null) rangeBackground,
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? _CreateRouteWizardState._accent
-                  : Colors.transparent,
-              shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
-            ),
-            child: Center(
-              child: Text(
-                '$day',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? Colors.white
-                      : _CreateRouteWizardState._textMain,
-                ),
+    final cell = Stack(
+      fit: StackFit.expand,
+      children: [
+        if (rangeBackground != null) rangeBackground,
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? _CreateRouteWizardState._accent
+                : Colors.transparent,
+            shape: isSelected ? BoxShape.circle : BoxShape.rectangle,
+          ),
+          child: Center(
+            child: Text(
+              '$day',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isSelected
+                    ? Colors.white
+                    : _CreateRouteWizardState._textMain,
               ),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+    if (kIsWeb) {
+      return TextButton(
+        onPressed: onTap,
+        style: TextButton.styleFrom(
+          padding: EdgeInsets.zero,
+          minimumSize: Size.zero,
+          shape: const RoundedRectangleBorder(),
+        ),
+        child: cell,
+      );
+    }
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: cell,
     );
   }
 }

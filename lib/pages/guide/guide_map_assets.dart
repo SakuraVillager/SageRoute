@@ -1,10 +1,10 @@
 part of 'guide_page.dart';
 
 class _GuideMapAssets {
-  final Set<Marker> markers;
-  final BitmapDescriptor userLocationIcon;
-  final LatLng? focusPoint;
-  final LatLngBounds? locationBounds;
+  final Set<MapMarkerData> markers;
+  final MapIcon userLocationIcon;
+  final MapCoordinate? focusPoint;
+  final MapBounds? locationBounds;
 
   const _GuideMapAssets({
     required this.markers,

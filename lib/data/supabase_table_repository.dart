@@ -216,6 +216,21 @@ class SupabaseTableRepository {
     );
   }
 
+  /// Deletes matching rows and returns their IDs so callers can distinguish
+  /// a successful deletion from an RLS-filtered or already missing row.
+  Future<List<Map<String, dynamic>>> deleteReturningRaw(
+    Map<String, dynamic> equals,
+  ) async {
+    if (equals.isEmpty) {
+      throw ArgumentError.value(equals, 'equals', '删除条件不能为空');
+    }
+    final response = await DatabaseService.runQueryWithRetry(
+      () => _write(operation: 'deleteReturning', equals: equals),
+      operationName: 'deleteReturningRaw($tableName)',
+    );
+    return DatabaseService.normalizeRows(response);
+  }
+
   Future<dynamic> _write({
     required String operation,
     Map<String, dynamic>? row,
@@ -258,6 +273,12 @@ class SupabaseTableRepository {
             query = query.eq(key, value);
           });
           return await query;
+        case 'deleteReturning':
+          dynamic query = DatabaseService.client.from(tableName).delete();
+          equals!.forEach((key, value) {
+            query = query.eq(key, value);
+          });
+          return await query.select('id');
         default:
           throw ArgumentError('未知写操作: $operation');
       }

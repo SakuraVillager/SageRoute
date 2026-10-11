@@ -1,3 +1,9 @@
+import 'package:flutter/foundation.dart';
+import '../../components/adaptive_content.dart';
+import '../../components/draft_exit_guard.dart';
+import '../../navigation/app_navigation.dart';
+import '../../services/database_service.dart';
+import '../../services/route_draft_storage.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -15,6 +21,7 @@ import 'steps/step1_figure.dart';
 import 'steps/step3_map.dart';
 
 part 'create_route_wizard_widgets.dart';
+part 'create_route_web_workspace.dart';
 
 class CreateRouteWizard extends StatefulWidget {
   const CreateRouteWizard({super.key});
@@ -63,6 +70,75 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   // ── Archive animation ──
   bool _archiving = false;
+  bool _saved = false;
+  RouteDraftStorage? _draft;
+  bool get _dirty =>
+      !_saved &&
+      (_title.isNotEmpty ||
+          _startDay != null ||
+          _selectedFigure != null ||
+          _selectedLocations.isNotEmpty);
+
+  void _persistDraft() {
+    if (_saved) return;
+    _draft?.save({
+      'step': _currentStep,
+      'title': _titleController.text,
+      'startDay': _startDay,
+      'endDay': _endDay,
+      'figure': _selectedFigure?.toMap(),
+      'places': _selectedLocations.map((p) => p.toJson()).toList(),
+      'transports': _segmentTransportTypes.map(
+        (key, value) => MapEntry(key, value.name),
+      ),
+    });
+  }
+
+  void _restoreDraft() {
+    if (!kIsWeb) return;
+    final user = DatabaseService.client.auth.currentUser;
+    if (user == null) return;
+    _draft = RouteDraftStorage(userId: user.id, draftId: 'new');
+    final data = _draft!.load();
+    if (data == null) return;
+    try {
+      _titleController.text = data['title'] as String? ?? '';
+      _title = _titleController.text.trim();
+      _startDay = data['startDay'] as int?;
+      _endDay = data['endDay'] as int?;
+      if (data['figure'] is Map) {
+        _selectedFigure = CelebrityProfile.fromMap(
+          Map<String, dynamic>.from(data['figure'] as Map),
+        );
+        _selectedFigureId = _selectedFigure!.id.toString();
+      }
+      _selectedLocations = (data['places'] as List? ?? [])
+          .map((p) => RoutePlace.fromJson(Map<String, dynamic>.from(p as Map)))
+          .toList();
+      _segmentTransportTypes = (data['transports'] as Map? ?? {}).map(
+        (key, value) => MapEntry(
+          key as String,
+          TransportType.values.byName(value as String),
+        ),
+      );
+      _currentStep = ((data['step'] as int? ?? 1).clamp(1, 3));
+      if (_currentStep == 3 && _selectedFigure == null) _currentStep = 2;
+      _previousStep = _currentStep;
+      _syncDateToTicket();
+    } catch (_) {
+      _draft!.clear();
+      _titleController.clear();
+      _title = '';
+      _startDay = null;
+      _endDay = null;
+      _selectedFigure = null;
+      _selectedFigureId = null;
+      _selectedLocations = [];
+      _segmentTransportTypes = {};
+      _currentStep = 1;
+      _previousStep = 1;
+    }
+  }
 
   // ── Computed ──
 
@@ -83,11 +159,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   @override
   void initState() {
     super.initState();
+    _restoreDraft();
     _titleController.addListener(_syncTitle);
   }
 
   @override
   void dispose() {
+    if (!_saved) _persistDraft();
     for (final timer in _timers) {
       timer.cancel();
     }
@@ -103,6 +181,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   void _syncTitle() {
     setState(() => _title = _titleController.text.trim());
+    _persistDraft();
   }
 
   // ── Basic information → step 2 ──
@@ -176,6 +255,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     });
   }
 
+  void _setWebStep(int step) {
+    setState(() {
+      _previousStep = _currentStep;
+      _currentStep = step;
+    });
+  }
+
   void _handleNext() {
     if (_currentStep >= 3) return;
     setState(() {
@@ -192,7 +278,20 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       });
       return;
     }
-    Navigator.of(context).pop();
+    if (kIsWeb && _dirty) {
+      requestDraftDiscard(
+        context,
+        () {
+          _draft?.clear();
+          setState(() => _saved = true);
+        },
+        () => WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) finishAppPage(context);
+        }),
+      );
+    } else {
+      finishAppPage(context);
+    }
   }
 
   // ── Save (step 3) ──
@@ -252,11 +351,13 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
         waypoints: waypoints,
       );
       final routeId = await _routeRepository.createRoute(draft);
+      _saved = true;
+      _draft?.clear();
       if (!mounted) return;
       // 保留短暂的归档动画再返回，与旧交互节奏一致。
       _later(const Duration(milliseconds: 900), () {
         if (!mounted) return;
-        Navigator.of(context).pop(draft.copyWith(id: routeId));
+        finishAppPage(context, draft.copyWith(id: routeId));
       });
     } catch (error, stackTrace) {
       if (!mounted) return;
@@ -289,29 +390,42 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: _currentStep == 1,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) _handleBack();
+    _persistDraft();
+    return DraftExitGuard(
+      dirty: kIsWeb && _dirty && !_archiving,
+      onDiscard: () {
+        _saved = true;
+        _draft?.clear();
       },
-      child: Scaffold(
-        backgroundColor: AppColors.sageBg,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            SafeArea(
-              child: Column(
-                children: [
-                  _buildTopBarSection(),
-                  Expanded(child: _buildStepContent()),
-                  _buildBottomButton(),
-                ],
+      child: kIsWeb && MediaQuery.sizeOf(context).width >= 1024
+          ? _buildWebPlanningWorkspace()
+          : AdaptiveContent(
+              maxWidth: _currentStep == 3 ? double.infinity : 800,
+              child: PopScope(
+                canPop: kIsWeb || _currentStep == 1,
+                onPopInvokedWithResult: (didPop, result) {
+                  if (!didPop && !kIsWeb) _handleBack();
+                },
+                child: Scaffold(
+                  backgroundColor: AppColors.sageBg,
+                  body: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      SafeArea(
+                        child: Column(
+                          children: [
+                            _buildTopBarSection(),
+                            Expanded(child: _buildStepContent()),
+                            _buildBottomButton(),
+                          ],
+                        ),
+                      ),
+                      if (_archiving) _buildArchiveOverlay(),
+                    ],
+                  ),
+                ),
               ),
             ),
-            if (_archiving) _buildArchiveOverlay(),
-          ],
-        ),
-      ),
     );
   }
 
@@ -419,19 +533,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     final allSteps = <Widget>[
       _buildPlanDetailsStep(),
       Step1Figure(selectedFigureId: _selectedFigureId, onSelect: _selectFigure),
-      Step3Map(
-        figure: _selectedFigure,
-        selectedPlaces: _selectedLocations,
-        onLocationsChanged: (locations) {
-          setState(() => _selectedLocations = locations);
-        },
-        onPreviewStatusChanged: (status) {
-          if (_routePreviewStatus == status) return;
-          setState(() => _routePreviewStatus = status);
-        },
-        onTransportTypesChanged: (types) => _segmentTransportTypes = types,
-        onSaveRequested: _handleSave,
-      ),
+      _buildMapStep(),
     ];
 
     final currentChild = KeyedSubtree(
@@ -475,9 +577,34 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     );
   }
 
+  Widget _buildMapStep() => Step3Map(
+    figure: _selectedFigure,
+    selectedPlaces: _selectedLocations,
+    onLocationsChanged: (locations) {
+      setState(() => _selectedLocations = locations);
+    },
+    onPreviewStatusChanged: (status) {
+      if (_routePreviewStatus == status) return;
+      setState(() => _routePreviewStatus = status);
+    },
+    onTransportTypesChanged: (types) {
+      _segmentTransportTypes = types;
+      _persistDraft();
+    },
+    initialSegmentTransports: [
+      for (var i = 0; i < _selectedLocations.length - 1; i++)
+        _segmentTransportTypes[Step3Map.segmentKey(
+              _selectedLocations[i],
+              _selectedLocations[i + 1],
+            )] ??
+            TransportType.driving,
+    ],
+    onSaveRequested: _handleSave,
+  );
+
   // ── Basic information form (step 1) ──
 
-  Widget _buildPlanDetailsStep() {
+  Widget _buildPlanDetailsStep({bool desktop = false}) {
     return SingleChildScrollView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
@@ -529,20 +656,38 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             description: '依次选择出发日和返程日',
           ),
           const SizedBox(height: 10),
-          _buildCalendarPanel(),
-          const SizedBox(height: 14),
-          _ConfirmButton(
-            label: '下一步 · 选择同行人物',
-            icon: Icons.arrow_forward,
-            color: _accent,
-            onPressed: _handlePlanDetailsDone,
-          ),
+          if (kIsWeb) _buildDateField() else _buildCalendarPanel(),
+          if (!desktop) ...[
+            const SizedBox(height: 14),
+            _ConfirmButton(
+              label: '下一步 · 选择同行人物',
+              icon: Icons.arrow_forward,
+              color: _accent,
+              onPressed: _handlePlanDetailsDone,
+            ),
+          ],
+          if (desktop) ...[
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            const Text('旅程摘要', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            Text(
+              _duration.isEmpty ? '选择日期后显示行程天数' : _duration,
+              style: const TextStyle(color: AppColors.sageMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _selectedFigure == null ? '尚未选择人物' : _selectedFigure!.name,
+              style: const TextStyle(color: AppColors.sageMuted, fontSize: 13),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildCalendarPanel() {
+  Widget _buildCalendarPanel({ValueChanged<int>? onSelect}) {
     return _PanelFrame(
       compact: true,
       child: Column(
@@ -566,13 +711,14 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
             itemCount: 30,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 7,
+              mainAxisExtent: kIsWeb ? 34 : null,
               mainAxisSpacing: 6,
             ),
             itemBuilder: (context, index) => _DayCell(
               day: index + 1,
               startDay: _startDay,
               endDay: _endDay,
-              onTap: () => _selectDay(index + 1),
+              onTap: () => (onSelect ?? _selectDay)(index + 1),
             ),
           ),
         ],

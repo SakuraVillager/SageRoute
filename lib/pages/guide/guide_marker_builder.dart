@@ -1,10 +1,10 @@
 part of 'guide_page.dart';
 
 /// 用于隐藏高德地图原生定位点的透明图标（1×1 透明像素）。
-BitmapDescriptor? _transparentIconCache;
+MapIcon? _transparentIconCache;
 
-BitmapDescriptor get _transparentIcon {
-  return _transparentIconCache ??= BitmapDescriptor.fromBytes(
+MapIcon get _transparentIcon {
+  return _transparentIconCache ??= MapIcon.fromBytes(
     // 1×1 透明 PNG
     Uint8List.fromList([
       0x89,
@@ -78,7 +78,7 @@ BitmapDescriptor get _transparentIcon {
   );
 }
 
-Future<BitmapDescriptor> _buildCircleMarkerIcon({
+Future<MapIcon> _buildCircleMarkerIcon({
   required Color fillColor,
   ui.Path? iconPath,
   double iconAreaRadius = 21.0,
@@ -127,9 +127,9 @@ Future<BitmapDescriptor> _buildCircleMarkerIcon({
   final image = await recorder.endRecording().toImage(size, size);
   final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
   if (byteData == null) {
-    return BitmapDescriptor.defaultMarker;
+    return MapIcon.defaultMarker;
   }
-  return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+  return MapIcon.fromBytes(byteData.buffer.asUint8List());
 }
 
 /// ---------- top-level functions (marker building) ----------
@@ -148,7 +148,7 @@ Future<_GuideMapAssets> _loadAssets(
 
   // 为每个类别 SVG 路径预构建对应的标记图标缓存。
   final svgPathParser = SvgPathParser();
-  final Map<String, BitmapDescriptor> categoryIconCache = {};
+  final Map<String, MapIcon> categoryIconCache = {};
 
   // 收集所有需要构建图标的类别
   final categoriesToBuild = <String>{};
@@ -175,7 +175,7 @@ Future<_GuideMapAssets> _loadAssets(
   );
   categoryIconCache.addEntries(entries);
 
-  BitmapDescriptor getIconForLocation(LocationRecord location) {
+  MapIcon getIconForLocation(LocationRecord location) {
     final primaryCategory = location.categories.isNotEmpty
         ? location.categories.first
         : null;
@@ -190,7 +190,7 @@ Future<_GuideMapAssets> _loadAssets(
 
   final markers = locations
       .where((location) => location.coordinates.length >= 2)
-      .map<Marker>((location) {
+      .map<MapMarkerData>((location) {
         final longitude = location.coordinates[0];
         final latitude = location.coordinates[1];
 
@@ -207,19 +207,19 @@ Future<_GuideMapAssets> _loadAssets(
           maxLongitude = longitude;
         }
 
-        return Marker(
-          position: LatLng(latitude, longitude),
+        return MapMarkerData(
+          position: MapCoordinate(latitude, longitude),
           icon: getIconForLocation(location),
+          infoWindow: MapInfoWindow(title: location.nameModern),
           infoWindowEnable: false,
           anchor: const ui.Offset(0.5, 0.5),
-          zIndex: 1,
           onTap: (_) => state._showLocationDetails(location),
         );
       })
       .toSet();
 
-  LatLng? focusPoint;
-  LatLngBounds? locationBounds;
+  MapCoordinate? focusPoint;
+  MapBounds? locationBounds;
 
   if (minLatitude != null &&
       maxLatitude != null &&
@@ -229,11 +229,11 @@ Future<_GuideMapAssets> _loadAssets(
         minLatitude == maxLatitude && minLongitude == maxLongitude;
 
     if (hasSinglePoint) {
-      focusPoint = LatLng(minLatitude!, minLongitude!);
+      focusPoint = MapCoordinate(minLatitude!, minLongitude!);
     } else {
-      locationBounds = LatLngBounds(
-        southwest: LatLng(minLatitude!, minLongitude!),
-        northeast: LatLng(maxLatitude!, maxLongitude!),
+      locationBounds = MapBounds(
+        southwest: MapCoordinate(minLatitude!, minLongitude!),
+        northeast: MapCoordinate(maxLatitude!, maxLongitude!),
       );
     }
   }
@@ -246,7 +246,7 @@ Future<_GuideMapAssets> _loadAssets(
   );
 }
 
-Future<BitmapDescriptor> _buildScenicMarkerIcon(
+Future<MapIcon> _buildScenicMarkerIcon(
   _GuidePageState state, {
   required Color markerFillColor,
 }) async {
@@ -255,7 +255,7 @@ Future<BitmapDescriptor> _buildScenicMarkerIcon(
 
 /// 构建带类别 SVG 图标的标记圆点。
 /// 在白色外圈和主题色内圈之上绘制白色 SVG 图标。
-Future<BitmapDescriptor> _buildCategoryMarkerIcon(
+Future<MapIcon> _buildCategoryMarkerIcon(
   _GuidePageState state, {
   required Color markerFillColor,
   required String svgPathData,
@@ -270,6 +270,6 @@ Future<BitmapDescriptor> _buildCategoryMarkerIcon(
   return _buildCircleMarkerIcon(fillColor: markerFillColor, iconPath: svgPath);
 }
 
-Future<BitmapDescriptor> _buildUserLocationIcon(_GuidePageState state) async {
+Future<MapIcon> _buildUserLocationIcon(_GuidePageState state) async {
   return _buildCircleMarkerIcon(fillColor: AppColors.sageMuted);
 }

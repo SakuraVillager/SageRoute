@@ -1,80 +1,106 @@
 # SageRoute
 
-SageRoute 是一款以历史人物和地点为线索的文旅导览应用。用户可以浏览人物、文章和地点，在地图上探索目的地，并创建、保存和管理多站点旅行路线。项目使用 Flutter 和 Dart，Android 版本复用 Supabase 保存账号及业务数据，并通过高德地图提供地图、定位和路线规划能力。
+SageRoute 是一款以历史人物和地点为线索的文旅导览应用。用户可以浏览人物、文章和地点，在地图上探索目的地，并创建、保存和管理多站点旅行路线。项目使用 Flutter 和 Dart，Android 与 Web 共用主要业务逻辑、数据模型和 Supabase 数据访问；地图、定位和路线服务按平台适配。
 
-## 当前版本
+## 平台与功能
 
-`main` 是已完成的 Android 应用基线。Web 适配在 `web端` 分支持续开发；该分支复用 Dart 业务逻辑，并针对桌面浏览器重新设计页面布局。
+- **Android**：原生应用，使用高德地图组件提供导览、地点探索、路线规划和定位。
+- **Web**：面向桌面和手机浏览器，采用适配浏览器的导航和响应式布局，通过高德 JavaScript API 提供地图及路线服务。
+- **账号与数据**：复用现有 Supabase 项目和业务数据；客户端只使用公开 anon/publishable Key。
+- **路线**：支持多站点路线创建、交通方式选择、预览、保存、编辑和管理。
+
+Web 配置、调试和静态部署见 [Web 部署说明](docs/web_deployment.md)；功能对照和验收结果见 [Web 验证记录](docs/web_validation.md)，布局方案见 [Web 布局重设计](docs/web_layout_redesign.md)。
 
 ## 环境要求
 
-- Flutter SDK，版本需符合 `pubspec.yaml` 中的 Dart SDK 约束（Dart `^3.8.1`）。
-- Android Studio 或 Android SDK，以及可运行的 Android 模拟器或设备。
-- Supabase 项目和高德地图 Android Key，用于验证在线账号、数据及地图功能。
+- Flutter SDK；Dart 版本需符合 `pubspec.yaml` 中的 `^3.8.1` 约束。
+- Android Studio 或 Android SDK，以及 Android 模拟器或设备。
+- Web 调试需要 Chrome 或 Edge。
+- 验证在线账号、数据及地图功能需要 Supabase 项目配置和相应平台的高德 Key。
 
-## 本地运行
+## 本地配置
 
-1. 安装依赖：
+### Android
 
-   ```bash
-   flutter pub get
-   ```
+复制 `dart_define.example.json` 为 `dart_define.json`，填入自己的高德 Android Key：
 
-2. 复制 `dart_define.example.json` 为 `dart_define.json`，填写自己的高德 Android Key：
+```json
+{
+  "AMAP_ANDROID_KEY": "YOUR_ANDROID_AMAP_KEY"
+}
+```
 
-   ```json
-   {
-     "AMAP_ANDROID_KEY": "YOUR_ANDROID_AMAP_KEY"
-   }
-   ```
+在本地的 `assets/env.env` 中填写 Supabase URL 和客户端公开 Key。不要提交真实配置文件。
 
-3. 在本地配置文件 `assets/env.env` 中填写 Supabase 客户端配置。不要提交真实密钥或个人环境文件。
+### Web
 
-4. 连接 Android 设备或启动模拟器，然后运行：
+复制 `dart_define.web.example.json` 为 `dart_define.web.json`，填写 Supabase URL、anon/publishable Key、高德 JavaScript API Web Key 和配套安全密钥。构建参数会进入浏览器可读取的客户端产物；不能填入 Supabase `service_role` 或 secret Key。生产环境应使用独立 Web Key 并限制允许域名。
 
-   ```bash
-   flutter run --dart-define-from-file=dart_define.json
-   ```
+## 运行与构建
 
-如果 Android 原生工程已配置高德 Key，可以省略 `--dart-define-from-file`。
+安装依赖：
 
-## 检查与构建
+```bash
+flutter pub get
+```
+
+运行 Android：
+
+```bash
+flutter run --dart-define-from-file=dart_define.json
+```
+
+运行 Web（Edge）：
+
+```bash
+flutter run -d edge --web-port=8080 --dart-define-from-file=dart_define.web.json
+```
+
+构建 Android APK：
+
+```bash
+flutter build apk --dart-define-from-file=dart_define.json
+```
+
+构建静态 Web 站点：
+
+```bash
+flutter build web --release --dart-define-from-file=dart_define.web.json
+```
+
+Web 发布内容位于 `build/web`，静态托管需支持 HTTPS 和 SPA 路径回退。认证回调、缓存头及本地预览步骤见 Web 部署说明。
+
+## 检查
 
 ```bash
 flutter analyze
 flutter test
-flutter build apk --dart-define-from-file=dart_define.json
 ```
 
-构建文件位于 `build/app/outputs/flutter-apk/`。正式发布前请使用自己的 Supabase 和高德配置，并确认 Android 签名及发布参数。
+测试使用模拟仓储和确定性服务，不依赖线上 Supabase 或高德服务。浏览器验收记录及未验证的环境限制见 `docs/web_validation.md`。
 
 ## 项目结构
 
 ```text
 lib/
 ├── auth/             登录、注册和密码恢复
-├── components/       可复用界面组件
-├── data/             数据仓储与数据访问
-├── models/           业务及数据库模型
+├── components/       可复用组件、地图和 Web 布局
+├── data/             数据仓储及模拟数据
+├── models/           业务与数据库模型
+├── navigation/       跨平台导航
 ├── pages/            导览、设置等页面
 ├── route_planning/   路线规划模型与协调逻辑
-├── services/         Supabase、高德及平台服务
+├── services/         Supabase、高德、定位及平台服务
 ├── theme/            主题与视觉样式
 └── views/            首页、地点、人物和路线流程
 
-assets/               图片、字体等静态资源
+assets/               图片、字体等资源
 android/              Android 原生工程
-test/                 单元及组件测试
-docs/                 架构、数据层和设计说明
+web/                  Web 入口与高德 JS 桥接
+test/                 单元、组件和 Web 桥接测试
+docs/                 架构、数据层、设计和部署说明
 ```
-
-## 开发说明
-
-- 业务页面和数据访问分层维护，仓储负责 Supabase 数据映射，路线规划协调逻辑不依赖具体地图页面。
-- Android 地图和定位需要有效的高德 Key、网络连接及相应设备权限。
-- 单元测试使用模拟数据和确定性服务，不应依赖线上 Supabase 或高德服务。
-- Web 构建、配置和静态部署说明见 `web端` 分支中的 `docs/web_deployment.md`；该分支的布局记录和验收结果分别见 `docs/web_layout_redesign.md` 与 `docs/web_validation.md`。
 
 ## 配置安全
 
-`dart_define.json`、`assets/env.env` 和其他本地配置文件不得包含在提交中。客户端公开 Key 会随应用分发，只能用于客户端访问；严禁将 Supabase `service_role` 或 secret Key 写入客户端配置。生产环境请在 Supabase RLS 和高德控制台限制访问范围。
+`dart_define.json`、`dart_define.web.json`、`assets/env.env`、本地签名配置和其他个人配置不得提交。Web 中的 Supabase 和地图客户端 Key 可被访问者读取，只能使用客户端公开凭据，并在对应服务控制台限制访问范围。
