@@ -474,7 +474,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 final tabIndex = _navToTab[_selectedIndex] ?? 0;
                 return Offstage(
                   offstage: widget.workspaceChild != null || tabIndex != index,
-                  child: AdaptiveContent(child: _tabs[index]),
+                  child: TickerMode(
+                    enabled: widget.workspaceChild == null && tabIndex == index,
+                    child: AdaptiveContent(child: _tabs[index]),
+                  ),
                 );
               }),
             ),

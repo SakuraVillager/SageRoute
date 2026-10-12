@@ -3,6 +3,9 @@ import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../components/content_carousel.dart';
 import '../components/filterable_directory_section.dart';
@@ -20,6 +23,8 @@ import '../theme/color_schemes.dart';
 import '../utils/featured_card_metrics.dart';
 import 'article_detail_page.dart';
 import 'figure_detail_page.dart';
+
+part 'figures_web_content.dart';
 
 const _directorySurface = AppColors.neutralDirectory;
 const _pageInset = EdgeInsets.symmetric(horizontal: 15);
@@ -292,6 +297,26 @@ class _FiguresContent extends StatelessWidget {
     final featured = data.articles
         .map((article) => articleMedia[article.id]!)
         .toList(growable: false);
+
+    if (kIsWeb) {
+      return FiguresWebContent(
+        articles: featured,
+        figures: data.celebrities,
+        topics: data.topics,
+        selectedTopic: selectedTopic,
+        selectedDynasty: selectedDynasty,
+        showAllArticles: showAllArticles,
+        showAllFigures: showAllFigures,
+        onTopicChanged: onTopicChanged,
+        onDynastyChanged: onDynastyChanged,
+        onArticleExpansionChanged: onArticleExpansionChanged,
+        onFigureExpansionChanged: onFigureExpansionChanged,
+        onOpenArticle: onOpenFeaturedArticle,
+        onOpenFigure: onOpenFigure,
+        onOpenSearch: onOpenSearch,
+        onHome: () => context.go('/home'),
+      );
+    }
 
     // 在 Scaffold 之外读取安全区：Scaffold 会给 body 套一层
     // removePadding(removeTop: true) 的 MediaQuery，卡片内部读到的是 0。

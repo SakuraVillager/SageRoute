@@ -35,14 +35,18 @@ class WebWorkspace extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      'Sage — Route',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.brandInk,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: InkWell(
+                      key: const ValueKey('web-brand-home'),
+                      onTap: () => onSelected(0),
+                      child: const Text(
+                        'Sage — Route',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.brandInk,
+                        ),
                       ),
                     ),
                   ),
