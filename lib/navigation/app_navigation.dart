@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../pages/dongpo_catalog_page.dart';
 import '../auth/login_page.dart';
 import '../auth/register_page.dart';
 import '../auth/forgot_password_page.dart';
@@ -17,6 +18,7 @@ import '../views/route_preview/route_edit_page.dart';
 import '../utils/slide_route.dart';
 
 String? pageLocation(Widget page) => switch (page) {
+  DongpoCatalogPage() => '/dongpo',
   LoginPage() => '/login',
   RegisterPage() => '/register',
   ForgotPasswordPage() => '/forgot-password',

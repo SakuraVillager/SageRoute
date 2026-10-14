@@ -10,11 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../../data/icon_repository.dart';
-import '../../data/location_repository.dart';
+import '../../data/dongpo_site_repository.dart';
+import '../../data/site_filter.dart';
+import '../../models/heritage_grade.dart';
+import '../../components/heritage_site_filters.dart';
+import '../../components/heritage_site_details.dart';
+import '../../components/heritage_grade_badge.dart';
 import '../../models/location_record.dart';
 import '../../theme/color_schemes.dart';
-import '../../utils/svg_path_parser.dart';
 
 part 'guide_location_logic.dart';
 part 'guide_preview_animation.dart';
@@ -24,7 +27,13 @@ part 'location_detail_sheet.dart';
 
 /// 导览页：承载高德地图。
 class GuidePage extends StatefulWidget {
-  const GuidePage({super.key});
+  const GuidePage({
+    super.key,
+    this.repository = const DongpoSiteRepository(),
+    this.mapBuilder,
+  });
+  final DongpoSiteRepository repository;
+  final Widget Function(BuildContext, Set<MapMarkerData>)? mapBuilder;
 
   @override
   State<GuidePage> createState() => _GuidePageState();
@@ -34,8 +43,95 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   // Constants moved to guide_preview_animation.dart (_previewRandomDistanceMeters, etc.)
 
   Future<_GuideMapAssets>? _assetsFuture;
-  late final LocationRepository _locationRepository;
-  late final IconRepository _iconRepository;
+  HeritageGrade? _grade;
+  String? _theme;
+  String _query = '';
+  List<LocationRecord> _sites = const [];
+  bool _isLocalCopy = false;
+
+  List<LocationRecord> get _visibleSites =>
+      filterSites(_sites, grade: _grade, theme: _theme, query: _query);
+
+  Set<MapMarkerData> get _visibleMarkers {
+    final ids = _visibleSites.map((site) => 'dongpo-${site.id}').toSet();
+    return _cachedScenicMarkers
+        .where((marker) => ids.contains(marker.id))
+        .toSet();
+  }
+
+  Widget _catalogPanel({
+    bool isLoading = false,
+    bool hasError = false,
+  }) => ListView(
+    padding: const EdgeInsets.all(20),
+    children: [
+      Text('苏轼杭州行迹', style: Theme.of(context).textTheme.headlineSmall),
+      const SizedBox(height: 12),
+      if (_isLocalCopy) ...[
+        const Text('当前使用离线资料，联网后可重新加载最新内容。'),
+        TextButton.icon(
+          onPressed: () {
+            setState(() {
+              _reloadAssets();
+            });
+          },
+          icon: const Icon(Icons.refresh),
+          label: const Text('重新连接'),
+        ),
+      ],
+      HeritageSiteFilters(
+        grade: _grade,
+        theme: _theme,
+        onGradeChanged: (value) => setState(() => _grade = value),
+        onThemeChanged: (value) => setState(() => _theme = value),
+        onQueryChanged: (value) => setState(() => _query = value),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        '${_visibleSites.length} 个景点 · ${_visibleSites.where((site) => site.hasValidCoordinates).length} 个有地图位置',
+      ),
+      const SizedBox(height: 8),
+      if (isLoading) ...[
+        const LinearProgressIndicator(),
+        const SizedBox(height: 8),
+        const Text('正在加载景点资料…'),
+      ],
+      if (hasError) ...[
+        const Text('景点资料加载失败，请重试。'),
+        TextButton(
+          onPressed: () => setState(_reloadAssets),
+          child: const Text('重试'),
+        ),
+      ],
+      if (_visibleSites.isEmpty && !isLoading && !hasError)
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Text('没有符合条件的景点，请调整等级、专题或搜索词。'),
+        ),
+      for (final site in _visibleSites)
+        Card(
+          child: ListTile(
+            title: Text(site.nameModern),
+            subtitle: Text(
+              '${site.address ?? ''}\n${site.themes.join(' · ')}${site.hasValidCoordinates ? '' : '\n地图位置待核实'}',
+            ),
+            isThreeLine: true,
+            trailing: HeritageGradeBadge(site: site),
+            onTap: () {
+              if (site.hasValidCoordinates) {
+                _mapController?.moveCamera(
+                  MapCameraUpdate.newLatLngZoom(
+                    MapCoordinate(site.latitude!, site.longitude!),
+                    15,
+                  ),
+                );
+              }
+              _showLocationDetails(site);
+            },
+          ),
+        ),
+    ],
+  );
   final math.Random _previewRandom = math.Random();
   late final AnimationController _previewDriftController;
   late final AnimationController _previewSettleController;
@@ -72,8 +168,6 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _locationRepository = const LocationRepository();
-    _iconRepository = const IconRepository();
     final initialDriftDuration = _nextPreviewDriftDuration();
     _previewDriftController =
         AnimationController(vsync: this, duration: initialDriftDuration)
@@ -87,7 +181,9 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
           ..addListener(_onPreviewSettleTick)
           ..addStatusListener(_onPreviewSettleStatus);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!kIsWeb) _requestLocationPermission(this);
+      if (!kIsWeb && widget.mapBuilder == null) {
+        _requestLocationPermission(this);
+      }
     });
   }
 
@@ -160,13 +256,26 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
     }
 
     _markerFillColor = nextMarkerColor;
-    _assetsFuture = _loadAssets(this, markerFillColor: nextMarkerColor);
-    _assetsFuture?.then((loadedAssets) {
-      if (mounted) {
-        _cachedScenicMarkers = loadedAssets.markers;
+    _reloadAssets();
+  }
+
+  void _reloadAssets() {
+    final request = _loadAssets(this, markerFillColor: _markerFillColor!);
+    _assetsFuture = request;
+    request.then(
+      (loadedAssets) {
+        if (!mounted || _assetsFuture != request) return;
+        setState(() {
+          _sites = loadedAssets.sites;
+          _isLocalCopy = loadedAssets.isLocalCopy;
+          _cachedScenicMarkers = loadedAssets.markers;
+        });
         _fitAllLocationsOnMap(this, loadedAssets);
-      }
-    });
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        // FutureBuilder presents the failed request and retains retry controls.
+      },
+    );
   }
 
   Future<void> _showLocationDetails(LocationRecord location) {
@@ -181,7 +290,7 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
   }
 
   Set<MapMarkerData> _buildMapMarkers({required MapIcon? userLocationIcon}) {
-    final markers = Set<MapMarkerData>.from(_cachedScenicMarkers);
+    final markers = Set<MapMarkerData>.from(_visibleMarkers);
 
     // 始终使用自定义蓝色标记显示用户位置，确保粗定位和精定位使用同一个图标。
     if (_latestUserLatLng != null && userLocationIcon != null) {
@@ -216,12 +325,12 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
         // Viewport adjustment is handled in onMapCreated
         // and via the then() callback in didChangeDependencies.
         final mapMessage = snapshot.hasError
-            ? '地点加载失败：${snapshot.error}'
+            ? '景点资料加载失败，请重试。'
             : snapshot.connectionState != ConnectionState.done
             ? '正在加载地点...'
             : _cachedScenicMarkers.isEmpty
             ? '当前没有可显示的地点数据。'
-            : '导览地图已接入高德地图，可在此继续叠加景点、路线和讲解能力。';
+            : '点击地图标记查看史料。区域参考点不代表遗址精确位置。';
         final permissionMessage = !_locationPermissionChecked
             ? (kIsWeb ? '点击右下角定位按钮获取当前位置' : '正在申请定位权限...')
             : _locationPermissionStatus.isGranted
@@ -244,12 +353,12 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
                   final animatedMarkers = _buildMapMarkers(
                     userLocationIcon: assets?.userLocationIcon,
                   );
+                  if (widget.mapBuilder != null) {
+                    return widget.mapBuilder!(context, animatedMarkers);
+                  }
                   return SageMap(
                     key: _mapKey,
-                    initialCameraPosition: const MapCameraPosition(
-                      // 西安钟楼附近，作为导览初始中心点。
-                      target: MapCoordinate(34.259462, 108.947151),
-                    ),
+                    initialCameraPosition: _catalogCamera(context, assets),
                     markers: animatedMarkers,
                     onMapCreated: (controller) {
                       _mapController = controller;
@@ -351,33 +460,26 @@ class _GuidePageState extends State<GuidePage> with TickerProviderStateMixin {
             ),
           ],
         );
-        if (!desktop) return map;
+        if (!desktop) {
+          return Column(
+            children: [
+              SizedBox(height: 220, child: map),
+              Expanded(
+                child: _catalogPanel(
+                  isLoading: snapshot.connectionState != ConnectionState.done,
+                  hasError: snapshot.hasError,
+                ),
+              ),
+            ],
+          );
+        }
         return Row(
           children: [
             SizedBox(
-              width: 360,
-              child: ListView(
-                padding: const EdgeInsets.all(20),
-                children: [
-                  Text(
-                    '地点导览',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(message),
-                  const SizedBox(height: 16),
-                  for (final marker in _cachedScenicMarkers)
-                    ListTile(
-                      leading: const Icon(Icons.place_outlined),
-                      title: Text(marker.infoWindow.title),
-                      onTap: () {
-                        _mapController?.moveCamera(
-                          MapCameraUpdate.newLatLngZoom(marker.position, 15),
-                        );
-                        marker.onTap?.call(marker.id ?? '');
-                      },
-                    ),
-                ],
+              width: 380,
+              child: _catalogPanel(
+                isLoading: snapshot.connectionState != ConnectionState.done,
+                hasError: snapshot.hasError,
               ),
             ),
             const VerticalDivider(width: 1),

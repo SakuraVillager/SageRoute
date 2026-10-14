@@ -134,10 +134,12 @@ void main() {
     await tester.tap(find.text('批量删除'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('历史行程一'));
+    await tester.ensureVisible(find.text('历史行程三'));
     await tester.tap(find.text('历史行程三'));
     await tester.pumpAndSettle();
     expect(find.text('已选择 2 项'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('删除(2)'));
     await tester.tap(find.text('删除(2)'));
     await tester.pumpAndSettle();
     await tester.tap(

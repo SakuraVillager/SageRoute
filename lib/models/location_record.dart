@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'heritage_grade.dart';
 
 /// `Location` 表模型。
 /// 对应字段包含：古今地名、开放时间、AR 开关、坐标等。
@@ -14,6 +15,22 @@ class LocationRecord {
   final bool isArEnabled;
   final String? topic;
   final List<String> categories;
+  final String? period;
+  final String? historicalEvent;
+  final String? relatedLiterature;
+  final String? literatureSource;
+  final String? researchNotes;
+  final HeritageGrade? heritageGrade;
+  final List<String> themes;
+  final String? coordinateNote;
+  final List<Map<String, String>> photos;
+  final bool isCoreSite;
+
+  bool get hasValidCoordinates =>
+      coordinates.length == 2 &&
+      coordinates.every((value) => value.isFinite) &&
+      coordinates[0].abs() <= 180 &&
+      coordinates[1].abs() <= 90;
 
   /// 经纬度坐标，格式为 [经度, 纬度]（longitude, latitude）。
   /// 长度应为 2，不足 2 时 `longitude`/`latitude` getter 返回 null。
@@ -38,6 +55,16 @@ class LocationRecord {
     required this.topic,
     required this.categories,
     required this.coordinates,
+    this.period,
+    this.historicalEvent,
+    this.relatedLiterature,
+    this.literatureSource,
+    this.researchNotes,
+    this.heritageGrade,
+    this.themes = const [],
+    this.coordinateNote,
+    this.photos = const [],
+    this.isCoreSite = false,
   });
 
   factory LocationRecord.fromMap(Map<String, dynamic> map) {
@@ -86,6 +113,30 @@ class LocationRecord {
       topic: map['Topic']?.toString() ?? map['topic']?.toString(),
       categories: categories,
       coordinates: coordinates,
+      period: map['period']?.toString(),
+      historicalEvent: map['historical_event']?.toString(),
+      relatedLiterature: map['related_literature']?.toString(),
+      literatureSource: map['literature_source']?.toString(),
+      researchNotes: map['research_notes']?.toString(),
+      heritageGrade: HeritageGrade.parse(map['heritage_grade']),
+      themes: map['themes'] is List
+          ? (map['themes'] as List)
+                .map((value) => value.toString())
+                .toList(growable: false)
+          : const [],
+      coordinateNote: map['coordinate_note']?.toString(),
+      photos: map['photos'] is List
+          ? (map['photos'] as List)
+                .whereType<Map>()
+                .map(
+                  (photo) => photo.map(
+                    (key, value) =>
+                        MapEntry(key.toString(), value?.toString() ?? ''),
+                  ),
+                )
+                .toList(growable: false)
+          : const [],
+      isCoreSite: map['is_core_site'] == true,
     );
   }
 
@@ -103,6 +154,16 @@ class LocationRecord {
       'Topic': topic,
       'categories': categories,
       'coordinates': coordinates,
+      if (period != null) 'period': period,
+      if (historicalEvent != null) 'historical_event': historicalEvent,
+      if (relatedLiterature != null) 'related_literature': relatedLiterature,
+      if (literatureSource != null) 'literature_source': literatureSource,
+      if (researchNotes != null) 'research_notes': researchNotes,
+      if (heritageGrade != null) 'heritage_grade': heritageGrade!.label,
+      if (themes.isNotEmpty) 'themes': themes,
+      if (coordinateNote != null) 'coordinate_note': coordinateNote,
+      if (photos.isNotEmpty) 'photos': photos,
+      if (isCoreSite) 'is_core_site': isCoreSite,
     };
   }
 
@@ -121,10 +182,24 @@ class LocationRecord {
           other.isArEnabled == isArEnabled &&
           other.topic == topic &&
           listEquals(other.categories, categories) &&
-          listEquals(other.coordinates, coordinates);
+          listEquals(other.coordinates, coordinates) &&
+          other.period == period &&
+          other.historicalEvent == historicalEvent &&
+          other.relatedLiterature == relatedLiterature &&
+          other.literatureSource == literatureSource &&
+          other.researchNotes == researchNotes &&
+          other.heritageGrade == heritageGrade &&
+          other.coordinateNote == coordinateNote &&
+          other.isCoreSite == isCoreSite &&
+          listEquals(other.themes, themes) &&
+          photos.length == other.photos.length &&
+          List.generate(
+            photos.length,
+            (index) => mapEquals(photos[index], other.photos[index]),
+          ).every((equal) => equal);
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     nameModern,
     nameAncient,
@@ -137,7 +212,23 @@ class LocationRecord {
     topic,
     Object.hashAll(categories),
     Object.hashAll(coordinates),
-  );
+    period,
+    historicalEvent,
+    relatedLiterature,
+    literatureSource,
+    researchNotes,
+    heritageGrade,
+    coordinateNote,
+    isCoreSite,
+    Object.hashAll(themes),
+    Object.hashAll(
+      photos.map(
+        (photo) => Object.hashAllUnordered(
+          photo.entries.map((entry) => Object.hash(entry.key, entry.value)),
+        ),
+      ),
+    ),
+  ]);
 
   LocationRecord copyWith({
     int? id,
@@ -152,6 +243,16 @@ class LocationRecord {
     String? topic,
     List<String>? categories,
     List<double>? coordinates,
+    String? period,
+    String? historicalEvent,
+    String? relatedLiterature,
+    String? literatureSource,
+    String? researchNotes,
+    HeritageGrade? heritageGrade,
+    List<String>? themes,
+    String? coordinateNote,
+    List<Map<String, String>>? photos,
+    bool? isCoreSite,
   }) => LocationRecord(
     id: id ?? this.id,
     nameModern: nameModern ?? this.nameModern,
@@ -166,6 +267,16 @@ class LocationRecord {
     topic: topic ?? this.topic,
     categories: categories ?? this.categories,
     coordinates: coordinates ?? this.coordinates,
+    period: period ?? this.period,
+    historicalEvent: historicalEvent ?? this.historicalEvent,
+    relatedLiterature: relatedLiterature ?? this.relatedLiterature,
+    literatureSource: literatureSource ?? this.literatureSource,
+    researchNotes: researchNotes ?? this.researchNotes,
+    heritageGrade: heritageGrade ?? this.heritageGrade,
+    themes: themes ?? this.themes,
+    coordinateNote: coordinateNote ?? this.coordinateNote,
+    photos: photos ?? this.photos,
+    isCoreSite: isCoreSite ?? this.isCoreSite,
   );
 
   @override

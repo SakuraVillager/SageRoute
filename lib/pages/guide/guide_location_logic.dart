@@ -337,8 +337,9 @@ Future<void> _fitAllLocationsOnMap(
 
   try {
     if (assets.locationBounds != null) {
+      final camera = _catalogCamera(state.context, assets);
       await state._mapController!.moveCamera(
-        MapCameraUpdate.newLatLngBounds(assets.locationBounds!, 120),
+        MapCameraUpdate.newLatLngZoom(camera.target, camera.zoom),
         animated: false,
       );
       state._hasAdjustedInitialViewport = true;
@@ -355,4 +356,46 @@ Future<void> _fitAllLocationsOnMap(
   } catch (_) {
     // 使用默认视角兜底，不中断页面展示。
   }
+}
+
+MapCameraPosition _catalogCamera(
+  BuildContext context,
+  _GuideMapAssets? assets,
+) {
+  final bounds = assets?.locationBounds;
+  if (bounds == null) {
+    return MapCameraPosition(
+      target: assets?.focusPoint ?? const MapCoordinate(30.25, 120.14),
+    );
+  }
+  final center = MapCoordinate(
+    (bounds.southwest.latitude + bounds.northeast.latitude) / 2,
+    (bounds.southwest.longitude + bounds.northeast.longitude) / 2,
+  );
+  // Keep the compact map useful: fit both geographic spans with an
+  // explicit center, avoiding SDK-dependent setBounds padding behavior.
+  final size = MediaQuery.sizeOf(context);
+  final desktop = kIsWeb && size.width >= 1024;
+  final width = desktop ? size.width - 380 : size.width;
+  final height = desktop ? size.height - 100 : 220.0;
+  final lonSpan = (bounds.northeast.longitude - bounds.southwest.longitude)
+      .abs();
+  final latSpan = (bounds.northeast.latitude - bounds.southwest.latitude).abs();
+  final lonZoom =
+      math.log(
+        (width - 64).clamp(100, double.infinity) * 360 / (256 * lonSpan),
+      ) /
+      math.ln2;
+  final latZoom =
+      math.log(
+        (height - 64).clamp(100, double.infinity) *
+            360 *
+            math.cos(center.latitude * math.pi / 180) /
+            (256 * latSpan),
+      ) /
+      math.ln2;
+  return MapCameraPosition(
+    target: center,
+    zoom: math.min(lonZoom, latZoom).clamp(3, 15),
+  );
 }

@@ -1,0 +1,1879 @@
+[
+  {
+    "query": "杭州 苏堤",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 975869980,
+          "osm_key": "highway",
+          "osm_value": "pedestrian",
+          "type": "street",
+          "name": "苏堤",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN",
+          "extent": [
+            120.1310747,
+            30.2533656,
+            120.1312361,
+            30.2528974
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1311554,
+            30.2531315
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 30072148,
+          "osm_key": "highway",
+          "osm_value": "pedestrian",
+          "type": "street",
+          "name": "苏堤",
+          "locality": "汪庄",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN",
+          "extent": [
+            120.1387376,
+            30.2328327,
+            120.1397001,
+            30.2309416
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1392299,
+            30.2318927
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4427429072,
+          "osm_key": "information",
+          "osm_value": "map",
+          "type": "house",
+          "name": "苏堤",
+          "street": "苏堤",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1312293,
+            30.2524482
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 六一泉",
+    "features": []
+  },
+  {
+    "query": "杭州 望湖楼",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 706867359,
+          "osm_key": "building",
+          "osm_value": "yes",
+          "type": "house",
+          "name": "望湖楼",
+          "street": "石函路",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310006",
+          "countrycode": "CN",
+          "extent": [
+            120.1489222,
+            30.2623774,
+            120.1491343,
+            30.2622291
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1490279,
+            30.2623044
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 灵隐寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 195189679,
+          "osm_key": "shop",
+          "osm_value": "ticket",
+          "type": "house",
+          "name": "灵隐寺",
+          "street": "北高峰登山道",
+          "locality": "灵隐",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310013",
+          "countrycode": "CN",
+          "extent": [
+            120.0975308,
+            30.2424885,
+            120.0977314,
+            30.2423138
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0976311,
+            30.2424012
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 1218588822,
+          "osm_key": "amenity",
+          "osm_value": "place_of_worship",
+          "type": "house",
+          "housenumber": "1",
+          "name": "灵隐寺",
+          "street": "法云弄",
+          "locality": "灵隐",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310013",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0967987,
+            30.2427953
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 2056634985,
+          "osm_key": "information",
+          "osm_value": "map",
+          "type": "house",
+          "name": "灵隐寺",
+          "street": "北高峰登山道",
+          "locality": "灵隐",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310013",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0970903,
+            30.2429172
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 龙井寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5604066532,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "龙井寺",
+          "street": "龙井路",
+          "locality": "外鸡笼山",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1077205,
+            30.2244969
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 虎跑泉",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4676431394,
+          "osm_key": "tourism",
+          "osm_value": "attraction",
+          "type": "house",
+          "name": "虎跑梦泉",
+          "street": "虎跑路",
+          "locality": "马儿山",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1300914,
+            30.2117722
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4943673067,
+          "osm_key": "natural",
+          "osm_value": "peak",
+          "type": "other",
+          "name": "虎跑山",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1268163,
+            30.2098872
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1366658397,
+          "osm_key": "highway",
+          "osm_value": "secondary",
+          "type": "street",
+          "name": "虎跑路",
+          "locality": "四眼井",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN",
+          "extent": [
+            120.1310514,
+            30.2174368,
+            120.1311008,
+            30.2168651
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1310802,
+            30.2171513
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 冷泉亭",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 676305986,
+          "osm_key": "waterway",
+          "osm_value": "stream",
+          "type": "other",
+          "name": "冷泉溪",
+          "locality": "灵隐",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310013",
+          "countrycode": "CN",
+          "extent": [
+            120.0943051,
+            30.2424887,
+            120.099408,
+            30.2400406
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0965864,
+            30.2417445
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 9902522452,
+          "osm_key": "place",
+          "osm_value": "hamlet",
+          "type": "locality",
+          "name": "冷泉坝",
+          "district": "仁和街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "311107",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.139871,
+            30.4724422
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 13069323720,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "冷泉坝",
+          "street": "五福路",
+          "locality": "冷泉坝",
+          "district": "仁和街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "311107",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1367158,
+            30.4744338
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 大麦岭",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 12730744387,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "大麦岭",
+          "street": "三台山路",
+          "locality": "筲箕湾",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.123868,
+            30.2352826
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 石屋洞",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 13325549759,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "石屋洞",
+          "street": "满觉陇路",
+          "locality": "杨家山",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1257022,
+            30.2216953
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "query": "杭州 水乐洞",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5604066549,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "水乐洞",
+          "street": "满觉陇路",
+          "locality": "杨家山",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1185496,
+            30.2205006
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 658996791,
+          "osm_key": "natural",
+          "osm_value": "cave_entrance",
+          "type": "house",
+          "name": "水乐洞",
+          "street": "满觉陇路",
+          "locality": "杨家山",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1167361,
+            30.2201745
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 1,
+    "query": "杭州 凤凰山",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4944239421,
+          "osm_key": "natural",
+          "osm_value": "peak",
+          "type": "other",
+          "name": "凤凰山",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.154656,
+            30.2238036
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 10284785359,
+          "osm_key": "natural",
+          "osm_value": "peak",
+          "type": "other",
+          "name": "凤凰山",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310025",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.4053947,
+            30.1711828
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 12627942813,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "凤凰山",
+          "street": "宋城路",
+          "district": "南星街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1617086,
+            30.2233963
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 3,
+    "query": "杭州 相国井",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5034020872,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "相国井",
+          "street": "解放路",
+          "locality": "岳王路社区",
+          "district": "湖滨街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1609781,
+            30.2526675
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 4,
+    "query": "杭州 众安桥",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5628144960,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "众安桥",
+          "street": "庆春路",
+          "locality": "岳王路社区",
+          "district": "湖滨街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310003",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1655954,
+            30.2603476
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 5,
+    "query": "杭州 仙林苑",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 579074523,
+          "osm_key": "highway",
+          "osm_value": "footway",
+          "type": "street",
+          "name": "仙林桥",
+          "locality": "长庆街道",
+          "district": "长庆街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310003",
+          "countrycode": "CN",
+          "extent": [
+            120.1672861,
+            30.2628016,
+            120.1673934,
+            30.2628009
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1673398,
+            30.2628013
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5502521687,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "仙林桥",
+          "street": "长宁街",
+          "locality": "长庆街道",
+          "district": "长庆街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310003",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1674216,
+            30.2629854
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 6,
+    "query": "杭州 灯芯巷",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 331631591,
+          "osm_key": "highway",
+          "osm_value": "service",
+          "type": "street",
+          "name": "灯芯巷",
+          "locality": "皇亲苑社区",
+          "district": "天水街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310006",
+          "countrycode": "CN",
+          "extent": [
+            120.1575054,
+            30.2685171,
+            120.1588105,
+            30.2668944
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.157707,
+            30.2672469
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 7,
+    "query": "杭州 梵天寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 954128738,
+          "osm_key": "landuse",
+          "osm_value": "religious",
+          "type": "other",
+          "name": "梵天寺",
+          "locality": "双范东村",
+          "district": "南苑街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.3150122,
+            30.3652432,
+            120.3157057,
+            30.364624
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.3153581,
+            30.3649355
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 8,
+    "query": "杭州 孔庙",
+    "features": []
+  },
+  {
+    "site_id": 9,
+    "query": "杭州 圣果寺",
+    "features": []
+  },
+  {
+    "site_id": 11,
+    "query": "杭州 韬光寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1104396359,
+          "osm_key": "amenity",
+          "osm_value": "place_of_worship",
+          "type": "house",
+          "name": "韬光寺",
+          "street": "韬光寺路",
+          "locality": "灵隐",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310013",
+          "countrycode": "CN",
+          "extent": [
+            120.0909257,
+            30.2453722,
+            120.0920465,
+            30.2446031
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0914905,
+            30.2450557
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 13,
+    "query": "杭州 孤山",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 9035381272,
+          "osm_key": "place",
+          "osm_value": "island",
+          "type": "other",
+          "name": "孤山",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1377806,
+            30.2541939
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 14,
+    "query": "杭州 六一泉",
+    "features": []
+  },
+  {
+    "site_id": 15,
+    "query": "杭州 智果寺",
+    "features": []
+  },
+  {
+    "site_id": 23,
+    "query": "杭州 法喜寺",
+    "features": []
+  },
+  {
+    "site_id": 26,
+    "query": "杭州 西湖",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "R",
+          "osm_id": 2308774,
+          "osm_key": "water",
+          "osm_value": "lake",
+          "type": "other",
+          "name": "西湖",
+          "street": "苏堤",
+          "district": "西湖区",
+          "city": "杭州市",
+          "state": "ZJ",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.1189926,
+            30.2626789,
+            120.1579072,
+            30.2292786
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1431317,
+            30.2459837
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "R",
+          "osm_id": 4591410,
+          "osm_key": "place",
+          "osm_value": "city",
+          "type": "district",
+          "name": "西湖区",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extra": {
+            "admin_level": "6"
+          },
+          "extent": [
+            119.9931817,
+            30.357607,
+            120.1767994,
+            30.0777045
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1256628,
+            30.2616958
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1086156225,
+          "osm_key": "landuse",
+          "osm_value": "industrial",
+          "type": "locality",
+          "name": "嘉德威（杭州）生物科技有限公司",
+          "district": "转塘街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.0763057,
+            30.135259,
+            120.0774307,
+            30.1340625
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0768757,
+            30.1346136
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 29,
+    "query": "杭州 於潜",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 1750036268,
+          "osm_key": "highway",
+          "osm_value": "motorway_junction",
+          "type": "house",
+          "name": "於潜",
+          "street": "杭徽高速",
+          "district": "於潜镇",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            119.3950978,
+            30.1798951
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 30,
+    "query": "杭州 普照寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 367102355,
+          "osm_key": "highway",
+          "osm_value": "residential",
+          "type": "street",
+          "name": "普照巷",
+          "locality": "普福社区",
+          "district": "彭埠街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310017",
+          "countrycode": "CN",
+          "extent": [
+            120.2391246,
+            30.3113183,
+            120.2391289,
+            30.3088055
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2391268,
+            30.3100619
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 12709198863,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "普照巷",
+          "street": "普照巷",
+          "locality": "普福社区",
+          "district": "彭埠街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310017",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2392352,
+            30.310375
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 31,
+    "query": "杭州 新登",
+    "features": []
+  },
+  {
+    "site_id": 32,
+    "query": "杭州 风水洞",
+    "features": []
+  },
+  {
+    "site_id": 33,
+    "query": "杭州 佛日禅寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1172935164,
+          "osm_key": "landuse",
+          "osm_value": "religious",
+          "type": "other",
+          "name": "佛日寺",
+          "locality": "星桥街道",
+          "district": "星桥街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.2338719,
+            30.3939946,
+            120.2346707,
+            30.3933025
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2342893,
+            30.3935837
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 34,
+    "query": "杭州 临平山",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 2422452617,
+          "osm_key": "natural",
+          "osm_value": "peak",
+          "type": "other",
+          "name": "临平山",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2767835,
+            30.4175137
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 35,
+    "query": "杭州 安平泉",
+    "features": []
+  },
+  {
+    "site_id": 36,
+    "query": "杭州 西兴",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 970553071,
+          "osm_key": "building",
+          "osm_value": "train_station",
+          "type": "house",
+          "name": "西兴",
+          "street": "滨安路",
+          "locality": "官河社区",
+          "district": "西兴街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310052",
+          "countrycode": "CN",
+          "extent": [
+            120.2154678,
+            30.1903197,
+            120.2170281,
+            30.1892199
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2162351,
+            30.1897701
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 9446435261,
+          "osm_key": "railway",
+          "osm_value": "station",
+          "type": "house",
+          "name": "西兴",
+          "street": "滨安路",
+          "locality": "西兴社区",
+          "district": "西兴街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310052",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2161808,
+            30.1898083
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 2933008085,
+          "osm_key": "railway",
+          "osm_value": "stop",
+          "type": "house",
+          "name": "西兴",
+          "street": "滨安路",
+          "locality": "西兴社区",
+          "district": "西兴街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310052",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2161408,
+            30.1897634
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 7,
+    "query": "梵天寺经幢",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 11542293992,
+          "osm_key": "tourism",
+          "osm_value": "artwork",
+          "type": "house",
+          "name": "梵天寺经幢",
+          "street": "梵天寺路",
+          "locality": "风铃45创业园",
+          "district": "南星街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1625681,
+            30.2200264
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 8,
+    "query": "杭州孔庙",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1034363571,
+          "osm_key": "amenity",
+          "osm_value": "place_of_worship",
+          "type": "house",
+          "name": "杭州孔庙",
+          "street": "府学巷",
+          "locality": "劳动路社区",
+          "district": "清波街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN",
+          "extent": [
+            120.1566888,
+            30.2447555,
+            120.1577376,
+            30.2434984
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1572133,
+            30.2442113
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 9,
+    "query": "圣果寺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1107037587,
+          "osm_key": "historic",
+          "osm_value": "ruins",
+          "type": "house",
+          "name": "圣果寺遗址",
+          "street": "凤凰山登山道（万松岭西-玉皇山）",
+          "district": "南星街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310002",
+          "countrycode": "CN",
+          "extent": [
+            120.1535374,
+            30.2228723,
+            120.1544739,
+            30.2216415
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1538332,
+            30.2222498
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 14,
+    "query": "中山公园 孤山",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4409662989,
+          "osm_key": "tourism",
+          "osm_value": "attraction",
+          "type": "house",
+          "name": "中山公园",
+          "street": "孤山后山路",
+          "locality": "白沙泉",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.13591,
+            30.253632
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 15,
+    "query": "栖霞岭",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 976356577,
+          "osm_key": "natural",
+          "osm_value": "ridge",
+          "type": "other",
+          "name": "栖霞岭",
+          "locality": "白沙泉",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN",
+          "extent": [
+            120.1301849,
+            30.2647989,
+            120.1329452,
+            30.2599557
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1314194,
+            30.2624081
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 220971923,
+          "osm_key": "highway",
+          "osm_value": "unclassified",
+          "type": "street",
+          "name": "栖霞岭路",
+          "locality": "白沙泉",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310007",
+          "countrycode": "CN",
+          "extent": [
+            120.1287585,
+            30.256499,
+            120.130493,
+            30.2542129
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.1295564,
+            30.255391
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 817478211,
+          "osm_key": "amenity",
+          "osm_value": "community_centre",
+          "type": "house",
+          "name": "栖霞岭社区",
+          "street": "宝石山下一弄",
+          "district": "北山街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310006",
+          "countrycode": "CN",
+          "extent": [
+            120.1444228,
+            30.2624832,
+            120.1445951,
+            30.2623958
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.144509,
+            30.2624395
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 18,
+    "query": "灵隐 冷泉",
+    "features": []
+  },
+  {
+    "site_id": 23,
+    "query": "上天竺",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 8105815155,
+          "osm_key": "place",
+          "osm_value": "hamlet",
+          "type": "locality",
+          "name": "上天竺",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.0920875,
+            30.2289353
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 12627942840,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "上天竺",
+          "street": "梅灵北路",
+          "locality": "上天竺",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.094251,
+            30.2310534
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1104396360,
+          "osm_key": "amenity",
+          "osm_value": "place_of_worship",
+          "type": "house",
+          "name": "上天竺法喜讲寺",
+          "street": "梅灵北路",
+          "locality": "上天竺",
+          "district": "西湖街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310008",
+          "countrycode": "CN",
+          "extent": [
+            120.0874586,
+            30.2318321,
+            120.0914193,
+            30.2278212
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.089317,
+            30.2301139
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 30,
+    "query": "富阳 虎山",
+    "features": []
+  },
+  {
+    "site_id": 31,
+    "query": "新登镇",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "R",
+          "osm_id": 20151537,
+          "osm_key": "place",
+          "osm_value": "town",
+          "type": "district",
+          "name": "新登镇",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extra": {
+            "admin_level": "8"
+          },
+          "extent": [
+            119.643259,
+            30.1225574,
+            119.8185038,
+            29.9021956
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            119.7287913,
+            29.9727517
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 12976955415,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "新登镇社区卫生服务中心",
+          "street": "安龙线",
+          "locality": "庄泽",
+          "district": "新登镇",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            119.7387871,
+            29.988746
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 13004692733,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "新登镇中",
+          "street": "新淳线",
+          "district": "新登镇",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            119.7264934,
+            29.9930232
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 32,
+    "query": "风水洞",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 5506034877,
+          "osm_key": "place",
+          "osm_value": "town",
+          "type": "district",
+          "name": "风水镇",
+          "city": "遵义市",
+          "state": "贵州省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            106.5178932,
+            28.0822455
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4798589635,
+          "osm_key": "place",
+          "osm_value": "locality",
+          "type": "locality",
+          "name": "风水地",
+          "district": "华埠镇",
+          "city": "衢州市",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            118.4867709,
+            29.0611915
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 14191177099,
+          "osm_key": "place",
+          "osm_value": "village",
+          "type": "city",
+          "name": "风水李",
+          "county": "太康县",
+          "state": "河南省",
+          "country": "中国",
+          "countrycode": "CN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            115.0564373,
+            34.0219099
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 35,
+    "query": "安隐寺",
+    "features": []
+  },
+  {
+    "site_id": 36,
+    "query": "西兴古镇",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1120937076,
+          "osm_key": "tourism",
+          "osm_value": "theme_park",
+          "type": "house",
+          "name": "西兴古镇",
+          "street": "西兴路",
+          "locality": "滨和社区",
+          "district": "西兴街道",
+          "city": "杭州市",
+          "state": "浙江省",
+          "country": "中国",
+          "postcode": "310052",
+          "countrycode": "CN",
+          "extent": [
+            120.2162821,
+            30.1939845,
+            120.2273876,
+            30.1886074
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.2218025,
+            30.1913569
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1303203868,
+          "osm_key": "leisure",
+          "osm_value": "park",
+          "type": "other",
+          "housenumber": "258号",
+          "name": "西塘古镇",
+          "street": "南苑路",
+          "city": "嘉善县",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.8822151,
+            30.9517569,
+            120.897404,
+            30.9403723
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.8842345,
+            30.9460627
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "W",
+          "osm_id": 1303203868,
+          "osm_key": "tourism",
+          "osm_value": "theme_park",
+          "type": "house",
+          "housenumber": "258号",
+          "name": "西塘古镇",
+          "street": "南苑路",
+          "city": "嘉善县",
+          "state": "浙江省",
+          "country": "中国",
+          "countrycode": "CN",
+          "extent": [
+            120.8822151,
+            30.9517569,
+            120.897404,
+            30.9403723
+          ]
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            120.8842345,
+            30.9460627
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "site_id": 37,
+    "query": "富阳 桐庐 石门",
+    "features": []
+  },
+  {
+    "site_id": 10,
+    "query": "九溪 钱塘江",
+    "features": []
+  }
+]

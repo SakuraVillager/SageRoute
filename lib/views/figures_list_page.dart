@@ -21,6 +21,7 @@ import '../models/figure.dart';
 import '../models/topic_record.dart';
 import '../theme/color_schemes.dart';
 import '../utils/featured_card_metrics.dart';
+import '../utils/featured_image_palette.dart';
 import 'article_detail_page.dart';
 import 'figure_detail_page.dart';
 

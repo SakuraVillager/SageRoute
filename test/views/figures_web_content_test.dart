@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui' show PointerDeviceKind;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -162,6 +163,83 @@ Future<void> _show(WidgetTester tester, Finder finder) async {
 }
 
 void main() {
+  testWidgets('featured background follows the displayed image palette', (
+    tester,
+  ) async {
+    await _size(tester, const Size(1440, 900));
+    final media = <ArticleMedia>[];
+    for (final entry in [(1, Colors.red), (2, Colors.blue)]) {
+      final url = 'https://example.test/featured-${entry.$1}.png';
+      final image = await tester.runAsync(() async {
+        final recorder = ui.PictureRecorder();
+        Canvas(recorder).drawRect(
+          const Rect.fromLTWH(0, 0, 24, 24),
+          Paint()..color = entry.$2,
+        );
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(24, 24);
+        picture.dispose();
+        return image;
+      });
+      PaintingBinding.instance.imageCache.putIfAbsent(
+        NetworkImage(url),
+        () => OneFrameImageStreamCompleter(
+          Future.value(ImageInfo(image: image!)),
+        ),
+      );
+      media.add(
+        ArticleMedia(
+          article: ArticleRecord(
+            id: entry.$1,
+            createdAt: null,
+            topic: '山水',
+            title: '封面主题 ${entry.$1}',
+            summary: '按封面颜色切换背景',
+            content: '',
+            coverImageUrl: url,
+          ),
+          images: const [],
+        ),
+      );
+    }
+    addTearDown(() {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    });
+    Color background() => tester
+        .widget<ColoredBox>(
+          find
+              .descendant(
+                of: find.byKey(const Key('web-featured-surface')),
+                matching: find.byType(ColoredBox),
+              )
+              .first,
+        )
+        .color;
+    Future<void> expectHue(double hue) async {
+      for (var attempt = 0; attempt < 20; attempt++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 10)),
+        );
+        await tester.pump();
+        if ((HSLColor.fromColor(background()).hue - hue).abs() < 2) return;
+      }
+      expect(HSLColor.fromColor(background()).hue, closeTo(hue, 2));
+    }
+
+    await tester.pumpWidget(_Harness(articles: media));
+    await expectHue(HSLColor.fromColor(Colors.red).hue);
+    await tester.tap(find.byTooltip('下一篇精选'));
+    await expectHue(HSLColor.fromColor(Colors.blue).hue);
+    await tester.tap(find.byTooltip('上一篇精选'));
+    await tester.pumpAndSettle();
+    expect(
+      HSLColor.fromColor(background()).hue,
+      closeTo(HSLColor.fromColor(Colors.red).hue, 2),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   for (final size in [
     const Size(1280, 800),
     const Size(1440, 900),
@@ -184,8 +262,41 @@ void main() {
       expect(find.byKey(const Key('web-article-7')), findsNothing);
       expect(
         tester.getSize(find.byKey(const Key('web-featured-frame'))).height,
-        closeTo((size.height * .52).clamp(360, 520), .1),
+        closeTo((size.height * .65).clamp(400, 680), .1),
       );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('figures-web-scroll')),
+          matching: find.text('人物与故事'),
+        ),
+        findsNothing,
+      );
+      expect(
+        tester.getTopLeft(find.byKey(const Key('web-featured-frame'))).dy,
+        closeTo(80, .1),
+      );
+      final frame = tester.getRect(find.byKey(const Key('web-featured-frame')));
+      final progress = tester.getRect(
+        find.byKey(const Key('web-featured-progress')),
+      );
+      expect(progress.top, closeTo(frame.bottom, .1));
+      expect(progress.left, closeTo(frame.left, .1));
+      expect(progress.width, closeTo(frame.width, .1));
+      final surface = tester.getRect(
+        find.byKey(const Key('web-featured-surface')),
+      );
+      expect(surface.left, closeTo(232, .1));
+      expect(surface.right, closeTo(size.width, .1));
+      expect(surface.left, lessThan(frame.left));
+      expect(frame.left - surface.left, 12);
+      expect(surface.right - frame.right, 12);
+      expect(surface.right, greaterThan(frame.right));
+      expect(surface.bottom, lessThan(rects[0].top));
+      expect(
+        tester.getSize(find.byKey(const Key('figures-web-header'))).height,
+        56,
+      );
+      expect(find.byKey(const Key('web-featured-poster-1')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }
@@ -245,7 +356,7 @@ void main() {
   );
 
   testWidgets(
-    'brand, search, articles, recommended topics and figures dispatch actions',
+    'sidebar brand, articles, recommended topics and figures dispatch actions',
     (tester) async {
       await _size(tester, const Size(1440, 900));
       var home = 0;
@@ -262,9 +373,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('figures-brand-home')));
       await tester.tap(find.byKey(const Key('web-brand-home')));
-      await tester.tap(find.byTooltip('搜索人物、文章、主题'));
+      await tester.tap(find.byKey(const Key('figures-brand-home')));
+      await tester.tap(find.byKey(const Key('figures-web-search')));
       expect(home, 2);
       expect(searches, 1);
       await tester.tap(find.byKey(const Key('web-featured-1')));

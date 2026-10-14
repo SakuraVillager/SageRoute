@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Cool neutral surfaces paired with the warm #96615A brand color.
 class AppColors {
+  // Evidence levels require green/yellow/red independently of the brand palette.
+  static const Color heritageConfirmed = Color(0xFF237A4B);
+  static const Color heritageSuspected = Color(0xFFB88309);
+  static const Color heritageLost = Color(0xFFBA4242);
   AppColors._();
 
   static const Color black = Color(0xFF000000);

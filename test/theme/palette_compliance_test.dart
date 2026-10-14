@@ -25,6 +25,8 @@ void main() {
       'FFFFFF',
     };
     const allowedNamedColors = <String>{'black', 'white', 'transparent'};
+    // Requested evidence colors may only be defined as shared theme tokens.
+    const heritageRgb = {'237A4B', 'B88309', 'BA4242'};
     final violations = <String>[];
     final colorPattern = RegExp(r'Color\(0x[0-9A-Fa-f]{2}([0-9A-Fa-f]{6})\)');
     final namedPattern = RegExp(r'\bColors\.([A-Za-z]+)(?:\.shade\d+)?');
@@ -34,7 +36,12 @@ void main() {
       final source = entity.readAsStringSync();
       for (final match in colorPattern.allMatches(source)) {
         final rgb = match.group(1)!.toUpperCase();
-        if (!allowedRgb.contains(rgb)) {
+        final isHeritageToken =
+            entity.path
+                .replaceAll('\\', '/')
+                .endsWith('theme/color_schemes.dart') &&
+            heritageRgb.contains(rgb);
+        if (!allowedRgb.contains(rgb) && !isHeritageToken) {
           violations.add('${entity.path}: ${match.group(0)}');
         }
       }

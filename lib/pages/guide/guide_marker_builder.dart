@@ -138,50 +138,19 @@ Future<_GuideMapAssets> _loadAssets(
   _GuidePageState state, {
   required Color markerFillColor,
 }) async {
-  final locations = await state._locationRepository.fetchLocations();
-  final iconMap = await state._iconRepository.fetchIconMap();
-  final defaultMarkerIcon = await _buildScenicMarkerIcon(
-    state,
-    markerFillColor: markerFillColor,
-  );
+  final catalog = await state.widget.repository.fetchCatalog();
+  final locations = catalog.sites;
   final userLocationIcon = await _buildUserLocationIcon(state);
-
-  // 为每个类别 SVG 路径预构建对应的标记图标缓存。
-  final svgPathParser = SvgPathParser();
-  final Map<String, MapIcon> categoryIconCache = {};
-
-  // 收集所有需要构建图标的类别
-  final categoriesToBuild = <String>{};
-  for (final location in locations) {
-    if (location.categories.isNotEmpty) {
-      final cat = location.categories.first;
-      if (iconMap[cat] != null && iconMap[cat]!.isNotEmpty) {
-        categoriesToBuild.add(cat);
-      }
-    }
+  final gradeIcons = <HeritageGrade, MapIcon>{};
+  for (final grade in HeritageGrade.values) {
+    gradeIcons[grade] = await _buildCircleMarkerIcon(fillColor: grade.color);
   }
-
-  // 并行构建每个类别的图标
-  final entries = await Future.wait(
-    categoriesToBuild.map((category) async {
-      final icon = await _buildCategoryMarkerIcon(
-        state,
-        markerFillColor: markerFillColor,
-        svgPathData: iconMap[category]!,
-        svgPathParser: svgPathParser,
-      );
-      return MapEntry(category, icon);
-    }),
+  final ungradedIcon = await _buildCircleMarkerIcon(
+    fillColor: AppColors.sageMuted,
   );
-  categoryIconCache.addEntries(entries);
 
-  MapIcon getIconForLocation(LocationRecord location) {
-    final primaryCategory = location.categories.isNotEmpty
-        ? location.categories.first
-        : null;
-    if (primaryCategory == null) return defaultMarkerIcon;
-    return categoryIconCache[primaryCategory] ?? defaultMarkerIcon;
-  }
+  MapIcon getIconForLocation(LocationRecord location) =>
+      gradeIcons[location.heritageGrade] ?? ungradedIcon;
 
   double? minLatitude;
   double? maxLatitude;
@@ -189,7 +158,7 @@ Future<_GuideMapAssets> _loadAssets(
   double? maxLongitude;
 
   final markers = locations
-      .where((location) => location.coordinates.length >= 2)
+      .where((location) => location.hasValidCoordinates)
       .map<MapMarkerData>((location) {
         final longitude = location.coordinates[0];
         final latitude = location.coordinates[1];
@@ -207,14 +176,19 @@ Future<_GuideMapAssets> _loadAssets(
           maxLongitude = longitude;
         }
 
-        return MapMarkerData(
+        final marker = MapMarkerData(
           position: MapCoordinate(latitude, longitude),
           icon: getIconForLocation(location),
-          infoWindow: MapInfoWindow(title: location.nameModern),
+          infoWindow: MapInfoWindow(
+            title:
+                '${location.nameModern} · ${location.heritageGrade?.label ?? "未评级"}',
+          ),
           infoWindowEnable: false,
           anchor: const ui.Offset(0.5, 0.5),
           onTap: (_) => state._showLocationDetails(location),
         );
+        marker.setIdForCopy('dongpo-${location.id}');
+        return marker;
       })
       .toSet();
 
@@ -243,31 +217,9 @@ Future<_GuideMapAssets> _loadAssets(
     userLocationIcon: userLocationIcon,
     focusPoint: focusPoint,
     locationBounds: locationBounds,
+    sites: catalog.sites,
+    isLocalCopy: catalog.isLocalCopy,
   );
-}
-
-Future<MapIcon> _buildScenicMarkerIcon(
-  _GuidePageState state, {
-  required Color markerFillColor,
-}) async {
-  return _buildCircleMarkerIcon(fillColor: markerFillColor);
-}
-
-/// 构建带类别 SVG 图标的标记圆点。
-/// 在白色外圈和主题色内圈之上绘制白色 SVG 图标。
-Future<MapIcon> _buildCategoryMarkerIcon(
-  _GuidePageState state, {
-  required Color markerFillColor,
-  required String svgPathData,
-  required SvgPathParser svgPathParser,
-}) async {
-  ui.Path? svgPath;
-  try {
-    svgPath = svgPathParser.parse(svgPathData);
-  } catch (_) {
-    // SVG parse failure: return plain circle marker
-  }
-  return _buildCircleMarkerIcon(fillColor: markerFillColor, iconPath: svgPath);
 }
 
 Future<MapIcon> _buildUserLocationIcon(_GuidePageState state) async {

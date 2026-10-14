@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart' show SemanticsHandle;
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../auth/login_page.dart';
+import '../pages/dongpo_catalog_page.dart';
 import '../auth/register_page.dart';
 import '../auth/forgot_password_page.dart';
 import '../auth/reset_password_page.dart';
@@ -118,6 +119,7 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
     errorBuilder: (context, state) => const _UnavailablePage(message: '页面不存在'),
     routes: [
       GoRoute(path: '/', builder: (_, _) => const SizedBox.shrink()),
+      GoRoute(path: '/dongpo', builder: (_, _) => const DongpoCatalogPage()),
       GoRoute(
         path: '/welcome',
         builder: (context, _) {

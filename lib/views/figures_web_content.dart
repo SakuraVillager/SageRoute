@@ -54,138 +54,124 @@ class FiguresWebContent extends StatelessWidget {
       color: AppColors.white,
       child: SafeArea(
         child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
+          child: SizedBox(
+            width: double.infinity,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final inset = constraints.maxWidth >= 1000 ? 40.0 : 20.0;
                 return Column(
                   children: [
-                    Container(
-                      constraints: const BoxConstraints(minHeight: 72),
-                      padding: EdgeInsets.symmetric(horizontal: inset),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: AppColors.sageBorder),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
-                                key: const Key('figures-brand-home'),
-                                onPressed: onHome,
-                                child: const Text(
-                                  'Sage — Route',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.brandInk,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: '搜索人物、文章、主题',
-                            onPressed: onOpenSearch,
-                            icon: const Icon(Icons.search_outlined),
-                          ),
-                        ],
-                      ),
+                    _WebEditorialHeader(
+                      inset: inset,
+                      onHome: onHome,
+                      onSearch: onOpenSearch,
                     ),
                     Expanded(
                       child: SingleChildScrollView(
                         key: const Key('figures-web-scroll'),
-                        padding: EdgeInsets.fromLTRB(inset, 24, inset, 110),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              '人物与故事',
-                              style: TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.brandInk,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
                             if (articles.isNotEmpty)
                               _WebFeaturedCarousel(
                                 articles: articles,
                                 onOpen: onOpenArticle,
+                                inset: constraints.maxWidth >= 1000 ? 12 : 8,
                               ),
-                            const _WebSectionBreak(),
-                            _WebDirectory(
-                              title: '探索文章',
-                              prefix: 'topic',
-                              options: _unique([
-                                ...topics.map((item) => item.name),
-                                ...articles.map((item) => item.article.topic),
-                              ]),
-                              selected: selectedTopic,
-                              onChanged: onTopicChanged,
-                              emptyLabel: '这个主题下还没有推送文章',
-                              total: filteredArticles.length,
-                              expanded: showAllArticles,
-                              onExpand: onArticleExpansionChanged,
-                              expandLabel: '查看全部文章',
-                              children: [
-                                for (final item
-                                    in showAllArticles
-                                        ? filteredArticles
-                                        : filteredArticles.take(6))
-                                  _WebArticleCard(
-                                    key: Key('web-article-${item.article.id}'),
-                                    media: item,
-                                    onTap: () => onOpenArticle(item.article),
+                            Center(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 1200,
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    inset,
+                                    32,
+                                    inset,
+                                    110,
                                   ),
-                              ],
-                            ),
-                            if (topics.isNotEmpty) ...[
-                              const _WebSectionBreak(),
-                              const _WebSectionTitle('推荐主题'),
-                              const SizedBox(height: 24),
-                              _WebContentGrid(
-                                children: [
-                                  for (final topic in topics)
-                                    _WebTopicCard(
-                                      topic: topic,
-                                      media: _mediaForTopic(
-                                        articles,
-                                        topic.name,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      _WebDirectory(
+                                        title: '探索文章',
+                                        prefix: 'topic',
+                                        options: _unique([
+                                          ...topics.map((item) => item.name),
+                                          ...articles.map(
+                                            (item) => item.article.topic,
+                                          ),
+                                        ]),
+                                        selected: selectedTopic,
+                                        onChanged: onTopicChanged,
+                                        emptyLabel: '这个主题下还没有推送文章',
+                                        total: filteredArticles.length,
+                                        expanded: showAllArticles,
+                                        onExpand: onArticleExpansionChanged,
+                                        expandLabel: '查看全部文章',
+                                        children: [
+                                          for (final item
+                                              in showAllArticles
+                                                  ? filteredArticles
+                                                  : filteredArticles.take(6))
+                                            _WebArticleCard(
+                                              key: Key(
+                                                'web-article-${item.article.id}',
+                                              ),
+                                              media: item,
+                                              onTap: () =>
+                                                  onOpenArticle(item.article),
+                                            ),
+                                        ],
                                       ),
-                                      onOpen: onOpenArticle,
-                                    ),
-                                ],
-                              ),
-                            ],
-                            const _WebSectionBreak(),
-                            _WebDirectory(
-                              title: '人物目录',
-                              prefix: 'dynasty',
-                              options: _unique(
-                                figures.map((item) => item.dynasty),
-                              ),
-                              selected: selectedDynasty,
-                              onChanged: onDynastyChanged,
-                              emptyLabel: '这个朝代下还没有人物',
-                              total: filteredFigures.length,
-                              expanded: showAllFigures,
-                              onExpand: onFigureExpansionChanged,
-                              expandLabel: '查看全部人物',
-                              children: [
-                                for (final figure
-                                    in showAllFigures
-                                        ? filteredFigures
-                                        : filteredFigures.take(6))
-                                  _WebFigureCard(
-                                    figure: figure,
-                                    onTap: () => onOpenFigure(figure),
+                                      if (topics.isNotEmpty) ...[
+                                        const _WebSectionBreak(),
+                                        const _WebSectionTitle('推荐主题'),
+                                        const SizedBox(height: 24),
+                                        _WebContentGrid(
+                                          children: [
+                                            for (final topic in topics)
+                                              _WebTopicCard(
+                                                topic: topic,
+                                                media: _mediaForTopic(
+                                                  articles,
+                                                  topic.name,
+                                                ),
+                                                onOpen: onOpenArticle,
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                      const _WebSectionBreak(),
+                                      _WebDirectory(
+                                        title: '人物目录',
+                                        prefix: 'dynasty',
+                                        options: _unique(
+                                          figures.map((item) => item.dynasty),
+                                        ),
+                                        selected: selectedDynasty,
+                                        onChanged: onDynastyChanged,
+                                        emptyLabel: '这个朝代下还没有人物',
+                                        total: filteredFigures.length,
+                                        expanded: showAllFigures,
+                                        onExpand: onFigureExpansionChanged,
+                                        expandLabel: '查看全部人物',
+                                        children: [
+                                          for (final figure
+                                              in showAllFigures
+                                                  ? filteredFigures
+                                                  : filteredFigures.take(6))
+                                            _WebFigureCard(
+                                              figure: figure,
+                                              onTap: () => onOpenFigure(figure),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
-                              ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -200,6 +186,93 @@ class FiguresWebContent extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WebEditorialHeader extends StatelessWidget {
+  const _WebEditorialHeader({
+    required this.inset,
+    required this.onHome,
+    required this.onSearch,
+  });
+
+  final double inset;
+  final VoidCallback onHome;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('figures-web-header'),
+    constraints: const BoxConstraints(minHeight: 56),
+    padding: EdgeInsets.symmetric(horizontal: inset, vertical: 4),
+    decoration: const BoxDecoration(
+      border: Border(bottom: BorderSide(color: AppColors.sageBorder)),
+    ),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 150,
+          child: TextButton(
+            key: const Key('figures-brand-home'),
+            onPressed: onHome,
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            child: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Sage — Route',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -.6,
+                  color: AppColors.brandInk,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 280),
+              child: Tooltip(
+                message: '搜索人物、文章、主题',
+                child: InkWell(
+                  key: const Key('figures-web-search'),
+                  onTap: onSearch,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.brandInk),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '搜索',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.sageMuted,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.search, size: 20, color: AppColors.brandInk),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _WebSectionTitle extends StatelessWidget {
@@ -540,9 +613,14 @@ class _WebFigureCard extends StatelessWidget {
 }
 
 class _WebFeaturedCarousel extends StatefulWidget {
-  const _WebFeaturedCarousel({required this.articles, required this.onOpen});
+  const _WebFeaturedCarousel({
+    required this.articles,
+    required this.onOpen,
+    required this.inset,
+  });
   final List<ArticleMedia> articles;
   final Future<void> Function(ArticleRecord) onOpen;
+  final double inset;
   @override
   State<_WebFeaturedCarousel> createState() => _WebFeaturedCarouselState();
 }
@@ -561,6 +639,12 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
   bool _reduced = false;
   bool _visible = true;
   bool _foreground = true;
+  Color _background = AppColors.brandWash;
+  final Map<String, Color> _paletteCache = {};
+  ImageStream? _themeStream;
+  ImageStreamListener? _themeListener;
+  String? _themeUrl;
+  int _themeRequest = 0;
 
   bool get _canPlay =>
       widget.articles.length > 1 &&
@@ -597,6 +681,7 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
         TickerMode.valuesOf(context).enabled &&
         (ModalRoute.of(context)?.isCurrent ?? true);
     _syncPlayback();
+    _loadTheme();
   }
 
   @override
@@ -614,6 +699,68 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
         if (_pages.hasClients) _pages.jumpToPage(_physicalPage);
         _syncPlayback();
       });
+    }
+    _loadTheme();
+  }
+
+  void _detachThemeListener() {
+    if (_themeStream != null && _themeListener != null) {
+      _themeStream!.removeListener(_themeListener!);
+    }
+    _themeStream = null;
+    _themeListener = null;
+  }
+
+  void _loadTheme() {
+    final url = widget.articles[_index].urlFor(ArticleImageRole.featured);
+    if (_themeUrl == url) return;
+    _themeUrl = url;
+    final request = ++_themeRequest;
+    _detachThemeListener();
+    // Retain the outgoing color until the next palette is ready, avoiding a
+    // flash through the fallback surface between two loaded photographs.
+    if (_paletteCache.containsKey(url)) {
+      _background = _paletteCache[url]!;
+    } else if (url.isEmpty) {
+      _background = AppColors.brandWash;
+    }
+    if (url.isEmpty || _paletteCache.containsKey(url)) return;
+    _themeStream = NetworkImage(
+      url,
+    ).resolve(createLocalImageConfiguration(context));
+    _themeListener = ImageStreamListener(
+      (image, synchronousCall) {
+        final owned = image.clone();
+        // Detach after delivery: cached images may notify synchronously while
+        // addListener is still registering this listener.
+        scheduleMicrotask(() {
+          if (request == _themeRequest) _detachThemeListener();
+        });
+        unawaited(_sampleTheme(owned, url, request));
+      },
+      onError: (Object error, StackTrace? stack) {
+        _paletteCache[url] = AppColors.brandWash;
+        scheduleMicrotask(() {
+          if (mounted && request == _themeRequest) {
+            _detachThemeListener();
+            setState(() => _background = AppColors.brandWash);
+          }
+        });
+      },
+    );
+    _themeStream!.addListener(_themeListener!);
+  }
+
+  Future<void> _sampleTheme(ImageInfo owned, String url, int request) async {
+    try {
+      final color = await FeaturedImagePalette.backgroundFor(owned.image);
+      if (!mounted) return;
+      _paletteCache[url] = color;
+      if (request == _themeRequest) setState(() => _background = color);
+    } catch (_) {
+      // Image failures keep the readable brand surface.
+    } finally {
+      owned.dispose();
     }
   }
 
@@ -672,6 +819,7 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _detachThemeListener();
     _progress.dispose();
     _pages.dispose();
     super.dispose();
@@ -692,256 +840,397 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
         }
         return KeyEventResult.ignored;
       },
-      child: Column(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final narrow = constraints.maxWidth < 600;
-              final fontSize = narrow
-                  ? 26.0
-                  : constraints.maxWidth < 960
-                  ? 32.0
-                  : 40.0;
-              final scale = MediaQuery.textScalerOf(context);
-              // At large accessibility sizes grow the hero instead of clipping its text.
-              final textHeight =
-                  scale.scale(fontSize) * 2 * 1.25 +
-                  scale.scale(16) * 4 * 1.5 +
-                  scale.scale(13) * 2 +
-                  120;
-              final baseHeight = (MediaQuery.sizeOf(context).height * .52)
-                  .clamp(360.0, 520.0);
-              final height = textHeight > baseHeight ? textHeight : baseHeight;
-              return SizedBox(
-                key: const Key('web-featured-frame'),
-                height: height,
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    if (notification is ScrollStartNotification) {
-                      _progress.stop();
-                    } else if (notification is ScrollEndNotification) {
-                      _progress.reset();
-                      _syncPlayback();
-                    }
-                    return false;
-                  },
-                  child: PageView.builder(
-                    controller: _pages,
-                    physics: widget.articles.length == 1
-                        ? const NeverScrollableScrollPhysics()
-                        : null,
-                    onPageChanged: (page) {
-                      setState(() {
-                        _physicalPage = page;
-                        _index = page % widget.articles.length;
-                      });
-                      _progress.reset();
-                    },
-                    itemBuilder: (context, page) {
-                      final index = page % widget.articles.length;
-                      final media = widget.articles[index];
-                      return Semantics(
-                        label: '打开精选文章 ${media.article.title}',
-                        button: true,
-                        child: InkWell(
-                          key: Key('web-featured-${media.article.id}'),
-                          onTap: () => _open(media.article),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _ArticleImage(
-                                article: media.article,
-                                imageUrl: media.urlFor(
-                                  ArticleImageRole.featured,
-                                ),
-                                altText: media.altTextFor(
-                                  ArticleImageRole.featured,
-                                ),
-                              ),
-                              const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0x102D1D1B),
-                                      Color(0xED2D1D1B),
-                                    ],
-                                    stops: [.2, 1],
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                left: narrow ? 24 : 40,
-                                right: narrow ? 24 : 40,
-                                bottom: 32,
-                                child: Align(
-                                  alignment: Alignment.bottomLeft,
-                                  child: SizedBox(
-                                    width: narrow || scale.scale(16) > 24
-                                        ? constraints.maxWidth
-                                        : constraints.maxWidth * .6,
-                                    child: TweenAnimationBuilder<double>(
-                                      key: ValueKey(
-                                        'featured-text-$index-${_index == index}',
+      child: Container(
+        key: const Key('web-featured-surface'),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.sageBorder)),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: AnimatedSwitcher(
+                duration: _reduced
+                    ? Duration.zero
+                    : const Duration(milliseconds: 600),
+                switchInCurve: Curves.ease,
+                switchOutCurve: Curves.ease,
+                child: ColoredBox(
+                  key: ValueKey(_background),
+                  color: _background,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: _reduced
+                        ? Duration.zero
+                        : const Duration(milliseconds: 600),
+                    child: CustomPaint(
+                      key: ValueKey(_background),
+                      size: const Size(60, 30),
+                      painter: _FeaturedArchPainter(_background),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(widget.inset, 24, widget.inset, 12),
+              child: Column(
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 600;
+                      final fontSize = narrow
+                          ? 26.0
+                          : constraints.maxWidth < 960
+                          ? 32.0
+                          : 40.0;
+                      final scale = MediaQuery.textScalerOf(context);
+                      // At large accessibility sizes grow the hero instead of clipping its text.
+                      final textHeight =
+                          scale.scale(fontSize) * 2 * 1.25 +
+                          scale.scale(16) * 4 * 1.5 +
+                          scale.scale(13) * 2 +
+                          120;
+                      final baseHeight =
+                          (MediaQuery.sizeOf(context).height * .65).clamp(
+                            400.0,
+                            680.0,
+                          );
+                      final height = textHeight > baseHeight
+                          ? textHeight
+                          : baseHeight;
+                      return SizedBox(
+                        key: const Key('web-featured-frame'),
+                        height: height,
+                        child: NotificationListener<ScrollNotification>(
+                          onNotification: (notification) {
+                            if (notification is ScrollStartNotification) {
+                              _progress.stop();
+                            } else if (notification is ScrollEndNotification) {
+                              _progress.reset();
+                              _syncPlayback();
+                            }
+                            return false;
+                          },
+                          child: PageView.builder(
+                            controller: _pages,
+                            physics: widget.articles.length == 1
+                                ? const NeverScrollableScrollPhysics()
+                                : null,
+                            onPageChanged: (page) {
+                              setState(() {
+                                _physicalPage = page;
+                                _index = page % widget.articles.length;
+                                _loadTheme();
+                              });
+                              _progress.reset();
+                            },
+                            itemBuilder: (context, page) {
+                              final index = page % widget.articles.length;
+                              final media = widget.articles[index];
+                              return Semantics(
+                                label: '打开精选文章 ${media.article.title}',
+                                button: true,
+                                child: InkWell(
+                                  key: Key('web-featured-${media.article.id}'),
+                                  onTap: () => _open(media.article),
+                                  child: Stack(
+                                    fit: StackFit.expand,
+                                    children: [
+                                      _ArticleImage(
+                                        article: media.article,
+                                        imageUrl: media.urlFor(
+                                          ArticleImageRole.featured,
+                                        ),
+                                        altText: media.altTextFor(
+                                          ArticleImageRole.featured,
+                                        ),
                                       ),
-                                      tween: Tween(
-                                        begin: _reduced ? 1 : 0,
-                                        end: 1,
+                                      const DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0x102D1D1B),
+                                              Color(0xED2D1D1B),
+                                            ],
+                                            stops: [.2, 1],
+                                          ),
+                                        ),
                                       ),
-                                      duration: _reduced
-                                          ? Duration.zero
-                                          : const Duration(milliseconds: 300),
-                                      builder: (context, value, child) =>
-                                          Opacity(
-                                            opacity: value,
-                                            child: Transform.translate(
-                                              offset: Offset(
-                                                0,
-                                                (1 - value) * 12,
+                                      Positioned(
+                                        left: narrow ? 24 : 40,
+                                        right: narrow ? 24 : 40,
+                                        bottom: 32,
+                                        child: Align(
+                                          alignment: Alignment.bottomLeft,
+                                          child: SizedBox(
+                                            width:
+                                                narrow || scale.scale(16) > 24
+                                                ? constraints.maxWidth
+                                                : constraints.maxWidth * .6,
+                                            child: TweenAnimationBuilder<double>(
+                                              key: ValueKey(
+                                                'featured-text-$index-${_index == index}',
                                               ),
-                                              child: child,
+                                              tween: Tween(
+                                                begin: _reduced ? 1 : 0,
+                                                end: 1,
+                                              ),
+                                              duration: _reduced
+                                                  ? Duration.zero
+                                                  : const Duration(
+                                                      milliseconds: 300,
+                                                    ),
+                                              builder:
+                                                  (
+                                                    context,
+                                                    value,
+                                                    child,
+                                                  ) => Opacity(
+                                                    opacity: value,
+                                                    child: Transform.translate(
+                                                      offset: Offset(
+                                                        0,
+                                                        (1 - value) * 12,
+                                                      ),
+                                                      child: child,
+                                                    ),
+                                                  ),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  SizedBox(
+                                                    key: Key(
+                                                      'web-featured-poster-${media.article.id}',
+                                                    ),
+                                                    width: narrow ? 48 : 96,
+                                                    height: narrow ? 70 : 140,
+                                                    child: ClipRect(
+                                                      child: _ArticleImage(
+                                                        article: media.article,
+                                                        imageUrl: media.urlFor(
+                                                          ArticleImageRole
+                                                              .poster,
+                                                        ),
+                                                        altText: media
+                                                            .altTextFor(
+                                                              ArticleImageRole
+                                                                  .poster,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: narrow ? 16 : 24,
+                                                  ),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        Text(
+                                                          '${media.article.topic} · 精选',
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 13,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 12,
+                                                        ),
+                                                        Text(
+                                                          media.article.title,
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: fontSize,
+                                                            height: 1.25,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 14,
+                                                        ),
+                                                        Text(
+                                                          media.article.summary,
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 16,
+                                                                height: 1.5,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 20,
+                                                        ),
+                                                        const Text(
+                                                          '阅读全文 →',
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            color: Colors.white,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            '${media.article.topic} · 精选',
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            media.article.title,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: fontSize,
-                                              height: 1.25,
-                                              fontWeight: FontWeight.w700,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 14),
-                                          Text(
-                                            media.article.summary,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              height: 1.5,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 20),
-                                          const Text(
-                                            '阅读全文 →',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ],
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         ),
                       );
                     },
                   ),
-                ),
-              );
-            },
-          ),
-          if (widget.articles.length > 1)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final position = Semantics(
-                    liveRegion: false,
-                    child: Text(
-                      '${(_index + 1).toString().padLeft(2, '0')} / ${widget.articles.length.toString().padLeft(2, '0')}',
-                      key: const Key('web-featured-position'),
-                      style: const TextStyle(
-                        fontSize: 13,
+                  if (widget.articles.length > 1)
+                    AnimatedBuilder(
+                      animation: _progress,
+                      builder: (_, _) => LinearProgressIndicator(
+                        key: const Key('web-featured-progress'),
+                        value: _progress.value,
+                        minHeight: 3,
                         color: AppColors.brandInk,
+                        backgroundColor: Colors.white.withValues(alpha: .5),
+                        borderRadius: BorderRadius.zero,
                       ),
                     ),
-                  );
-                  final progress = AnimatedBuilder(
-                    animation: _progress,
-                    builder: (_, _) => LinearProgressIndicator(
-                      value: _progress.value,
-                      minHeight: 2,
-                      color: AppColors.brand,
-                      backgroundColor: AppColors.brandWash,
+                  if (widget.articles.length > 1)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final position = Semantics(
+                            liveRegion: false,
+                            child: Text(
+                              '${(_index + 1).toString().padLeft(2, '0')} / ${widget.articles.length.toString().padLeft(2, '0')}',
+                              key: const Key('web-featured-position'),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.brandInk,
+                              ),
+                            ),
+                          );
+                          final controls = Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: _paused ? '继续自动播放' : '暂停自动播放',
+                                onPressed: _reduced
+                                    ? null
+                                    : () => _change(() => _paused = !_paused),
+                                icon: Icon(
+                                  _paused || _reduced
+                                      ? Icons.play_arrow
+                                      : Icons.pause,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: '上一篇精选',
+                                onPressed: () => _move(-1),
+                                icon: const Icon(Icons.arrow_back),
+                              ),
+                              IconButton(
+                                tooltip: '下一篇精选',
+                                onPressed: () => _move(1),
+                                icon: const Icon(Icons.arrow_forward),
+                              ),
+                            ],
+                          );
+                          if (constraints.maxWidth < 480) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  children: [position, controls],
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [position, const Spacer(), controls],
+                          );
+                        },
+                      ),
                     ),
-                  );
-                  final controls = Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        tooltip: _paused ? '继续自动播放' : '暂停自动播放',
-                        onPressed: _reduced
-                            ? null
-                            : () => _change(() => _paused = !_paused),
-                        icon: Icon(
-                          _paused || _reduced ? Icons.play_arrow : Icons.pause,
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: '上一篇精选',
-                        onPressed: () => _move(-1),
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                      IconButton(
-                        tooltip: '下一篇精选',
-                        onPressed: () => _move(1),
-                        icon: const Icon(Icons.arrow_forward),
-                      ),
-                    ],
-                  );
-                  if (constraints.maxWidth < 480) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        progress,
-                        const SizedBox(height: 8),
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 8,
-                          children: [position, controls],
-                        ),
-                      ],
-                    );
-                  }
-                  return Row(
-                    children: [
-                      position,
-                      const SizedBox(width: 16),
-                      Expanded(child: progress),
-                      const SizedBox(width: 8),
-                      controls,
-                    ],
-                  );
-                },
+                ],
               ),
             ),
-        ],
+          ],
+        ),
       ),
     ),
   );
+}
+
+/// The paired quarter-circle motif used beneath the reference masthead.
+class _FeaturedArchPainter extends CustomPainter {
+  const _FeaturedArchPainter(this.color);
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..cubicTo(
+        size.width * .276,
+        0,
+        size.width / 2,
+        size.height * .448,
+        size.width / 2,
+        size.height,
+      )
+      ..cubicTo(
+        size.width / 2,
+        size.height * .448,
+        size.width * .724,
+        0,
+        size.width,
+        0,
+      )
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()..color = Color.lerp(color, AppColors.brandInk, .12)!,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FeaturedArchPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
