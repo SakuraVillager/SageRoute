@@ -2,8 +2,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sageroute/data/location_repository.dart';
 import 'package:sageroute/models/location_record.dart';
 import 'package:sageroute/services/database_service.dart';
+import 'package:sageroute/data/supabase_table_repository.dart';
 
 void main() {
+  test('theme lookup reads memberships and preserves grade and tags', () async {
+    final repository = LocationRepository(
+      topicLocationsRepository: SupabaseTableRepository(
+        tableName: 'route_topic_locations',
+        rawFetcher:
+            ({required tableName, required columns, limit, equals}) async {
+              expect(equals, {'theme_name': '苏轼·杭州行迹'});
+              return [
+                {
+                  'id (PK)': 67,
+                  'name_modern': '钱塘六井',
+                  'Topic': '苏轼·西湖治水与六井',
+                  'heritage_grade': '确证',
+                  'themes': ['水利治绩', '民生善政'],
+                },
+              ];
+            },
+      ),
+    );
+    final rows = await repository.fetchLocationsByTopic('苏轼·杭州行迹');
+    expect(rows.single.id, 67);
+    expect(rows.single.heritageGrade?.label, '确证');
+    expect(rows.single.themes, ['水利治绩', '民生善政']);
+  });
   setUp(() {
     DatabaseService.debugResetForTest();
   });
@@ -56,24 +81,24 @@ void main() {
     expect(rows.first.latitude, 30.24);
   });
 
-  test('fetchLocations returns empty list when fetcher yields no data', () async {
-    final repository = LocationRepository(
-      fetcher: () async => const <LocationRecord>[],
-    );
+  test(
+    'fetchLocations returns empty list when fetcher yields no data',
+    () async {
+      final repository = LocationRepository(
+        fetcher: () async => const <LocationRecord>[],
+      );
 
-    final rows = await repository.fetchLocations();
+      final rows = await repository.fetchLocations();
 
-    expect(rows, isEmpty);
-  });
+      expect(rows, isEmpty);
+    },
+  );
 
   test('fetchLocations propagates error from fetcher', () async {
     final repository = LocationRepository(
       fetcher: () async => throw Exception('网络超时'),
     );
 
-    expect(
-      () => repository.fetchLocations(),
-      throwsException,
-    );
+    expect(() => repository.fetchLocations(), throwsException);
   });
 }

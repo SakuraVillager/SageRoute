@@ -8,13 +8,18 @@ class LocationRepository {
   const LocationRepository({
     LocationFetcher? fetcher,
     SupabaseTableRepository? tableRepository,
+    SupabaseTableRepository? topicLocationsRepository,
   }) : _fetcher = fetcher,
        _tableRepository =
            tableRepository ??
-           const SupabaseTableRepository(tableName: 'Location');
+           const SupabaseTableRepository(tableName: 'Location'),
+       _topicLocationsRepository =
+           topicLocationsRepository ??
+           const SupabaseTableRepository(tableName: 'route_topic_locations');
 
   final LocationFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
+  final SupabaseTableRepository _topicLocationsRepository;
 
   Future<LocationRecord?> fetchById(int id) async {
     final fetcher = _fetcher;
@@ -26,7 +31,7 @@ class LocationRepository {
     }
     final records = await _tableRepository.fetchAll<LocationRecord>(
       mapper: LocationRecord.fromMap,
-      equals: {'id': id},
+      equals: {'id (PK)': id},
       limit: 1,
     );
     return records.isEmpty ? null : records.first;
@@ -43,11 +48,11 @@ class LocationRepository {
     );
   }
 
-  /// 按 Topic 字段过滤地点。
+  /// A place can belong to multiple editorial routes without duplicating it.
   Future<List<LocationRecord>> fetchLocationsByTopic(String topicName) {
-    return _tableRepository.fetchAll<LocationRecord>(
+    return _topicLocationsRepository.fetchAll<LocationRecord>(
       mapper: LocationRecord.fromMap,
-      equals: {'Topic': topicName},
+      equals: {'theme_name': topicName},
     );
   }
 
