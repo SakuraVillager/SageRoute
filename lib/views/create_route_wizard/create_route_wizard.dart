@@ -1,3 +1,4 @@
+import '../../components/web/web_back_button.dart';
 import 'package:flutter/foundation.dart';
 import '../../components/adaptive_content.dart';
 import '../../components/draft_exit_guard.dart';
@@ -493,18 +494,22 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
-          Material(
-            color: AppColors.sageBg,
-            shape: const CircleBorder(
-              side: BorderSide(color: AppColors.sageBorder),
-            ),
-            child: InkWell(
-              onTap: _handleBack,
-              customBorder: const CircleBorder(),
-              child: const SizedBox(
-                width: 36,
-                height: 36,
-                child: Icon(Icons.arrow_back, size: 18),
+          WebBackButton(
+            onPressed: _handleBack,
+            size: 36,
+            mobileChild: Material(
+              color: AppColors.sageBg,
+              shape: const CircleBorder(
+                side: BorderSide(color: AppColors.sageBorder),
+              ),
+              child: InkWell(
+                onTap: _handleBack,
+                customBorder: const CircleBorder(),
+                child: const SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: Icon(Icons.arrow_back, size: 18),
+                ),
               ),
             ),
           ),

@@ -1,3 +1,4 @@
+import '../../components/web/web_back_button.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import '../../navigation/app_navigation.dart';
@@ -198,10 +199,13 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
                 padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                 child: Row(
                   children: [
-                    _CircleIconButton(
-                      icon: Icons.arrow_back,
-                      tooltip: '返回',
-                      onTap: () => finishAppPage(context),
+                    WebBackButton(
+                      onPressed: () => finishAppPage(context),
+                      mobileChild: _CircleIconButton(
+                        icon: Icons.arrow_back,
+                        tooltip: '返回',
+                        onTap: () => finishAppPage(context),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
