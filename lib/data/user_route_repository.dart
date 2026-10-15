@@ -1,8 +1,11 @@
 import 'dart:developer' as developer;
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/saved_route.dart';
 import '../services/database_service.dart';
 import 'supabase_table_repository.dart';
+import 'social_gateway.dart';
 
 typedef CurrentUserIdProvider = String? Function();
 
@@ -10,6 +13,9 @@ typedef CurrentUserIdProvider = String? Function();
 /// Keep the PostgREST code check string-based so repository tests do not need a
 /// live Supabase client or an SDK-specific exception instance.
 String describeRoutePersistenceError(Object error) {
+  if (error is RouteEditConflict || error is SocialServiceUnavailable) {
+    return error.toString();
+  }
   final details = error.toString();
   if (details.contains('PGRST205') &&
       (details.contains('user_routes') ||
@@ -44,27 +50,47 @@ class UserRouteRepository {
     SupabaseTableRepository? routesTable,
     SupabaseTableRepository? waypointsTable,
     CurrentUserIdProvider? currentUserId,
+    SupabaseTableRepository? routesIndexTable,
+    SocialGateway? socialGateway,
   }) : _routesTable =
            routesTable ??
            const SupabaseTableRepository(tableName: 'user_routes'),
        _waypointsTable =
            waypointsTable ??
            const SupabaseTableRepository(tableName: 'user_route_waypoints'),
-       _currentUserId = currentUserId ?? _defaultCurrentUserId;
+       _currentUserId = currentUserId ?? _defaultCurrentUserId,
+       _routesIndex =
+           routesIndexTable ??
+           routesTable ??
+           const SupabaseTableRepository(tableName: 'route_access_index'),
+       _social = socialGateway ?? const SocialGateway();
 
   final SupabaseTableRepository _routesTable;
   final SupabaseTableRepository _waypointsTable;
   final CurrentUserIdProvider _currentUserId;
+  final SupabaseTableRepository _routesIndex;
+  final SocialGateway _social;
+
+  Future<List<Map<String, dynamic>>> _accessibleRows({String? id}) async {
+    try {
+      return await _routesIndex.fetchAllRaw(
+        equals: id == null ? null : {'id': id},
+      );
+    } catch (error) {
+      if (!isMissingSocialSchema(error)) rethrow;
+      return _routesTable.fetchAllRaw(
+        equals: {'user_id': _requireUserId(), if (id != null) 'id': id},
+      );
+    }
+  }
 
   static String? _defaultCurrentUserId() =>
       DatabaseService.client.auth.currentUser?.id;
 
   /// 当前用户的全部路线（新→旧），途经点按 sort_order 组装。
   Future<List<SavedRoute>> fetchUserRoutes() async {
-    final userId = _requireUserId();
-    final routeRows = await _routesTable.fetchAllRaw(
-      equals: <String, dynamic>{'user_id': userId},
-    );
+    _requireUserId();
+    final routeRows = await _accessibleRows();
     routeRows.sort((a, b) {
       final aTime =
           DateTime.tryParse(a['created_at'] as String? ?? '') ??
@@ -85,9 +111,7 @@ class UserRouteRepository {
 
   /// 按 id 取单条路线（含途经点）；不存在时返回 null。
   Future<SavedRoute?> fetchRouteById(String routeId) async {
-    final rows = await _routesTable.fetchAllRaw(
-      equals: <String, dynamic>{'id': routeId},
-    );
+    final rows = await _accessibleRows(id: routeId);
     if (rows.isEmpty) return null;
     final waypoints = await _fetchWaypoints(routeId);
     return SavedRoute.fromMap(rows.first, waypoints: waypoints);
@@ -138,25 +162,42 @@ class UserRouteRepository {
   /// 全量替换某条路线的途经点（编辑保存）。
   Future<void> updateWaypoints(
     String routeId,
-    List<RouteWaypoint> waypoints,
-  ) async {
-    final existing = await _fetchWaypoints(routeId);
-    await _waypointsTable.deleteRaw(<String, dynamic>{'route_id': routeId});
-    try {
-      await _waypointsTable.insertAllRaw(_waypointRows(routeId, waypoints));
-    } catch (error, stackTrace) {
-      try {
-        await _waypointsTable.insertAllRaw(_waypointRows(routeId, existing));
-      } catch (restoreError, restoreStackTrace) {
-        developer.log(
-          'Failed to restore waypoints for route $routeId after edit failure',
-          name: 'UserRouteRepository',
-          error: restoreError,
-          stackTrace: restoreStackTrace,
-        );
-      }
-      Error.throwWithStackTrace(error, stackTrace);
-    }
+    List<RouteWaypoint> waypoints, {
+    int expectedRevision = 0,
+  }) async {
+    _requireUserId();
+    await _social.call('sr_replace_waypoints', {
+      'p_route_id': routeId,
+      'p_expected_revision': expectedRevision,
+      'p_waypoints': _waypointRows(routeId, waypoints),
+    });
+  }
+
+  Stream<void> watchRoute(String routeId) {
+    final controller = StreamController<void>();
+    RealtimeChannel? channel;
+    controller.onListen = () {
+      channel = DatabaseService.client
+          .channel('route-$routeId-${DateTime.now().microsecondsSinceEpoch}')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.update,
+            schema: 'public',
+            table: 'user_routes',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'id',
+              value: routeId,
+            ),
+            callback: (_) {
+              if (!controller.isClosed) controller.add(null);
+            },
+          )
+          .subscribe();
+    };
+    controller.onCancel = () async {
+      if (channel != null) await DatabaseService.client.removeChannel(channel!);
+    };
+    return controller.stream;
   }
 
   Future<List<RouteWaypoint>> _fetchWaypoints(String routeId) async {

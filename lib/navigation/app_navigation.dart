@@ -70,6 +70,7 @@ void finishAppPage<T>(BuildContext context, [T? result]) {
 String parentLocationFor(String path) {
   final parts = Uri.parse(path).pathSegments;
   if (parts.isEmpty) return '/home';
+  if (parts.first == 'discover') return '/discover';
   if (parts.first == 'settings') {
     return parts.length > 1 ? '/settings' : '/profile';
   }

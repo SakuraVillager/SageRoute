@@ -45,6 +45,7 @@ dependencies:
   permission_handler: ^11.3.1
   x_amap_base: ^1.0.3
   url_launcher: ^6.3.2
+  app_links: 6.4.1
   web: ^1.1.1
   go_router: ^17.1.0
   pointer_interceptor: ^0.10.1+2
@@ -74,6 +75,7 @@ flutter:
     - assets/data/dongpo_planning_metadata.json
     - assets/data/dongpo_photo_assets.json
     - assets/images/dongpo/
+    - assets/images/auth/landscape.png
     - path: dart_define.json
       platforms: [android, ios, windows, linux, macos]
     - path: assets/env.env

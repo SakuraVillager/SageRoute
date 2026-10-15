@@ -1,28 +1,103 @@
 {
   "rewrites": [
-    { "source": "/welcome", "destination": "/index.html" },
-    { "source": "/login", "destination": "/index.html" },
-    { "source": "/register", "destination": "/index.html" },
-    { "source": "/forgot-password", "destination": "/index.html" },
-    { "source": "/auth/callback", "destination": "/index.html" },
-    { "source": "/reset-password", "destination": "/index.html" },
-    { "source": "/home", "destination": "/index.html" },
-    { "source": "/figures", "destination": "/index.html" },
-    { "source": "/figures/*", "destination": "/index.html" },
-    { "source": "/locations/*", "destination": "/index.html" },
-    { "source": "/articles/*", "destination": "/index.html" },
-    { "source": "/saved", "destination": "/index.html" },
-    { "source": "/profile", "destination": "/index.html" },
-    { "source": "/settings", "destination": "/index.html" },
-    { "source": "/settings/*", "destination": "/index.html" },
-    { "source": "/routes/*", "destination": "/index.html" },
-    { "source": "/dongpo", "destination": "/index.html" }
+    {
+      "source": "/welcome",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/register",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/forgot-password",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth/callback",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/reset-password",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/home",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/figures",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/figures/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/locations/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/articles/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/saved",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/routes/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/dongpo",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/invite/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/discover",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/discover/*",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/*",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
       ]
     }
   ]

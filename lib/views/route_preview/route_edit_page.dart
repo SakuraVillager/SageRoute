@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../../data/social_gateway.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import '../../services/route_draft_storage.dart';
@@ -42,10 +44,15 @@ class _RouteEditPageState extends State<RouteEditPage> {
   bool _dirty = false;
   bool _saved = false;
   RouteDraftStorage? _draft;
+  late int _baseRevision;
+  bool _remoteChanged = false;
+  int _mapVersion = 0;
+  StreamSubscription<void>? _updates;
   void _persistDraft() {
     if (!_dirty || _saved) return;
     _draft?.save({
       'places': _places.map((p) => p.toJson()).toList(),
+      'revision': _baseRevision,
       'transports': _transportTypes.map(
         (key, value) => MapEntry(key, value.name),
       ),
@@ -73,6 +80,7 @@ class _RouteEditPageState extends State<RouteEditPage> {
         ),
       );
       _dirty = true;
+      _baseRevision = (data['revision'] as num?)?.toInt() ?? 0;
     } catch (_) {
       _draft!.clear();
     }
@@ -98,6 +106,7 @@ class _RouteEditPageState extends State<RouteEditPage> {
   @override
   void dispose() {
     _persistDraft();
+    _updates?.cancel();
     super.dispose();
   }
 
@@ -107,6 +116,7 @@ class _RouteEditPageState extends State<RouteEditPage> {
   @override
   void initState() {
     super.initState();
+    _baseRevision = widget.route.revision;
     _places = widget.route.waypoints
         .map((waypoint) => waypoint.toRoutePlace())
         .toList(growable: false);
@@ -116,6 +126,60 @@ class _RouteEditPageState extends State<RouteEditPage> {
     }
     _restoreDraft();
     _loadFigure();
+    if (widget.route.ownerId != null && widget.route.canEdit) {
+      _updates = _repository.watchRoute(widget.route.id).listen((_) {
+        if (mounted && !_saving) setState(() => _remoteChanged = true);
+      });
+    }
+  }
+
+  Future<void> _reloadLatest() async {
+    if (_dirty) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (dialog) => AlertDialog(
+          title: const Text('载入最新行程？'),
+          content: const Text('你当前尚未保存的修改将被替换。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialog, false),
+              child: const Text('保留修改'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialog, true),
+              child: const Text('载入最新'),
+            ),
+          ],
+        ),
+      );
+      if (discard != true || !mounted) return;
+    }
+    try {
+      final latest = await _repository.fetchRouteById(widget.route.id);
+      if (latest == null || !latest.canEdit) {
+        throw StateError('行程已删除或编辑权限已变更，请返回行程列表');
+      }
+      if (!mounted) return;
+      setState(() {
+        _places = latest.waypoints.map((p) => p.toRoutePlace()).toList();
+        _transportTypes = {
+          for (var i = 0; i < _places.length - 1; i++)
+            Step3Map.segmentKey(_places[i], _places[i + 1]):
+                latest.waypoints[i].transportToNext ?? TransportType.driving,
+        };
+        _baseRevision = latest.revision;
+        _dirty = false;
+        _remoteChanged = false;
+        _mapVersion++;
+      });
+      _draft?.clear();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(socialErrorMessage(error))));
+      }
+    }
   }
 
   Future<void> _loadFigure() async {
@@ -132,10 +196,14 @@ class _RouteEditPageState extends State<RouteEditPage> {
   }
 
   Future<void> _handleSave() async {
-    if (_saving) return;
+    if (_saving || !widget.route.canEdit) return;
     setState(() => _saving = true);
     try {
-      await _repository.updateWaypoints(widget.route.id, _buildWaypoints());
+      await _repository.updateWaypoints(
+        widget.route.id,
+        _buildWaypoints(),
+        expectedRevision: _baseRevision,
+      );
       if (!mounted) return;
       _saved = true;
       _draft?.clear();
@@ -143,6 +211,13 @@ class _RouteEditPageState extends State<RouteEditPage> {
     } catch (error, stackTrace) {
       if (!mounted) return;
       setState(() => _saving = false);
+      if (error is RouteEditConflict) {
+        setState(() => _remoteChanged = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('同行者已经更新了行程。你的修改已保留，请载入最新版本后重新调整。')),
+        );
+        return;
+      }
       await showRouteSaveDiagnostics(
         context,
         error: error,
@@ -169,6 +244,9 @@ class _RouteEditPageState extends State<RouteEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.route.canEdit) {
+      return const Scaffold(body: Center(child: Text('你拥有此行程的只读权限')));
+    }
     return DraftExitGuard(
       dirty: kIsWeb && _dirty && !_saving,
       onDiscard: () {
@@ -182,6 +260,7 @@ class _RouteEditPageState extends State<RouteEditPage> {
             children: [
               Positioned.fill(
                 child: Step3Map(
+                  key: ValueKey(_mapVersion),
                   figure: _figure,
                   selectedPlaces: _places,
                   onLocationsChanged: (places) {
@@ -210,6 +289,30 @@ class _RouteEditPageState extends State<RouteEditPage> {
                   onSaveRequested: _handleSave,
                 ),
               ),
+              if (_remoteChanged)
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 52,
+                  left: 16,
+                  right: 16,
+                  child: PointerInterceptor(
+                    child: Material(
+                      elevation: 3,
+                      borderRadius: BorderRadius.circular(12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            const Expanded(child: Text('同行者已更新行程。保存前请载入最新版本。')),
+                            TextButton(
+                              onPressed: _reloadLatest,
+                              child: const Text('载入最新'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               SafeArea(
                 child: PointerInterceptor(
                   child: Padding(

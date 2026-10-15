@@ -101,7 +101,7 @@ void main() {
 class _FailingRouteRepository extends UserRouteRepository {
   @override
   Future<SavedRoute?> fetchRouteById(String routeId) =>
-      throw StateError('initial route should render without refetching');
+      throw StateError('offline refresh must retain the supplied preview');
 }
 
 SavedRoute _route() {

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../components/bottom_nav.dart';
 import '../components/ticket_card.dart';
+import '../components/route_invitation_inbox.dart';
 import '../models/saved_route.dart';
 import '../theme/color_schemes.dart';
 import 'route_preview/route_preview_page.dart';
@@ -46,6 +47,12 @@ class _HomePageState extends State<HomePage> {
   bool _examplesLoaded = false;
   bool _selectionMode = false;
   bool _bulkDeleting = false;
+  int _inboxVersion = 0;
+
+  Future<void> _refresh() async {
+    await widget.onRefreshRoutes?.call();
+    if (mounted) setState(() => _inboxVersion++);
+  }
 
   static const _deletedExamplesPreferenceKey = 'home_deleted_example_routes';
 
@@ -114,6 +121,10 @@ class _HomePageState extends State<HomePage> {
           else
             _buildHeader(context),
           const SizedBox(height: 32),
+          RouteInvitationInbox(
+            key: ValueKey(_inboxVersion),
+            onAccepted: _refresh,
+          ),
           _buildTicketSection(),
         ],
       ),
@@ -123,10 +134,7 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: widget.onRefreshRoutes == null
             ? content
-            : RefreshIndicator(
-                onRefresh: widget.onRefreshRoutes!,
-                child: content,
-              ),
+            : RefreshIndicator(onRefresh: _refresh, child: content),
       ),
     );
   }
@@ -153,7 +161,7 @@ class _HomePageState extends State<HomePage> {
         ),
         if (widget.onRefreshRoutes != null)
           IconButton(
-            onPressed: widget.onRefreshRoutes,
+            onPressed: _refresh,
             tooltip: '刷新行程',
             icon: const Icon(Icons.refresh, size: 20),
           ),
@@ -312,22 +320,32 @@ class _HomePageState extends State<HomePage> {
                       TicketCard(
                         title: route.title,
                         dateRange: route.dateRange,
-                        memberText: '全新规划的旅程',
+                        memberText: route.accessRole == RouteAccessRole.owner
+                            ? route.memberCount > 1
+                                  ? '${route.memberCount} 人同行 · 我创建的'
+                                  : '全新规划的旅程'
+                            : '${route.memberCount} 人同行 · ${route.accessRole.label}',
                         duration: route.duration,
                         distance: route.distance,
                         onLongPress:
-                            widget.onDeleteRoute == null ||
+                            !route.canManage ||
+                                widget.onDeleteRoute == null ||
                                 _deletingRouteIds.contains(route.id) ||
                                 _bulkDeleting
                             ? null
                             : () => _selectionMode
                                   ? _toggleSelection(route.id)
                                   : _showRouteActions(route),
-                        onTap: _selectionMode && widget.onDeleteRoute != null
+                        onTap:
+                            _selectionMode &&
+                                route.canManage &&
+                                widget.onDeleteRoute != null
                             ? () => _toggleSelection(route.id)
                             : () => _openRoute(route),
                       ),
-                      if (_selectionMode && widget.onDeleteRoute != null)
+                      if (_selectionMode &&
+                          route.canManage &&
+                          widget.onDeleteRoute != null)
                         Positioned(
                           top: 8,
                           right: 8,

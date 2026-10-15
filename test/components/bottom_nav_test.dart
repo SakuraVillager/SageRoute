@@ -124,7 +124,7 @@ void main() {
       onTap: taps.add,
     );
 
-    for (final label in <String>['首页', '人物', '收藏', '我的', '规划']) {
+    for (final label in <String>['首页', '人物', '发现', '我的', '规划']) {
       await tester.tap(find.text(label));
     }
     await tester.pump();

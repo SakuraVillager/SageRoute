@@ -38,6 +38,8 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:sageroute/main.dart' show MainScreen;
 import 'package:sageroute/views/home_page.dart';
+import 'package:sageroute/views/route_invitation_page.dart';
+import 'package:sageroute/views/discovery/discovery_page.dart';
 
 void main() {
   setUpAll(() async {
@@ -68,6 +70,39 @@ void main() {
     );
   });
   tearDownAll(() => Supabase.instance.dispose());
+
+  testWidgets('public invitations retain their path without forcing a login', (
+    tester,
+  ) async {
+    final token = 'a' * 64;
+    await tester.pumpWidget(
+      WebSageRouteApp(
+        initialization: Future<Object?>.value(),
+        initialLocation: '/invite/$token',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(RouteInvitationPage), findsOneWidget);
+    expect(find.byType(LoginPage), findsNothing);
+    final router = GoRouter.of(
+      tester.element(find.byType(RouteInvitationPage)),
+    );
+    expect(router.routeInformationProvider.value.uri.path, '/invite/$token');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('legacy saved URL opens public discovery', (tester) async {
+    await tester.pumpWidget(
+      WebSageRouteApp(
+        initialization: Future<Object?>.value(),
+        initialLocation: '/saved',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(DiscoveryPage), findsOneWidget);
+    expect(find.byType(LoginPage), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   late List<Map<dynamic, dynamic>> updates;
   late List<int> destroyed;
   late List<bool> blocked;

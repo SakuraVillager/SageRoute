@@ -47,6 +47,7 @@ bool guestCanVisit(String path) =>
       '/home',
       '/figures',
       '/saved',
+      '/discover',
       '/profile',
       '/routes/new',
       '/dongpo',
@@ -54,4 +55,5 @@ bool guestCanVisit(String path) =>
       '/settings/travel',
       '/settings/language',
     }.contains(path) ||
-    RegExp(r'^/(figures|locations|articles)/[^/]+$').hasMatch(path);
+    RegExp(r'^/(figures|locations|articles|invite)/[^/]+$').hasMatch(path) ||
+    RegExp(r'^/discover/posts/[^/]+$').hasMatch(path);

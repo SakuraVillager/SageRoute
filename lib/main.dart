@@ -22,10 +22,12 @@ import 'views/landing_page.dart';
 import 'views/home_page.dart';
 import 'views/figures_list_page.dart';
 import 'views/create_route_wizard/create_route_wizard.dart';
-import 'views/saved_routes_page.dart';
+import 'views/discovery/discovery_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
 import 'services/guest_session.dart';
+import 'services/native_share_links.dart';
+import 'services/route_changes.dart';
 import 'auth/auth_gate.dart';
 import 'auth/login_page.dart';
 
@@ -92,11 +94,22 @@ class SageRouteApp extends StatefulWidget {
 class _SageRouteAppState extends State<SageRouteApp> {
   late final Future<ResolvedAmapKey> _initFuture;
   bool _amapInitialized = false;
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  NativeShareLinks? _shareLinks;
 
   @override
   void initState() {
     super.initState();
     _initFuture = _initialize();
+    if (!kIsWeb) {
+      _shareLinks = NativeShareLinks(_navigatorKey)..start(_initFuture);
+    }
+  }
+
+  @override
+  void dispose() {
+    _shareLinks?.dispose();
+    super.dispose();
   }
 
   Future<ResolvedAmapKey> _initialize() async {
@@ -140,6 +153,7 @@ class _SageRouteAppState extends State<SageRouteApp> {
   Widget build(BuildContext context) {
     if (kIsWeb) return WebSageRouteApp(initialization: _initFuture);
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'SageRoute',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
@@ -306,6 +320,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    routeListChanges.addListener(_loadSavedRoutes);
     _selectedIndex = widget.initialIndex;
     _builtTabs.add(_navToTab[_selectedIndex] ?? 0);
     _tabs = [
@@ -315,7 +330,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         onDeleteRoute: _deleteSavedRoute,
       ),
       const FiguresListPage(),
-      const SavedRoutesPage(),
+      DiscoveryPage(onRouteCreated: _loadSavedRoutes),
       ProfilePage(onDebugRouteTap: _pushCreateRouteWizard),
     ];
     _loadSavedRoutes();
@@ -336,8 +351,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   /// 从 Supabase 拉取当前用户的路线（新→旧）。
   Future<void> _loadSavedRoutes() async {
     final requestId = ++_syncRequestId;
-    if (GuestSession.isActive &&
-        DatabaseService.client.auth.currentUser == null) {
+    if (DatabaseService.client.auth.currentUser == null) {
       _savedRoutes.value = const [];
       return;
     }
@@ -392,6 +406,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    routeListChanges.removeListener(_loadSavedRoutes);
     _savedRoutes.dispose();
     super.dispose();
   }

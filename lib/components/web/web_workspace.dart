@@ -76,7 +76,7 @@ class WebWorkspace extends StatelessWidget {
                   _link(0, Icons.grid_view_outlined, '我的旅程'),
                   _link(1, Icons.auto_stories_outlined, '人物与故事'),
                   _link(2, Icons.route_outlined, '规划行程'),
-                  _link(3, Icons.bookmark_border, '我的收藏'),
+                  _link(3, Icons.explore_outlined, '发现'),
                   const Spacer(),
                   const Divider(height: 32),
                   _link(4, Icons.person_outline, '个人中心'),

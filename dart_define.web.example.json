@@ -1,4 +1,5 @@
 {
+  "APP_PUBLIC_URL": "https://sageroute.jijiz.cn",
   "SUPABASE_URL": "https://YOUR_PROJECT.supabase.co",
   "SUPABASE_ANON_KEY": "YOUR_SUPABASE_PUBLIC_CLIENT_KEY",
   "AMAP_WEB_KEY": "YOUR_AMAP_JS_API_KEY",

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sageroute/data/supabase_table_repository.dart';
 import 'package:sageroute/data/user_route_repository.dart';
+import 'package:sageroute/data/social_gateway.dart';
 import 'package:sageroute/models/saved_route.dart';
 
 void main() {
@@ -157,20 +158,31 @@ void main() {
       expect(writes.last.equals, {'id': 'generated-id'});
     });
 
-    test('updateWaypoints deletes then re-inserts all waypoints', () async {
-      final writes = <_Write>[];
-      final repository = _buildRepository(writes: writes);
+    test(
+      'updateWaypoints sends an atomic replacement with its base revision',
+      () async {
+        final writes = <_Write>[];
+        final repository = _buildRepository(
+          writes: writes,
+          socialGateway: SocialGateway(
+            userId: () => 'user-1',
+            rpc: (name, params) async {
+              expect(name, 'sr_replace_waypoints');
+              expect(params['p_route_id'], 'route-1');
+              expect(params['p_expected_revision'], 8);
+              expect((params['p_waypoints'] as List).single['name'], '仅一站');
+              return 9;
+            },
+          ),
+        );
 
-      await repository.updateWaypoints('route-1', const [
-        RouteWaypoint(name: '仅一站', latitude: 1, longitude: 1),
-      ]);
+        await repository.updateWaypoints('route-1', const [
+          RouteWaypoint(name: '仅一站', latitude: 1, longitude: 1),
+        ], expectedRevision: 8);
 
-      expect(writes, hasLength(2));
-      expect(writes[0].operation, 'delete');
-      expect(writes[0].equals, {'route_id': 'route-1'});
-      expect(writes[1].operation, 'insertAll');
-      expect(writes[1].rows!.single['name'], '仅一站');
-    });
+        expect(writes, isEmpty);
+      },
+    );
 
     test('deleteRoute scopes deletion to the current owner', () async {
       final writes = <_Write>[];
@@ -228,9 +240,11 @@ UserRouteRepository _buildRepository({
   List<_Write>? writes,
   bool failWaypointInsert = false,
   bool deleteReturnsNoRows = false,
+  SocialGateway? socialGateway,
 }) {
   final capturedWrites = writes ?? <_Write>[];
   return UserRouteRepository(
+    socialGateway: socialGateway,
     currentUserId: currentUserId ?? () => 'user-1',
     routesTable: SupabaseTableRepository(
       tableName: 'user_routes',

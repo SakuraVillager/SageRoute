@@ -39,10 +39,12 @@ import '../views/location_detail_page.dart';
 import '../views/create_route_wizard/create_route_wizard.dart';
 import '../views/route_preview/route_preview_page.dart';
 import '../views/route_preview/route_edit_page.dart';
+import '../views/route_invitation_page.dart';
+import '../views/discovery/community_post_page.dart';
 import 'app_navigation.dart';
 import 'map_overlay_observer.dart';
 
-const _tabs = {'/home': 0, '/figures': 1, '/saved': 3, '/profile': 4};
+const _tabs = {'/home': 0, '/figures': 1, '/discover': 3, '/profile': 4};
 
 class WebSageRouteApp extends StatefulWidget {
   const WebSageRouteApp({
@@ -65,10 +67,17 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
   final _rootMapObserver = MapOverlayObserver();
   final _shellMapObserver = MapOverlayObserver();
   late final SemanticsHandle _semantics;
+  late final String _initialLocation;
 
   @override
   void initState() {
     super.initState();
+    _initialLocation =
+        widget.initialLocation ??
+        Uri(
+          path: Uri.base.path,
+          query: Uri.base.hasQuery ? Uri.base.query : null,
+        ).toString();
     GoRouter.optionURLReflectsImperativeAPIs = true;
     _semantics = WidgetsBinding.instance.ensureSemantics();
     widget.initialization.then(
@@ -104,18 +113,19 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
   void _refreshGuest() => _authRefresh.value++;
 
   GoRouter _createRouter() => GoRouter(
-    initialLocation:
-        widget.initialLocation ??
-        Uri(
-          path: Uri.base.path,
-          query: Uri.base.hasQuery ? Uri.base.query : null,
-        ).toString(),
+    initialLocation: _initialLocation,
     overridePlatformDefaultLocation: true,
     observers: [_rootMapObserver],
     refreshListenable: _authRefresh,
     redirect: (context, state) {
       final path = state.uri.path;
       if (path == '/auth/callback') return null;
+      if (path == '/discover' ||
+          path.startsWith('/discover/posts/') ||
+          path.startsWith('/invite/')) {
+        return null;
+      }
+      if (path == '/saved') return '/discover';
       if (path == '/') {
         if (DatabaseService.client.auth.currentSession != null ||
             GuestSession.isActive) {
@@ -139,6 +149,12 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
     errorBuilder: (context, state) => const _UnavailablePage(message: '页面不存在'),
     routes: [
       GoRoute(path: '/', builder: (_, _) => const SizedBox.shrink()),
+      GoRoute(path: '/saved', redirect: (_, _) => '/discover'),
+      GoRoute(
+        path: '/invite/:token',
+        builder: (_, state) =>
+            RouteInvitationPage(token: state.pathParameters['token']!),
+      ),
       GoRoute(path: '/dongpo', builder: (_, _) => const DongpoCatalogPage()),
       GoRoute(
         path: '/welcome',
@@ -195,6 +211,8 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
                   ? 2
                   : state.uri.path.startsWith('/settings')
                   ? 4
+                  : state.uri.path.startsWith('/discover')
+                  ? 3
                   : 1),
           workspaceChild: _tabs.containsKey(state.uri.path) ? null : child,
           onTabSelected: (index) => context.go(
@@ -204,6 +222,11 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
           ),
         ),
         routes: [
+          GoRoute(
+            path: '/discover/posts/:id',
+            builder: (_, state) =>
+                CommunityPostPage(postId: state.pathParameters['id']!),
+          ),
           for (final path in _tabs.keys)
             GoRoute(path: path, builder: (_, _) => const SizedBox.shrink()),
           GoRoute(
@@ -256,7 +279,11 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
                 final route = await const UserRouteRepository().fetchRouteById(
                   state.pathParameters['id']!,
                 );
-                return route == null ? null : RouteEditPage(route: route);
+                return route == null
+                    ? null
+                    : route.canEdit
+                    ? RouteEditPage(route: route)
+                    : RoutePreviewPage(routeId: route.id, initialRoute: route);
               },
             ),
           ),

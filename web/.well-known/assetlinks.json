@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sageroute.sageroute",
+      "sha256_cert_fingerprints": [
+        "67:6E:D2:EF:FE:2D:94:72:52:41:A0:64:08:6C:12:FF:17:CB:A4:BA:F9:82:D1:83:C2:E8:0E:30:9A:23:25:07"
+      ]
+    }
+  }
+]

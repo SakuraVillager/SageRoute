@@ -10,6 +10,8 @@ import 'package:sageroute/services/auth_service.dart';
 import 'package:sageroute/services/credential_storage.dart';
 import 'package:sageroute/services/guest_session.dart';
 import 'package:sageroute/views/saved_routes_page.dart';
+import 'package:sageroute/data/community_repository.dart';
+import 'package:sageroute/data/social_gateway.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
@@ -71,16 +73,24 @@ void main() {
     expect(find.byType(ResetPasswordPage), findsOneWidget);
   });
 
-  testWidgets(
-    'guest collections request login instead of displaying account content',
-    (tester) async {
-      await GuestSession.enter();
-      await tester.pumpWidget(const MaterialApp(home: SavedRoutesPage()));
-      expect(find.text('当前为游客模式'), findsOneWidget);
-      expect(find.text('登录 / 注册'), findsOneWidget);
-      expect(find.text('保存的路线'), findsNothing);
-    },
-  );
+  testWidgets('guest can browse discovery without requiring account content', (
+    tester,
+  ) async {
+    await GuestSession.enter();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SavedRoutesPage(
+          repository: CommunityRepository(
+            gateway: SocialGateway(userId: () => null, rpc: (_, _) async => []),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('发现'), findsOneWidget);
+    expect(find.text('这里还没有分享'), findsOneWidget);
+    expect(find.text('登录 / 注册'), findsNothing);
+  });
 
   test(
     'failed login retains guest access; successful login replaces it',

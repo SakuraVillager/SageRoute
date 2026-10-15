@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
+import '../../components/route_sharing_sheet.dart';
 import 'package:flutter/foundation.dart';
 import '../../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +39,20 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
   late SavedRoute? _route;
   late bool _loading;
   Object? _error;
+  StreamSubscription<void>? _updates;
+
+  void _watch() {
+    if (_updates != null || _route?.ownerId == null) return;
+    _updates = _repository
+        .watchRoute(widget.routeId)
+        .listen((_) => _load(quiet: true));
+  }
+
+  @override
+  void dispose() {
+    _updates?.cancel();
+    super.dispose();
+  }
 
   UserRouteRepository get _repository =>
       widget.repository ?? const UserRouteRepository();
@@ -46,12 +62,13 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
     super.initState();
     _route = widget.initialRoute;
     _loading = _route == null;
-    if (_route == null) _load();
+    _load(quiet: _route != null);
+    _watch();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool quiet = false}) async {
     setState(() {
-      _loading = true;
+      _loading = !quiet;
       _error = null;
     });
     try {
@@ -62,8 +79,11 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
         _loading = false;
         _error = route == null ? '路线不存在或已被删除' : null;
       });
+      _watch();
     } catch (error) {
       if (!mounted) return;
+      // Keep the already loaded preview usable while an optional refresh is offline.
+      if (quiet && _route != null) return;
       setState(() {
         _loading = false;
         _error = error;
@@ -73,7 +93,7 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
 
   Future<void> _openEdit() async {
     final route = _route;
-    if (route == null) return;
+    if (route == null || !route.canEdit) return;
     final changed = await openAppPage<bool>(
       context,
       RouteEditPage(route: route, repository: widget.repository),
@@ -173,6 +193,7 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
         children: [
           Positioned.fill(
             child: Step3Map(
+              key: ValueKey('${route.id}-${route.revision}'),
               mode: Step3Mode.preview,
               selectedPlaces: route.waypoints
                   .map((waypoint) => waypoint.toRoutePlace())
@@ -217,11 +238,23 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
                         ),
                       ),
                     ),
-                    _CircleIconButton(
-                      icon: Icons.edit_outlined,
-                      tooltip: '编辑路线',
-                      onTap: _openEdit,
-                    ),
+                    if (route.ownerId != null) ...[
+                      _CircleIconButton(
+                        icon: Icons.people_outline,
+                        tooltip: '分享与协作 · ${route.accessRole.label}',
+                        onTap: () async {
+                          await showRouteSharing(context, route);
+                          if (mounted) await _load(quiet: true);
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    if (route.canEdit)
+                      _CircleIconButton(
+                        icon: Icons.edit_outlined,
+                        tooltip: '编辑路线',
+                        onTap: _openEdit,
+                      ),
                   ],
                 ),
               ),

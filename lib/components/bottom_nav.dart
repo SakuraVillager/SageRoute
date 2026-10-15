@@ -54,7 +54,7 @@ class SageRouteBottomNav extends StatelessWidget {
               _buildTab(0, Icons.home, '首页'),
               _buildTab(1, Icons.people, '人物'),
               _buildCenterTab(),
-              _buildTab(3, Icons.bookmark, '收藏'),
+              _buildTab(3, Icons.explore_outlined, '发现'),
               _buildTab(4, Icons.person, '我的'),
             ],
           ),

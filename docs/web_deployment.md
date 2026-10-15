@@ -2,6 +2,8 @@
 
 Android 与 Web 共用 Dart 业务、仓储和规划协调器。地图适配集中在 `lib/components/map/`，Web SDK 桥接位于 `web/sage_maps.js`。Web 不需要运行应用服务器，发布内容为 `build/web`。
 
+行程协作、发现社区及 Android 统一分享链接的数据库启用、签名关联步骤见 [行程协作与发现](collaboration_and_discovery.md)。部署新版前先启用对应数据库脚本。
+
 ## 本地配置
 
 复制 `dart_define.web.example.json` 为已忽略的 `dart_define.web.json`，填写：

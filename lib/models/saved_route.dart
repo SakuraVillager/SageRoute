@@ -1,6 +1,15 @@
 import '../route_planning/models/route_place.dart';
 import '../route_planning/models/transport_type.dart';
 
+enum RouteAccessRole {
+  owner('创建者'),
+  editor('可编辑'),
+  viewer('只读');
+
+  const RouteAccessRole(this.label);
+  final String label;
+}
+
 /// 用户规划的路线（持久化于 Supabase `user_routes` + `user_route_waypoints`）。
 class SavedRoute {
   const SavedRoute({
@@ -12,6 +21,10 @@ class SavedRoute {
     required this.waypoints,
     this.figureId,
     this.figureName,
+    this.ownerId,
+    this.accessRole = RouteAccessRole.owner,
+    this.revision = 0,
+    this.memberCount = 1,
   });
 
   final String id;
@@ -22,6 +35,12 @@ class SavedRoute {
   final int? figureId;
   final String? figureName;
   final List<RouteWaypoint> waypoints;
+  final String? ownerId;
+  final RouteAccessRole accessRole;
+  final int revision;
+  final int memberCount;
+  bool get canEdit => accessRole != RouteAccessRole.viewer;
+  bool get canManage => accessRole == RouteAccessRole.owner;
 
   factory SavedRoute.fromMap(
     Map<String, dynamic> row, {
@@ -36,6 +55,14 @@ class SavedRoute {
       figureId: row['figure_id'] as int?,
       figureName: row['figure_name'] as String?,
       waypoints: waypoints,
+      ownerId: row['user_id'] as String?,
+      accessRole:
+          RouteAccessRole.values
+              .where((role) => role.name == row['access_role'])
+              .firstOrNull ??
+          RouteAccessRole.owner,
+      revision: (row['revision'] as num?)?.toInt() ?? 0,
+      memberCount: (row['member_count'] as num?)?.toInt() ?? 1,
     );
   }
 
@@ -52,16 +79,24 @@ class SavedRoute {
     };
   }
 
-  SavedRoute copyWith({String? id, List<RouteWaypoint>? waypoints}) {
+  SavedRoute copyWith({
+    String? id,
+    String? title,
+    List<RouteWaypoint>? waypoints,
+  }) {
     return SavedRoute(
       id: id ?? this.id,
-      title: title,
+      title: title ?? this.title,
       dateRange: dateRange,
       duration: duration,
       distance: distance,
       figureId: figureId,
       figureName: figureName,
       waypoints: waypoints ?? this.waypoints,
+      ownerId: ownerId,
+      accessRole: accessRole,
+      revision: revision,
+      memberCount: memberCount,
     );
   }
 }
