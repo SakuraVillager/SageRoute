@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/location_record.dart';
-import 'heritage_grade_badge.dart';
 import 'heritage_photo_gallery.dart';
+import 'place_metadata_tags.dart';
 
 class HeritageSiteDetails extends StatelessWidget {
   const HeritageSiteDetails({super.key, required this.site});
@@ -16,14 +16,10 @@ class HeritageSiteDetails extends StatelessWidget {
       children: [
         Text(site.nameModern, style: textTheme.headlineSmall),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            HeritageGradeBadge(site: site),
-            ...site.themes.map((theme) => Chip(label: Text(theme))),
-            if (site.isCoreSite) const Chip(label: Text('核心景点')),
-          ],
+        PlaceMetadataTags(
+          categories: site.categories,
+          grade: site.heritageGrade,
+          themes: [...site.themes, if (site.isCoreSite) '核心景点'],
         ),
         for (final entry in <String, String?>{
           '古地名': site.nameAncient,

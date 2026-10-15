@@ -60,6 +60,7 @@ void main() {
         home: Scaffold(
           body: AddPlacePage(
             figure: figure,
+            dongpoRepository: null,
             currentSelectedPlaces: const [],
             locationRepository: locationRepository,
             relationRepository: relationRepository,
@@ -89,6 +90,7 @@ void main() {
         home: Scaffold(
           body: AddPlacePage(
             figure: null,
+            dongpoRepository: null,
             currentSelectedPlaces: const [],
             locationRepository: locationRepository,
             relationRepository: relationRepository,

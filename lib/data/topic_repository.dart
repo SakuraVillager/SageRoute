@@ -1,4 +1,5 @@
 import '../models/topic_record.dart';
+import '../models/planning_topic.dart';
 import 'supabase_table_repository.dart';
 
 typedef TopicFetcher = Future<List<TopicRecord>> Function();
@@ -14,6 +15,22 @@ class TopicRepository {
 
   final TopicFetcher? _fetcher;
   final SupabaseTableRepository _tableRepository;
+
+  Future<List<TopicRecord>> fetchPlanningTopicsByCelebrity(String name) async {
+    final existing = await fetchTopicsByCelebrity(name)
+        .timeout(const Duration(seconds: 8))
+        .catchError((Object error) {
+          if (isDongpoFigure(name)) return <TopicRecord>[];
+          throw error;
+        });
+    if (!isDongpoFigure(name)) return existing;
+    if (existing.any((topic) => isDongpoRouteName(topic.name))) return existing;
+    return [dongpoPlanningTopic, ...existing];
+  }
+
+  Future<TopicRecord?> fetchPlanningTopicById(int id) => id == dongpoRouteId
+      ? Future.value(dongpoPlanningTopic)
+      : fetchTopicById(id);
 
   /// 获取全部主题。
   Future<List<TopicRecord>> fetchTopics({int? limit}) async {

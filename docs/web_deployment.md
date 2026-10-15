@@ -28,6 +28,14 @@ flutter run -d edge --web-port=8080 --dart-define-from-file=dart_define.web.json
 
 VS Code 在「运行和调试」中选择 `SageRoute Web (Edge debug)` 后按 F5；配置位于 `.vscode/launch.json`。若使用已安装的 Chrome，可将设备改为 `chrome`。Android Studio 的 Flutter Run Configuration 在 Additional run args 中填写 `--dart-define-from-file=dart_define.web.json --web-port=8080`，并选择浏览器设备。
 
+若出现 `Failed to launch browser after 3 tries`，表示 Flutter 未能启动或连接浏览器调试实例。可选择 `SageRoute Web (manual browser)`，或在终端运行：
+
+```powershell
+flutter run -d web-server --web-hostname=127.0.0.1 --web-port=8080 --dart-define-from-file=dart_define.web.json
+```
+
+看到服务地址后，手动在浏览器打开 `http://127.0.0.1:8080/`，并保持运行终端开启。这种方式无需 Flutter 自动启动 Edge；浏览器调试支持有限，参见 [Flutter Web 开发配置](https://docs.flutter.dev/platform-integration/web/setup)。
+
 如果 Python 预览仍占用 8080，先在运行它的终端按 Ctrl+C。也可使用其他端口，但真实邮件认证回调需要在 Supabase 中配置对应地址。更改编译参数后必须停止调试并重新启动，不能仅热重载。
 
 Python 只提供已有 `build/web` 文件；之前成功构建时参数已经编入产物，所以它能显示正常页面。直接调试或重新构建属于另一次编译，需要再次传入 Web 配置。普通 Android 启动配置使用的 `dart_define.json` 不能替代专用 Web 配置。
@@ -61,6 +69,10 @@ Web 启动时删除遗留 `savedLoginPassword`；记住邮箱只保存邮箱和�
 
 ## URL 与草稿
 
+欢迎页和登录页提供「游客进入」。游客模式使用本地浏览标记，支持刷新后继续浏览人物、地点和规划路线；不会创建 Supabase 匿名账号。游客访问公共内容仍使用原有 anon 权限，云端个人路线继续要求真实登录，后台 RLS 无变更。个人中心和收藏页会提示登录。
+
+游客新建行程的 Web 草稿保存在当前标签页，保存时引导登录并保留草稿；登录成功后迁移至该账号的草稿空间。失败或取消登录不清除游客草稿。退出游客模式会清除当前标签页的行程草稿。原生端保存时打开登录页，返回后继续当前规划。
+
 | URL | 页面 |
 |---|---|
 | `/welcome`、`/login`、`/register`、`/forgot-password` | 引导及认证 |
@@ -85,6 +97,26 @@ Web 启动时删除遗留 `savedLoginPassword`；记住邮箱只保存邮箱和�
 5. 首版 bootstrap 不注册离线 Service Worker，不提供离线缓存。若域名曾部署旧 Flutter Service Worker，验收时先卸载旧 worker 并清理其缓存。
 
 ## 发布与回滚
+
+### EdgeOne Pages 直接上传
+
+`web/edgeone.json` 会随 Flutter Web 构建复制到产物根目录：业务路径重写到 `index.html`，静态资源仍按原路径读取；未带哈希的资源使用重新验证缓存策略。新加业务 URL 时也需更新该文件。
+
+在项目根目录执行：
+
+```powershell
+flutter build web --release --dart-define-from-file=dart_define.web.json
+python tool/check_web_build.py
+Compress-Archive -Path build/web/* -DestinationPath build/sageroute-edgeone.zip -Force
+```
+
+前一条命令成功后再执行下一条。在 EdgeOne Pages 新建项目，选择直接上传，上传 `build/sageroute-edgeone.zip`。ZIP 根目录应直接包含 `index.html` 和 `edgeone.json`，不能多套一层 `web/`。不要上传整个源码目录或本地配置文件。直接上传使用已经编译进 JS 的参数，控制台环境变量不会修改该产物中的 Dart 配置。
+
+部署后将实际 HTTPS 域名加入高德 Web Key 的允许域名；按上文配置 Supabase Site URL 和 `/auth/callback`。检查登录、邮件回调、地图加载，以及直接访问和刷新 `/home`、`/routes/new`。若使用自定义域名，按平台给出的 DNS 记录配置并等待 HTTPS 生效。
+
+参考：[直接上传](https://pages.edgeone.ai/zh/document/direct-upload)、[edgeone.json](https://pages.edgeone.ai/zh/document/edgeone-json)。
+
+### 通用发布流程
 
 1. 发布前运行自动检查，并完成 `docs/web_validation.md` 的账号与真机验收清单。
 2. 将完整产物放入新的版本目录（例如 `releases/<发布编号>/`），保存版本号、配置的 Key 标识和构建日志，勿把原始私密配置上传。

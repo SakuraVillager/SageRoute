@@ -25,6 +25,7 @@ import 'views/create_route_wizard/create_route_wizard.dart';
 import 'views/saved_routes_page.dart';
 import 'views/profile_page.dart';
 import 'services/database_service.dart';
+import 'services/guest_session.dart';
 import 'auth/auth_gate.dart';
 import 'auth/login_page.dart';
 
@@ -106,6 +107,11 @@ class _SageRouteAppState extends State<SageRouteApp> {
     } catch (e) {
       debugPrint('[SageRoute] DatabaseService init failed: $e');
       rethrow;
+    }
+    await GuestSession.restore();
+    final restoredUser = DatabaseService.client.auth.currentUser;
+    if (restoredUser != null) {
+      await GuestSession.completeSignIn(restoredUser.id);
     }
     if (kIsWeb) return const ResolvedAmapKey(key: '', source: 'web');
     final key = await _resolveAmapKey();
@@ -225,7 +231,8 @@ class _AppLaunchDeciderState extends State<AppLaunchDecider> {
         // Authentication takes precedence over onboarding. A restored local
         // session should always enter the app without asking the user to log in
         // or tap through the landing page again.
-        if (DatabaseService.client.auth.currentSession != null) {
+        if (DatabaseService.client.auth.currentSession != null ||
+            GuestSession.isActive) {
           debugPrint('[SageRoute] restored persisted auth session');
           return AuthGate(authenticatedBuilder: (_) => const MainScreen());
         }
@@ -329,6 +336,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   /// 从 Supabase 拉取当前用户的路线（新→旧）。
   Future<void> _loadSavedRoutes() async {
     final requestId = ++_syncRequestId;
+    if (GuestSession.isActive &&
+        DatabaseService.client.auth.currentUser == null) {
+      _savedRoutes.value = const [];
+      return;
+    }
     final idsAtStart = _savedRoutes.value.map((route) => route.id).toSet();
     try {
       final routes = (await _routeRepository.fetchUserRoutes())

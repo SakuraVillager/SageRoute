@@ -3,6 +3,7 @@ import 'browser_session.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'database_service.dart';
+import 'guest_session.dart';
 
 typedef PasswordResetSender =
     Future<void> Function({required String email, required String redirectTo});
@@ -74,7 +75,10 @@ class AuthService {
       emailRedirectTo: passwordResetRedirectTo,
     );
     final session = response.session;
-    if (session != null) await DatabaseService.persistAuthSession(session);
+    if (session != null) {
+      await DatabaseService.persistAuthSession(session);
+      await GuestSession.completeSignIn(session.user.id);
+    }
     return response;
   }
 
@@ -85,25 +89,35 @@ class AuthService {
   }) async {
     final signInOverride = _passwordSignIn;
     if (signInOverride != null) {
-      return signInOverride(email: email, password: password);
+      final response = await signInOverride(email: email, password: password);
+      if (response.session != null) {
+        await GuestSession.completeSignIn(response.session!.user.id);
+      }
+      return response;
     }
     final response = await _supabaseClient.auth.signInWithPassword(
       email: email.trim(),
       password: password.trim(),
     );
     final session = response.session;
-    if (session != null) await DatabaseService.persistAuthSession(session);
+    if (session != null) {
+      await DatabaseService.persistAuthSession(session);
+      await GuestSession.completeSignIn(session.user.id);
+    }
     return response;
   }
 
   /// 退出登录。
   Future<void> signOut() async {
+    final wasGuest = GuestSession.isActive;
+    await GuestSession.leave();
     clearRouteDrafts();
     final handler = _signOutHandler;
     if (handler != null) {
       await handler();
       return;
     }
+    if (wasGuest && currentSession == null) return;
     await _supabaseClient.auth.signOut();
     await DatabaseService.clearPersistedAuthSession();
   }

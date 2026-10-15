@@ -71,6 +71,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/data/dongpo_sites.json
+    - assets/data/dongpo_planning_metadata.json
     - assets/data/dongpo_photo_assets.json
     - assets/images/dongpo/
     - path: dart_define.json

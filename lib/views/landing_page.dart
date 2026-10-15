@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../components/guest_entry_button.dart';
 import '../theme/color_schemes.dart';
 
 /// Landing style guide page matching the Web version's Landing.tsx.
@@ -197,6 +198,8 @@ class LandingPage extends StatelessWidget {
 
         // ── Secondary login button ──
         _buildSecondaryButton(),
+        const SizedBox(height: 8),
+        const GuestEntryButton(),
         const SizedBox(height: 32),
 
         // ── Terms text ──

@@ -5,6 +5,22 @@ import 'sage_map.dart';
 import 'package:flutter/material.dart';
 
 import '../../utils/svg_path_parser.dart';
+import '../../models/heritage_grade.dart';
+import '../../theme/color_schemes.dart';
+
+Color markerFillColorFor(HeritageGrade? grade) =>
+    grade?.color ?? AppColors.sageAccent;
+
+Future<Map<HeritageGrade?, Map<CategoryMarkerKind, MapIcon>>>
+buildHeritageCategoryMarkerIcons() async {
+  final entries = await Future.wait([
+    for (final grade in <HeritageGrade?>[null, ...HeritageGrade.values])
+      buildCategoryMarkerIcons(
+        fillColor: markerFillColorFor(grade),
+      ).then((icons) => MapEntry(grade, icons)),
+  ]);
+  return Map.fromEntries(entries);
+}
 
 /// Semantic icon groups used by map markers.
 enum CategoryMarkerKind {
@@ -35,10 +51,10 @@ CategoryMarkerKind categoryMarkerKindFor(String? rawCategories) {
   if (_containsAny(value, const ['园', '林', '公园', '植物'])) {
     return CategoryMarkerKind.garden;
   }
-  if (_containsAny(value, const ['桥', '栈道'])) {
+  if (_containsAny(value, const ['桥', '堤', '津渡', '栈道'])) {
     return CategoryMarkerKind.bridge;
   }
-  if (_containsAny(value, const ['故居', '旧居', '宅', '村', '民居'])) {
+  if (_containsAny(value, const ['故居', '旧居', '宅', '村', '民居', '街巷', '居所'])) {
     return CategoryMarkerKind.residence;
   }
   if (_containsAny(value, const [
@@ -52,6 +68,9 @@ CategoryMarkerKind categoryMarkerKindFor(String? rawCategories) {
     '河',
     '溪',
     '瀑',
+    '泉',
+    '池',
+    '岩洞',
   ])) {
     return CategoryMarkerKind.nature;
   }

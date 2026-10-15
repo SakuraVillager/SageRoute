@@ -136,7 +136,7 @@ class _CelebritySelectionPageState extends State<CelebritySelectionPage>
   void _loadTopicsForCelebrity(String celebrityName) {
     _topicsCelebrityName = celebrityName;
     _selectedTopicName = null;
-    _topicsFuture = _topicRepository.fetchTopicsByCelebrity(celebrityName).then(
+    _topicsFuture = _topicRepository.fetchPlanningTopicsByCelebrity(celebrityName).then(
       (topics) {
         if (!mounted ||
             _phase == _OverlayPhase.character ||

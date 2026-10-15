@@ -21,16 +21,21 @@ class LocationRecord {
   final String? literatureSource;
   final String? researchNotes;
   final HeritageGrade? heritageGrade;
+  final int? dongpoSiteId;
+  final bool? routeEligible;
   final List<String> themes;
   final String? coordinateNote;
   final List<Map<String, String>> photos;
   final bool isCoreSite;
 
+  bool get canPlanRoute => routeEligible != false && hasValidCoordinates;
+
   bool get hasValidCoordinates =>
       coordinates.length == 2 &&
       coordinates.every((value) => value.isFinite) &&
       coordinates[0].abs() <= 180 &&
-      coordinates[1].abs() <= 90;
+      coordinates[1].abs() <= 90 &&
+      !(coordinates[0] == 0 && coordinates[1] == 0);
 
   /// 经纬度坐标，格式为 [经度, 纬度]（longitude, latitude）。
   /// 长度应为 2，不足 2 时 `longitude`/`latitude` getter 返回 null。
@@ -61,6 +66,8 @@ class LocationRecord {
     this.literatureSource,
     this.researchNotes,
     this.heritageGrade,
+    this.dongpoSiteId,
+    this.routeEligible,
     this.themes = const [],
     this.coordinateNote,
     this.photos = const [],
@@ -119,6 +126,15 @@ class LocationRecord {
       literatureSource: map['literature_source']?.toString(),
       researchNotes: map['research_notes']?.toString(),
       heritageGrade: HeritageGrade.parse(map['heritage_grade']),
+      routeEligible: map['route_eligible'] as bool?,
+      dongpoSiteId:
+          (map['dongpo_site_id'] as num?)?.toInt() ??
+          int.tryParse(
+            RegExp(
+                  r'^dongpo-hangzhou-(\d+)$',
+                ).firstMatch(map['catalog_key']?.toString() ?? '')?.group(1) ??
+                '',
+          ),
       themes: map['themes'] is List
           ? (map['themes'] as List)
                 .map((value) => value.toString())
@@ -160,6 +176,8 @@ class LocationRecord {
       if (literatureSource != null) 'literature_source': literatureSource,
       if (researchNotes != null) 'research_notes': researchNotes,
       if (heritageGrade != null) 'heritage_grade': heritageGrade!.label,
+      if (dongpoSiteId != null) 'dongpo_site_id': dongpoSiteId,
+      if (routeEligible != null) 'route_eligible': routeEligible,
       if (themes.isNotEmpty) 'themes': themes,
       if (coordinateNote != null) 'coordinate_note': coordinateNote,
       if (photos.isNotEmpty) 'photos': photos,
@@ -189,6 +207,8 @@ class LocationRecord {
           other.literatureSource == literatureSource &&
           other.researchNotes == researchNotes &&
           other.heritageGrade == heritageGrade &&
+          other.dongpoSiteId == dongpoSiteId &&
+          other.routeEligible == routeEligible &&
           other.coordinateNote == coordinateNote &&
           other.isCoreSite == isCoreSite &&
           listEquals(other.themes, themes) &&
@@ -218,6 +238,8 @@ class LocationRecord {
     literatureSource,
     researchNotes,
     heritageGrade,
+    dongpoSiteId,
+    routeEligible,
     coordinateNote,
     isCoreSite,
     Object.hashAll(themes),
@@ -249,6 +271,8 @@ class LocationRecord {
     String? literatureSource,
     String? researchNotes,
     HeritageGrade? heritageGrade,
+    int? dongpoSiteId,
+    bool? routeEligible,
     List<String>? themes,
     String? coordinateNote,
     List<Map<String, String>>? photos,
@@ -273,6 +297,8 @@ class LocationRecord {
     literatureSource: literatureSource ?? this.literatureSource,
     researchNotes: researchNotes ?? this.researchNotes,
     heritageGrade: heritageGrade ?? this.heritageGrade,
+    dongpoSiteId: dongpoSiteId ?? this.dongpoSiteId,
+    routeEligible: routeEligible ?? this.routeEligible,
     themes: themes ?? this.themes,
     coordinateNote: coordinateNote ?? this.coordinateNote,
     photos: photos ?? this.photos,

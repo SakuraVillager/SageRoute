@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../components/web/web_brand_panel.dart';
+import '../components/guest_entry_button.dart';
 import '../theme/color_schemes.dart';
 
 class WebWelcomePage extends StatelessWidget {
@@ -72,6 +73,8 @@ class WebWelcomePage extends StatelessWidget {
                         TextButton(onPressed: onLogin, child: const Text('登录')),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    const GuestEntryButton(),
                   ],
                 ),
               ),

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../services/guest_session.dart';
+import '../components/guest_entry_button.dart';
 import '../services/credential_storage.dart';
 import '../theme/color_schemes.dart';
 import 'forgot_password_page.dart';
@@ -19,7 +21,14 @@ import 'register_page.dart';
 /// - 记住密码（勾选后启用）：7 天内登录过则自动填充邮箱与密码，
 ///   点击勾选项旁的说明图标可查看保留期限等详情
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, this.authService, this.credentialStorage});
+  const LoginPage({
+    super.key,
+    this.authService,
+    this.credentialStorage,
+    this.onAuthenticated,
+  });
+
+  final VoidCallback? onAuthenticated;
 
   final AuthService? authService;
 
@@ -119,6 +128,7 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _errorMessage = '登录成功但未获取到有效会话，请重试');
         return;
       }
+      await GuestSession.completeSignIn(response.user!.id);
       // 登录成功后按勾选项处理记住的凭据，供 7 天内自动填充。
       // 保存的是 AuthService 实际提交的凭据（两侧均已 trim）；
       // 未勾选则清除旧记录，确保不再自动填充。
@@ -128,7 +138,11 @@ class _LoginPageState extends State<LoginPage> {
         await _forgetCredentials();
       }
       if (!mounted) return;
-      completeLogin(context);
+      if (widget.onAuthenticated != null) {
+        widget.onAuthenticated!();
+      } else {
+        completeLogin(context);
+      }
     } on AuthException catch (e) {
       debugPrint(
         '[Auth] signIn failed: code=${e.code}, status=${e.statusCode}, '
@@ -189,8 +203,20 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
-  void _goToRegister() {
-    openAppPage(context, RegisterPage(authService: _auth));
+  Future<void> _goToRegister() async {
+    if (!kIsWeb && widget.onAuthenticated != null) {
+      final registered = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (registerContext) => RegisterPage(
+            authService: _auth,
+            onAuthenticated: () => Navigator.pop(registerContext, true),
+          ),
+        ),
+      );
+      if (registered == true && mounted) widget.onAuthenticated!();
+    } else {
+      await openAppPage<void>(context, RegisterPage(authService: _auth));
+    }
   }
 
   @override
@@ -230,6 +256,14 @@ class _LoginPageState extends State<LoginPage> {
               _buildRememberAndForgotRow(),
               const SizedBox(height: 24),
               _buildLoginButton(),
+              const SizedBox(height: 12),
+              if (!_loading && widget.onAuthenticated == null)
+                const GuestEntryButton(),
+              const Text(
+                '免注册浏览与规划，保存行程需登录',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: _mutedColor),
+              ),
               const SizedBox(height: 40),
               _buildSignUpPrompt(),
             ],

@@ -9,8 +9,8 @@ class RoutePlanCommandBuilder {
   const RoutePlanCommandBuilder({
     RoutePlaceRepository? placeRepository,
     TopicRepository? topicRepository,
-  })  : _placeRepository = placeRepository ?? const RoutePlaceRepository(),
-        _topicRepository = topicRepository ?? const TopicRepository();
+  }) : _placeRepository = placeRepository ?? const RoutePlaceRepository(),
+       _topicRepository = topicRepository ?? const TopicRepository();
 
   final RoutePlaceRepository _placeRepository;
   final TopicRepository _topicRepository;
@@ -26,7 +26,9 @@ class RoutePlanCommandBuilder {
     ],
   }) async {
     final places = await _placeRepository.fetchPlacesByThemeId(themeId);
-    final TopicRecord? theme = themeId == null ? null : await _topicRepository.fetchTopicById(themeId);
+    final TopicRecord? theme = themeId == null
+        ? null
+        : await _topicRepository.fetchPlanningTopicById(themeId);
 
     return RoutePlanCommand(
       theme: theme,

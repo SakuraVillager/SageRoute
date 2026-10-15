@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../../data/location_repository.dart';
+import '../../data/planning_catalog_repository.dart';
+import '../../data/dongpo_site_repository.dart';
 import '../../data/topic_repository.dart';
 import '../../models/location_record.dart';
 import '../models/route_place.dart';
@@ -9,19 +11,37 @@ class RoutePlaceRepository {
   const RoutePlaceRepository({
     TopicRepository? topicRepository,
     LocationRepository? locationRepository,
+    this.dongpoRepository = const DongpoSiteRepository(),
   }) : _topicRepository = topicRepository ?? const TopicRepository(),
-       _locationRepository =
-           locationRepository ?? const LocationRepository();
+       _locationRepository = locationRepository ?? const LocationRepository();
 
   final TopicRepository _topicRepository;
   final LocationRepository _locationRepository;
+  final DongpoSiteRepository dongpoRepository;
 
   Future<List<RoutePlace>> fetchPlacesByThemeId(int? themeId) async {
     List<LocationRecord> locations;
     try {
+      final catalog = await PlanningCatalogRepository(
+        locations: _locationRepository,
+        topics: _topicRepository,
+        dongpo: dongpoRepository,
+      ).fetchCatalog();
+      final themes = catalog.topics.where(
+        (topic) =>
+            topic.id == themeId ||
+            (themeId == dongpoRouteId && isDongpoRouteName(topic.name)),
+      );
       locations = themeId == null
-          ? await _locationRepository.fetchLocations()
-          : await _fetchLocationsByThemeId(themeId);
+          ? catalog.locations
+          : themes.isEmpty
+          ? const []
+          : catalog.locations
+                .where(
+                  (location) =>
+                      locationTopics(location).contains(themes.first.name),
+                )
+                .toList();
     } catch (error, stackTrace) {
       debugPrint('fetchPlacesByThemeId: 查询失败 themeId=$themeId, error=$error');
       debugPrint('fetchPlacesByThemeId: 异常堆栈:\n$stackTrace');
@@ -29,11 +49,13 @@ class RoutePlaceRepository {
     }
 
     final cleaned = locations
-        .where((location) => location.coordinates.length >= 2)
+        .where((location) => location.canPlanRoute)
         .map(RoutePlace.fromLocation)
         .toList(growable: false);
 
-    debugPrint('fetchPlacesByThemeId: themeId=$themeId, 原始${locations.length}个, 有效坐标${cleaned.length}个');
+    debugPrint(
+      'fetchPlacesByThemeId: themeId=$themeId, 原始${locations.length}个, 有效坐标${cleaned.length}个',
+    );
 
     cleaned.sort((left, right) {
       final leftDuration = left.averageVisitDurationMin ?? 0;
@@ -46,18 +68,5 @@ class RoutePlaceRepository {
     });
 
     return cleaned;
-  }
-
-  Future<List<LocationRecord>> _fetchLocationsByThemeId(int themeId) async {
-    final topic = await _topicRepository.fetchTopicById(themeId);
-    if (topic == null) {
-      debugPrint('_fetchLocationsByThemeId: 未找到主题 themeId=$themeId');
-      return const <LocationRecord>[];
-    }
-
-    debugPrint('_fetchLocationsByThemeId: 主题名="${topic.name}", 开始获取地点');
-    final locations = await _locationRepository.fetchLocationsByTopic(topic.name);
-    debugPrint('_fetchLocationsByThemeId: 获取到 ${locations.length} 个地点');
-    return locations;
   }
 }

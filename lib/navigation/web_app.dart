@@ -28,6 +28,7 @@ import '../pages/language_page.dart';
 import '../services/database_service.dart';
 import '../services/browser_session.dart';
 import '../services/auth_service.dart';
+import '../services/guest_session.dart';
 import '../services/credential_storage.dart';
 import '../theme.dart';
 import '../theme/web_theme.dart';
@@ -76,10 +77,22 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
         await preferences.remove(CredentialStorage.passwordKey);
         if (!mounted) return;
         _hasSeenOnboarding = preferences.getBool('hasSeenOnboarding') ?? false;
+        await GuestSession.restore();
+        final restoredUser = DatabaseService.client.auth.currentUser;
+        if (restoredUser != null) {
+          await GuestSession.completeSignIn(restoredUser.id);
+        }
+        if (!mounted) return;
         _router = _createRouter();
-        _auth = DatabaseService.client.auth.onAuthStateChange.listen((_) {
-          _authRefresh.value++;
+        _auth = DatabaseService.client.auth.onAuthStateChange.listen((
+          state,
+        ) async {
+          if (state.session != null) {
+            await GuestSession.completeSignIn(state.session!.user.id);
+          }
+          if (mounted) _authRefresh.value++;
         }, onError: (Object _) {});
+        GuestSession.active.addListener(_refreshGuest);
         setState(() {});
       },
       onError: (Object error) {
@@ -87,6 +100,8 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
       },
     );
   }
+
+  void _refreshGuest() => _authRefresh.value++;
 
   GoRouter _createRouter() => GoRouter(
     initialLocation:
@@ -102,7 +117,10 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
       final path = state.uri.path;
       if (path == '/auth/callback') return null;
       if (path == '/') {
-        if (DatabaseService.client.auth.currentSession != null) return '/home';
+        if (DatabaseService.client.auth.currentSession != null ||
+            GuestSession.isActive) {
+          return '/home';
+        }
         return _hasSeenOnboarding ? '/login' : '/welcome';
       }
       final public = [
@@ -111,7 +129,9 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
         '/register',
         '/forgot-password',
       ].contains(path);
-      if (DatabaseService.client.auth.currentSession == null && !public) {
+      if (DatabaseService.client.auth.currentSession == null &&
+          !public &&
+          !(GuestSession.isActive && guestCanVisit(path))) {
         return '/login?from=${Uri.encodeComponent(state.uri.toString())}';
       }
       return null;
@@ -166,7 +186,9 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
       ShellRoute(
         observers: [_shellMapObserver],
         builder: (context, state, child) => MainScreen(
-          key: const ValueKey('web-main-screen'),
+          key: ValueKey(
+            'web-main-${DatabaseService.client.auth.currentUser?.id ?? 'guest'}',
+          ),
           initialIndex:
               _tabs[state.uri.path] ??
               (state.uri.path.startsWith('/routes')
@@ -362,6 +384,7 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
 
   @override
   void dispose() {
+    GuestSession.active.removeListener(_refreshGuest);
     _auth?.cancel();
     _router?.dispose();
     _rootMapObserver.release();

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../components/sage_tab_bar.dart';
+import '../components/guest_account_notice.dart';
+import '../services/guest_session.dart';
 import '../data/mock_routes.dart' as routes;
 import '../data/mock_figures.dart' as figures;
 import '../theme/color_schemes.dart';
@@ -34,6 +36,9 @@ class _SavedRoutesPageState extends State<SavedRoutesPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (GuestSession.isActive) {
+      return const Scaffold(body: GuestAccountNotice());
+    }
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       body: SafeArea(

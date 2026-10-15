@@ -17,7 +17,9 @@ import '../theme/color_schemes.dart';
 /// 注册即登录不会保存密码：记住密码需在登录页勾选（opt-in），
 /// 首次登录成功后才开始 7 天自动填充。
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key, this.authService});
+  const RegisterPage({super.key, this.authService, this.onAuthenticated});
+
+  final VoidCallback? onAuthenticated;
 
   final AuthService? authService;
 
@@ -134,8 +136,11 @@ class _RegisterPageState extends State<RegisterPage> {
       final user = response.user;
 
       if (session != null) {
-        // 邮箱验证关闭的情况下，session 非空 = 直接登录成功
-        // AuthGate 会自动跳转到主页。
+        if (widget.onAuthenticated != null) {
+          widget.onAuthenticated!();
+        } else {
+          completeLogin(context);
+        }
         return;
       }
 

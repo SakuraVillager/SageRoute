@@ -19,6 +19,20 @@
             ]
         },
         {
+            "name": "SageRoute Web (manual browser)",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "cwd": "${workspaceFolder}",
+            "deviceId": "web-server",
+            "flutterMode": "debug",
+            "toolArgs": [
+                "--dart-define-from-file=dart_define.web.json",
+                "--web-hostname=127.0.0.1",
+                "--web-port=8080"
+            ]
+        },
+        {
             "name": "SageRoute Web (Edge debug)",
             "request": "launch",
             "type": "dart",

@@ -4,6 +4,10 @@ import '../../../components/map/sage_map.dart';
 import 'package:flutter/material.dart';
 
 import '../../../components/map/category_marker_icons.dart';
+import '../../../components/place_metadata_tags.dart';
+import '../../../components/planning_place_details.dart';
+import '../../../data/planning_catalog_repository.dart';
+import '../../../models/heritage_grade.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../route_planning/models/transport_type.dart';
@@ -63,7 +67,8 @@ class _Step3MapState extends State<Step3Map> {
   late List<RoutePlace> _selected;
 
   final Map<String, TransportType> _segmentTransportTypes = {};
-  Map<CategoryMarkerKind, MapIcon> _categoryMarkerIcons = const {};
+  Map<HeritageGrade?, Map<CategoryMarkerKind, MapIcon>> _categoryMarkerIcons =
+      const {};
   RoutePreviewStatus _previewStatus = RoutePreviewStatus.insufficient;
   List<List<double>> _polyline = [];
   List<RouteSegmentPreview> _segmentPreviews = [];
@@ -95,15 +100,21 @@ class _Step3MapState extends State<Step3Map> {
     }
     _routeCoordinator = RoutePreviewCoordinator(gateway: createRouteGateway());
     _loadCategoryMarkerIcons();
+    _restorePlaceDetails();
     _scheduleRoute();
   }
 
   Future<void> _loadCategoryMarkerIcons() async {
-    final icons = await buildCategoryMarkerIcons(
-      fillColor: AppColors.sageAccent,
-    );
+    final icons = await buildHeritageCategoryMarkerIcons();
     if (!mounted) return;
     setState(() => _categoryMarkerIcons = icons);
+  }
+
+  Future<void> _restorePlaceDetails() async {
+    final current = _selected;
+    final restored = await PlanningCatalogRepository.restoreDetails(current);
+    if (!mounted || !identical(current, _selected)) return;
+    setState(() => _selected = restored);
   }
 
   @override
@@ -114,6 +125,7 @@ class _Step3MapState extends State<Step3Map> {
         _selected = List<RoutePlace>.from(widget.selectedPlaces);
       });
       _scheduleRoute();
+      _restorePlaceDetails();
     }
   }
 
@@ -130,7 +142,10 @@ class _Step3MapState extends State<Step3Map> {
           a[i].name != b[i].name ||
           a[i].latitude != b[i].latitude ||
           a[i].longitude != b[i].longitude ||
-          a[i].averageVisitDurationMin != b[i].averageVisitDurationMin) {
+          a[i].averageVisitDurationMin != b[i].averageVisitDurationMin ||
+          a[i].heritageGrade != b[i].heritageGrade ||
+          a[i].categories != b[i].categories ||
+          !listEquals(a[i].themes, b[i].themes)) {
         return false;
       }
     }
@@ -384,7 +399,8 @@ class _Step3MapState extends State<Step3Map> {
               position: MapCoordinate(place.latitude, place.longitude),
               icon: _categoryMarkerIcons.isEmpty
                   ? MapIcon.defaultMarker
-                  : _categoryMarkerIcons[categoryMarkerKindFor(
+                  : _categoryMarkerIcons[place
+                        .heritageGrade]![categoryMarkerKindFor(
                       place.categories,
                     )]!,
               anchor: const Offset(0.5, 0.5),
@@ -393,6 +409,9 @@ class _Step3MapState extends State<Step3Map> {
                     ? '${selectedIndex + 1}. ${place.name}'
                     : place.name,
               ),
+              onTap: place.details == null
+                  ? null
+                  : (_) => showPlanningPlaceDetails(context, place.details!),
             );
             marker.setIdForCopy('marker-${place.id}-${place.name}');
             return marker;
@@ -1096,6 +1115,31 @@ class _ItineraryTimelineTile extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
+                          PlaceMetadataTags(
+                            categories: (place.categories ?? '')
+                                .split(RegExp(r'[,，、]+'))
+                                .map((value) => value.trim())
+                                .where((value) => value.isNotEmpty)
+                                .toList(),
+                            grade: place.heritageGrade,
+                          ),
+                          if (place.details != null)
+                            InkWell(
+                              onTap: () => showPlanningPlaceDetails(
+                                context,
+                                place.details!,
+                              ),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 5),
+                                child: Text(
+                                  '查看地点资料',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.sageAccent,
+                                  ),
+                                ),
+                              ),
+                            ),
                           Text(
                             visitWindow,
                             style: const TextStyle(

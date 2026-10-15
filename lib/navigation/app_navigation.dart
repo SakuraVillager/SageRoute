@@ -16,6 +16,7 @@ import '../views/create_route_wizard/create_route_wizard.dart';
 import '../views/route_preview/route_preview_page.dart';
 import '../views/route_preview/route_edit_page.dart';
 import '../utils/slide_route.dart';
+import '../services/guest_session.dart';
 
 String? pageLocation(Widget page) => switch (page) {
   DongpoCatalogPage() => '/dongpo',
@@ -41,7 +42,16 @@ String? pageLocation(Widget page) => switch (page) {
 
 Future<T?> openAppPage<T>(BuildContext context, Widget page) {
   final path = pageLocation(page);
-  if (kIsWeb && path != null) return context.push<T>(path, extra: page);
+  if (kIsWeb && path != null) {
+    final from = GoRouterState.of(context).uri.queryParameters['from'];
+    final target = from != null && (path == '/login' || path == '/register')
+        ? Uri(
+            path: path,
+            queryParameters: {'from': safeReturnLocation(from)},
+          ).toString()
+        : path;
+    return context.push<T>(target, extra: page);
+  }
   return Navigator.of(context).push<T>(slideFromRightRoute<T>(page));
 }
 
@@ -81,6 +91,17 @@ void completeLogin(BuildContext context) {
   if (kIsWeb) {
     final from = GoRouterState.of(context).uri.queryParameters['from'];
     context.go(safeReturnLocation(from));
+  } else {
+    Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
+  }
+}
+
+void completeGuestEntry(BuildContext context) {
+  if (kIsWeb) {
+    final from = safeReturnLocation(
+      GoRouterState.of(context).uri.queryParameters['from'],
+    );
+    context.go(guestCanVisit(Uri.parse(from).path) ? from : '/home');
   } else {
     Navigator.of(context).pushNamedAndRemoveUntil('/main', (_) => false);
   }

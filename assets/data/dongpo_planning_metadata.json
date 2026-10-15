@@ -1,0 +1,244 @@
+[
+  {
+    "site_id": 1,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "杭州凤凰山景区（中和堂）",
+      "杭州凤凰山景区"
+    ]
+  },
+  {
+    "site_id": 2,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "杭州凤凰山景区（望海楼）"
+    ]
+  },
+  {
+    "site_id": 3,
+    "category": "泉池溪涧",
+    "existing_names": [
+      "浙江省杭州市上城区解放路与浣纱路交叉口附近（相国井遗迹）"
+    ]
+  },
+  {
+    "site_id": 4,
+    "category": "街巷居所",
+    "existing_names": [
+      "浙江省杭州市上城区庆春路与浣纱路交叉口",
+      "杭州市（具体位置不可考）"
+    ]
+  },
+  {
+    "site_id": 5,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "杭州市拱墅区仙林苑小区遗址"
+    ]
+  },
+  {
+    "site_id": 6,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "浙江省杭州市拱墅区灯芯巷一带（遗址）"
+    ]
+  },
+  {
+    "site_id": 7,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 8,
+    "category": "街巷居所",
+    "existing_names": [
+      "浙江省杭州市上城区劳动路杭州孔庙"
+    ]
+  },
+  {
+    "site_id": 9,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "杭州凤凰山景区圣果寺遗址"
+    ]
+  },
+  {
+    "site_id": 10,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "浙江省杭州市钱塘江（观潮）"
+    ]
+  },
+  {
+    "site_id": 11,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 12,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 13,
+    "category": "林野花谷",
+    "existing_names": [
+      "杭州孤山景区"
+    ]
+  },
+  {
+    "site_id": 14,
+    "category": "泉池溪涧",
+    "existing_names": [
+      "杭州孤山景区（六一泉）"
+    ]
+  },
+  {
+    "site_id": 15,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "浙江省杭州市西湖区栖霞岭（智果寺遗址）"
+    ]
+  },
+  {
+    "site_id": 16,
+    "category": "桥堤津渡",
+    "existing_names": [
+      "杭州西湖苏堤景区"
+    ]
+  },
+  {
+    "site_id": 17,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "浙江省杭州市西湖区北山路宝石山麓",
+      "杭州西湖北山街望湖楼景区"
+    ]
+  },
+  {
+    "site_id": 18,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "浙江省杭州市西湖区灵隐景区灵隐寺前飞来峰下"
+    ]
+  },
+  {
+    "site_id": 19,
+    "category": "峰峦岩洞",
+    "existing_names": [
+      "杭州西湖区大麦岭"
+    ]
+  },
+  {
+    "site_id": 20,
+    "category": "峰峦岩洞",
+    "existing_names": []
+  },
+  {
+    "site_id": 21,
+    "category": "峰峦岩洞",
+    "existing_names": []
+  },
+  {
+    "site_id": 22,
+    "category": "泉池溪涧",
+    "existing_names": []
+  },
+  {
+    "site_id": 23,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 24,
+    "category": "亭台楼阁",
+    "existing_names": [
+      "杭州西湖区龙井村"
+    ]
+  },
+  {
+    "site_id": 25,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "杭州灵隐寺景区"
+    ]
+  },
+  {
+    "site_id": 26,
+    "category": "湖泊江川",
+    "existing_names": [
+      "杭州西湖景区",
+      "浙江省杭州市上城区西湖景区"
+    ]
+  },
+  {
+    "site_id": 27,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 28,
+    "category": "祠庙陵寝",
+    "existing_names": []
+  },
+  {
+    "site_id": 29,
+    "category": "峰峦岩洞",
+    "existing_names": []
+  },
+  {
+    "site_id": 30,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "浙江省杭州市富阳区普照寺"
+    ]
+  },
+  {
+    "site_id": 31,
+    "category": "街巷居所",
+    "existing_names": []
+  },
+  {
+    "site_id": 32,
+    "category": "峰峦岩洞",
+    "existing_names": [
+      "杭州西湖区双浦镇灵山村",
+      "浙江省杭州市富阳区风水洞"
+    ]
+  },
+  {
+    "site_id": 33,
+    "category": "祠庙陵寝",
+    "existing_names": [
+      "浙江省杭州市佛日山"
+    ]
+  },
+  {
+    "site_id": 34,
+    "category": "林野花谷",
+    "existing_names": [
+      "杭州临平区临平山公园"
+    ]
+  },
+  {
+    "site_id": 35,
+    "category": "泉池溪涧",
+    "existing_names": [
+      "浙江省杭州市临平区临平山南麓安平泉景区"
+    ]
+  },
+  {
+    "site_id": 36,
+    "category": "桥堤津渡",
+    "existing_names": [
+      "浙江省杭州市滨江区西兴街道"
+    ]
+  },
+  {
+    "site_id": 37,
+    "category": "湖泊江川",
+    "existing_names": [
+      "钱塘江上游石门段（地望后世失考，约今富阳区与桐庐县交界江段）"
+    ]
+  }
+]

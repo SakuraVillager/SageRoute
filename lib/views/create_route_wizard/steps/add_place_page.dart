@@ -2,10 +2,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../data/location_repository.dart';
+import '../../../data/dongpo_site_repository.dart';
+import '../../../data/planning_catalog_repository.dart';
+import '../../../components/place_metadata_tags.dart';
+import '../../../components/planning_place_details.dart';
+import '../../../models/heritage_grade.dart';
 import '../../../data/poi_celebrity_relation_repository.dart';
 import '../../../data/topic_repository.dart';
 import '../../../models/celebrity_profile.dart';
 import '../../../models/location_record.dart';
+import '../../../models/poi_celebrity_relation_record.dart';
 import '../../../models/topic_record.dart';
 import '../../../route_planning/models/route_place.dart';
 import '../../../theme/color_schemes.dart';
@@ -21,6 +27,7 @@ class AddPlacePage extends StatefulWidget {
     this.locationRepository = const LocationRepository(),
     this.relationRepository = const PoiCelebrityRelationRepository(),
     this.topicRepository = const TopicRepository(),
+    this.dongpoRepository = const DongpoSiteRepository(),
   });
 
   final CelebrityProfile? figure;
@@ -28,6 +35,7 @@ class AddPlacePage extends StatefulWidget {
   final LocationRepository locationRepository;
   final PoiCelebrityRelationRepository relationRepository;
   final TopicRepository topicRepository;
+  final DongpoSiteRepository? dongpoRepository;
 
   @override
   State<AddPlacePage> createState() => _AddPlacePageState();
@@ -44,6 +52,10 @@ class _AddPlacePageState extends State<AddPlacePage> {
   String? _error;
   String _query = '';
   String? _selectedTopic;
+  String? _selectedTheme;
+  HeritageGrade? _selectedGrade;
+  bool _isLocalCopy = false;
+  bool _allowReferenceLocations = false;
 
   @override
   void initState() {
@@ -60,30 +72,69 @@ class _AddPlacePageState extends State<AddPlacePage> {
 
   Future<void> _loadData() async {
     try {
+      final dongpo = widget.dongpoRepository;
+      final catalog = dongpo == null
+          ? null
+          : await PlanningCatalogRepository(
+              locations: widget.locationRepository,
+              topics: widget.topicRepository,
+              dongpo: dongpo,
+            ).fetchCatalog();
       final locations = List<LocationRecord>.from(
-        await widget.locationRepository.fetchLocations(),
+        catalog?.locations ?? await widget.locationRepository.fetchLocations(),
       );
-      locations.removeWhere((location) => !_hasValidCoordinates(location));
       final figure = widget.figure;
       final relatedLocationNames = figure == null
           ? null
-          : (await widget.relationRepository.fetchRelationsByCelebrity(
-                  figure.name,
-                ))
+          : (await widget.relationRepository
+                    .fetchRelationsByCelebrity(figure.name)
+                    .timeout(const Duration(seconds: 8))
+                    .catchError((Object error) {
+                      if (catalog != null && isDongpoFigure(figure.name)) {
+                        _isLocalCopy = true;
+                        return <PoiCelebrityRelationRecord>[];
+                      }
+                      throw error;
+                    }))
                 .map((relation) => relation.locationName?.trim() ?? '')
                 .where((name) => name.isNotEmpty)
                 .toSet();
-      final topics = widget.figure == null
-          ? <TopicRecord>[]
-          : await widget.topicRepository.fetchTopicsByCelebrity(
-              widget.figure!.name,
-            );
+      final topics = catalog == null
+          ? await widget.topicRepository.fetchTopicsByCelebrity(
+              figure?.name ?? '',
+            )
+          : catalog.topics
+                .where(
+                  (topic) =>
+                      figure == null ||
+                      topic.celebrity == figure.name ||
+                      (isDongpoFigure(figure.name) &&
+                          isDongpoFigure(topic.celebrity)),
+                )
+                .toList();
+      if (figure == null || isDongpoFigure(figure.name)) {
+        relatedLocationNames?.addAll(
+          locations
+              .where((location) => location.dongpoSiteId != null)
+              .map((location) => location.nameModern),
+        );
+      }
+      // The curated display name may replace a former address-like name.
+      for (final selected in widget.currentSelectedPlaces) {
+        for (final location in locations) {
+          if (selected.id != 0 && location.id == selected.id) {
+            _selectedPlaceNames.remove(selected.name);
+            _selectedPlaceNames.add(location.nameModern);
+          }
+        }
+      }
       locations.sort((a, b) => a.nameModern.compareTo(b.nameModern));
       if (!mounted) return;
       setState(() {
         _allLocations = locations;
         _relatedLocationNames = relatedLocationNames;
         _topics = topics;
+        _isLocalCopy = _isLocalCopy || (catalog?.isLocalCopy ?? false);
         _loading = false;
       });
     } catch (error) {
@@ -97,17 +148,21 @@ class _AddPlacePageState extends State<AddPlacePage> {
 
   int get _selectedCount => _selectedPlaceNames.length;
 
-  bool _hasValidCoordinates(LocationRecord location) {
-    if (location.coordinates.length < 2) return false;
-    final longitude = location.coordinates[0];
-    final latitude = location.coordinates[1];
-    return latitude.isFinite &&
-        longitude.isFinite &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180 &&
-        !(latitude == 0 && longitude == 0);
+  bool _canPlanRoute(LocationRecord location) =>
+      location.hasValidCoordinates &&
+      (location.routeEligible != false || _allowReferenceLocations);
+
+  void _setAllowReferenceLocations(bool value) {
+    setState(() {
+      _allowReferenceLocations = value;
+      if (!value) {
+        _selectedPlaceNames.removeAll(
+          _allLocations
+              .where((location) => location.routeEligible == false)
+              .map((location) => location.nameModern),
+        );
+      }
+    });
   }
 
   void _togglePlace(String placeName) {
@@ -122,34 +177,19 @@ class _AddPlacePageState extends State<AddPlacePage> {
     setState(() => _selectedPlaceNames.clear());
   }
 
-  Set<String> _parseLocationTopics(String? raw) {
-    final value = raw?.trim();
-    if (value == null || value.isEmpty) return const <String>{};
-    final bracketMatch = RegExp(r'[\[【](.*)[\]】]').firstMatch(value);
-    final inner = bracketMatch?.group(1) ?? value;
-    return inner
-        .split(RegExp(r'[\.。,，、;；\s]+'))
-        .map(_normalizeTopicName)
-        .where((topic) => topic.isNotEmpty)
-        .toSet();
-  }
-
-  String _normalizeTopicName(String value) {
-    return value.replaceAll(RegExp(r'^[\[【]+|[\]】]+$'), '').trim();
-  }
-
   bool _matchesTopic(LocationRecord location) {
     final topic = _selectedTopic;
     if (topic == null) return true;
-    return _parseLocationTopics(
-      location.topic,
-    ).contains(_normalizeTopicName(topic));
+    return locationTopics(location).contains(topic);
   }
 
   bool _matchesSearch(LocationRecord location) {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) return true;
     return location.nameModern.toLowerCase().contains(query) ||
+        (location.nameAncient?.toLowerCase().contains(query) ?? false) ||
+        location.themes.any((theme) => theme.toLowerCase().contains(query)) ||
+        (location.heritageGrade?.label.contains(query) ?? false) ||
         (location.topic?.toLowerCase().contains(query) ?? false) ||
         location.categories.any(
           (category) => category.toLowerCase().contains(query),
@@ -163,6 +203,10 @@ class _AddPlacePageState extends State<AddPlacePage> {
               (_relatedLocationNames?.contains(location.nameModern.trim()) ??
                   true) &&
               _matchesTopic(location) &&
+              (_selectedTheme == null ||
+                  location.themes.contains(_selectedTheme)) &&
+              (_selectedGrade == null ||
+                  location.heritageGrade == _selectedGrade) &&
               _matchesSearch(location),
         )
         .toList();
@@ -175,33 +219,33 @@ class _AddPlacePageState extends State<AddPlacePage> {
     final result = <RoutePlace>[];
     final addedNames = <String>{};
     RoutePlace fromLocation(LocationRecord location) {
-      if (!_hasValidCoordinates(location)) {
+      if (!_canPlanRoute(location)) {
         throw FormatException('地点“${location.nameModern}”缺少有效经纬度');
       }
-      return RoutePlace(
-        id: location.id,
-        name: location.nameModern,
-        latitude: location.coordinates[1],
-        longitude: location.coordinates[0],
-        averageVisitDurationMin: location.averageVisitDurationMin,
-        topic: location.topic,
-        categories: location.categories.join(', '),
-      );
+      return RoutePlace.fromLocation(location);
     }
 
     // Keep the user's existing route order for places that remain selected.
     for (final place in widget.currentSelectedPlaces) {
-      if (!_selectedPlaceNames.contains(place.name) ||
-          !addedNames.add(place.name)) {
+      final match = _allLocations.where(
+        (location) => place.id != 0 && location.id == place.id,
+      );
+      final name = match.isEmpty ? place.name : match.first.nameModern;
+      if (!_selectedPlaceNames.contains(name) || !addedNames.add(name)) {
         continue;
       }
-      final location = byName[place.name];
-      result.add(location == null ? place : fromLocation(location));
+      final location = byName[name];
+      result.add(
+        location == null || !location.canPlanRoute
+            ? place
+            : fromLocation(location),
+      );
     }
 
     // Append newly selected places in a predictable alphabetical order.
     for (final location in _allLocations) {
-      if (_selectedPlaceNames.contains(location.nameModern) &&
+      if (_canPlanRoute(location) &&
+          _selectedPlaceNames.contains(location.nameModern) &&
           addedNames.add(location.nameModern)) {
         result.add(fromLocation(location));
       }
@@ -255,6 +299,51 @@ class _AddPlacePageState extends State<AddPlacePage> {
                 _buildHeader(),
                 _buildSearchField(),
                 _buildTopicFilters(),
+                if (!_loading && _error == null) _buildEditorialFilters(),
+                if (!_loading &&
+                    _error == null &&
+                    _allLocations.any(
+                      (location) =>
+                          location.routeEligible == false &&
+                          location.hasValidCoordinates &&
+                          (_relatedLocationNames?.contains(
+                                location.nameModern,
+                              ) ??
+                              true),
+                    ))
+                  SwitchListTile.adaptive(
+                    title: const Text(
+                      '允许选择参考位置',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    subtitle: const Text(
+                      '接受位置未核实的地点（需有坐标）',
+                      style: TextStyle(fontSize: 11),
+                    ),
+                    dense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    value: _allowReferenceLocations,
+                    onChanged: _setAllowReferenceLocations,
+                  ),
+                if (_isLocalCopy)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text('部分资料使用本地副本', style: TextStyle(fontSize: 11)),
+                  ),
+                if (!_loading && _error == null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${visibleLocations.length} 个地点 · ${visibleLocations.where(_canPlanRoute).length} 个可加入路线',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.sageMuted,
+                        ),
+                      ),
+                    ),
+                  ),
                 Expanded(
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
@@ -280,7 +369,13 @@ class _AddPlacePageState extends State<AddPlacePage> {
                               isSelected: _selectedPlaceNames.contains(
                                 location.nameModern,
                               ),
-                              onToggle: () => _togglePlace(location.nameModern),
+                              onToggle:
+                                  _canPlanRoute(location) ||
+                                      _selectedPlaceNames.contains(
+                                        location.nameModern,
+                                      )
+                                  ? () => _togglePlace(location.nameModern)
+                                  : null,
                             );
                           },
                         ),
@@ -391,7 +486,10 @@ class _AddPlacePageState extends State<AddPlacePage> {
           final topicName = index == 0 ? null : _topics[index - 1].name;
           final selected = _selectedTopic == topicName;
           return InkWell(
-            onTap: () => setState(() => _selectedTopic = topicName),
+            onTap: () => setState(() {
+              _selectedTopic = topicName;
+              _selectedTheme = null;
+            }),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
               padding: const EdgeInsets.fromLTRB(2, 7, 2, 2),
@@ -417,6 +515,77 @@ class _AddPlacePageState extends State<AddPlacePage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildEditorialFilters() {
+    final themes =
+        _allLocations
+            .where(
+              (location) =>
+                  (_relatedLocationNames?.contains(location.nameModern) ??
+                      true) &&
+                  _matchesTopic(location),
+            )
+            .expand((location) => location.themes)
+            .where((label) => !_topics.any((topic) => topic.name == label))
+            .toSet()
+            .toList()
+          ..sort();
+    if (!_allLocations.any((location) => location.heritageGrade != null)) {
+      return const SizedBox.shrink();
+    }
+    return Column(
+      children: [
+        if (themes.isNotEmpty)
+          SizedBox(
+            height: 40,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final theme in themes)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(theme, style: const TextStyle(fontSize: 11)),
+                      selected: _selectedTheme == theme,
+                      onSelected: (selected) => setState(
+                        () => _selectedTheme = selected ? theme : null,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        SizedBox(
+          height: 38,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            children: [
+              const Center(
+                child: Text('遗存等级  ', style: TextStyle(fontSize: 11)),
+              ),
+              for (final grade in HeritageGrade.values)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    avatar: Icon(Icons.circle, size: 9, color: grade.color),
+                    label: Text(
+                      grade.label,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    selected: _selectedGrade == grade,
+                    onSelected: (selected) => setState(
+                      () => _selectedGrade = selected ? grade : null,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -462,15 +631,17 @@ class _PlaceListTile extends StatelessWidget {
 
   final LocationRecord location;
   final bool isSelected;
-  final VoidCallback onToggle;
+  final VoidCallback? onToggle;
 
   @override
   Widget build(BuildContext context) {
     final metadata = <String>[
       if ((location.averageVisitDurationMin ?? 0) > 0)
         '${location.averageVisitDurationMin} 分钟',
-      if (location.categories.isNotEmpty)
-        location.categories.take(2).join(' · '),
+      if (!location.hasValidCoordinates)
+        '暂无坐标 · 暂不可加入路线'
+      else if (location.routeEligible == false)
+        onToggle == null ? '参考位置 · 打开开关后可选' : '参考位置',
     ].join('  ·  ');
 
     return Padding(
@@ -481,7 +652,7 @@ class _PlaceListTile extends StatelessWidget {
             : AppColors.brandWash,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          onTap: onToggle,
+          onTap: onToggle ?? () => showPlanningPlaceDetails(context, location),
           borderRadius: BorderRadius.circular(14),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
@@ -500,7 +671,11 @@ class _PlaceListTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(11),
                   ),
                   child: Icon(
-                    isSelected ? Icons.check : Icons.add_location_alt_outlined,
+                    onToggle == null
+                        ? Icons.location_off_outlined
+                        : isSelected
+                        ? Icons.check
+                        : Icons.add_location_alt_outlined,
                     size: 18,
                     color: isSelected ? Colors.white : AppColors.sageMuted,
                   ),
@@ -521,6 +696,14 @@ class _PlaceListTile extends StatelessWidget {
                               ? AppColors.primaryLight
                               : AppColors.sageText,
                         ),
+                      ),
+                      const SizedBox(height: 5),
+                      PlaceMetadataTags(
+                        categories: location.categories,
+                        grade: location.heritageGrade,
+                        themes: location.themes
+                            .where((label) => !label.startsWith('苏轼·'))
+                            .toList(),
                       ),
                       if (location.topic?.trim().isNotEmpty == true) ...[
                         const SizedBox(height: 3),
@@ -548,6 +731,11 @@ class _PlaceListTile extends StatelessWidget {
                       ],
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: '查看${location.nameModern}详情',
+                  onPressed: () => showPlanningPlaceDetails(context, location),
+                  icon: const Icon(Icons.info_outline, size: 20),
                 ),
               ],
             ),

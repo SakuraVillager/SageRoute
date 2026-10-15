@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../components/profile_avatar.dart';
+import '../components/guest_account_notice.dart';
 import '../components/settings_card.dart';
 import '../components/settings_tile.dart';
 import '../data/local_achievement_repository.dart';
@@ -16,6 +17,8 @@ import '../pages/language_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/travel_preferences_page.dart';
 import '../services/auth_service.dart';
+import '../services/guest_session.dart';
+import '../auth/login_page.dart';
 import '../services/profile_preferences.dart';
 import '../theme/color_schemes.dart';
 import '../utils/achievement_icons.dart';
@@ -153,12 +156,16 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   String _resolvedDisplayName(User? user) {
+    if (user == null && GuestSession.isActive) return '游客';
     final nickname = _nickname?.trim() ?? '';
     if (nickname.isNotEmpty) return nickname;
     return AuthService.displayNameOf(user);
   }
 
   String _resolvedSubtitle(String email) {
+    if (GuestSession.isActive && _readCurrentUser() == null) {
+      return '游客模式 · 登录后可保存和同步行程';
+    }
     final bio = _bio?.trim() ?? '';
     if (bio.isNotEmpty) return bio;
     if (email.isNotEmpty) return email;
@@ -179,6 +186,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _handleSettingItem(ProfileSettingItem item) async {
+    if (GuestSession.isActive && item == ProfileSettingItem.account) {
+      await openAppPage<void>(context, const LoginPage());
+      return;
+    }
     final override = widget.onSettingItemTap;
     if (override != null) {
       override(item);
@@ -220,6 +231,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _confirmLogout() async {
+    if (GuestSession.isActive && _readCurrentUser() == null) {
+      await _auth.signOut();
+      if (mounted && kIsWeb) {
+        await openAppPage<void>(context, const LoginPage());
+      }
+      return;
+    }
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -266,6 +284,23 @@ class _ProfilePageState extends State<ProfilePage> {
       stream: _authStateChanges,
       builder: (context, snapshot) {
         final user = snapshot.data?.session?.user ?? _readCurrentUser();
+        if (user == null && GuestSession.isActive) {
+          return Scaffold(
+            backgroundColor: _pageBg,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  const Expanded(child: GuestAccountNotice()),
+                  TextButton(
+                    onPressed: _confirmLogout,
+                    child: const Text('退出游客模式'),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        }
         final displayName = _resolvedDisplayName(user);
         final email = user?.email ?? '';
         // 用昵称首字作为头像占位（没有头像 URL 时）
@@ -695,6 +730,18 @@ class _ProfilePageState extends State<ProfilePage> {
   // ── Logout Button ──
 
   Widget _buildLogoutButton() {
+    if (GuestSession.isActive && _readCurrentUser() == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FilledButton(
+            onPressed: () => openAppPage<void>(context, const LoginPage()),
+            child: const Text('登录 / 注册'),
+          ),
+          TextButton(onPressed: _confirmLogout, child: const Text('退出游客模式')),
+        ],
+      );
+    }
     return SizedBox(
       width: double.infinity,
       child: OutlinedButton(

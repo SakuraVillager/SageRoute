@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/database_service.dart';
+import '../services/guest_session.dart';
 import 'login_page.dart';
 import 'reset_password_page.dart';
 
@@ -34,26 +35,33 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: _authStateChanges ?? _supabaseClient.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        final authState = snapshot.data;
-        if (authState?.event == AuthChangeEvent.passwordRecovery) {
-          return const ResetPasswordPage();
-        }
-        if (authState == null && _authStateChanges != null) {
-          return const LoginPage();
-        }
-        // 优先用 stream 中的 session，其次用当前已有的 session
-        final session =
-            authState?.session ?? _supabaseClient.auth.currentSession;
+    return ValueListenableBuilder<bool>(
+      valueListenable: GuestSession.active,
+      builder: (context, guest, _) => StreamBuilder<AuthState>(
+        stream: _authStateChanges ?? _supabaseClient.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          final authState = snapshot.data;
+          if (authState?.event == AuthChangeEvent.passwordRecovery) {
+            return const ResetPasswordPage();
+          }
+          if (authState == null && _authStateChanges != null && !guest) {
+            return const LoginPage();
+          }
+          // 优先用 stream 中的 session，其次用当前已有的 session
+          final session = _authStateChanges != null
+              ? authState?.session
+              : authState?.session ?? _supabaseClient.auth.currentSession;
 
-        if (session == null) {
-          return const LoginPage();
-        }
+          if (session == null && !guest) {
+            return const LoginPage();
+          }
 
-        return authenticatedBuilder(context);
-      },
+          return KeyedSubtree(
+            key: ValueKey(session?.user.id ?? GuestSession.draftUserId),
+            child: authenticatedBuilder(context),
+          );
+        },
+      ),
     );
   }
 }

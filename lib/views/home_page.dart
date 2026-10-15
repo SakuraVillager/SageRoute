@@ -8,7 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../components/bottom_nav.dart';
 import '../components/ticket_card.dart';
-import '../pages/dongpo_catalog_page.dart';
 import '../models/saved_route.dart';
 import '../theme/color_schemes.dart';
 import 'route_preview/route_preview_page.dart';
@@ -115,15 +114,6 @@ class _HomePageState extends State<HomePage> {
           else
             _buildHeader(context),
           const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: OutlinedButton.icon(
-              onPressed: () => openAppPage(context, const DongpoCatalogPage()),
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('探索东坡杭州行迹 · 37 个景点'),
-            ),
-          ),
-          const SizedBox(height: 20),
           _buildTicketSection(),
         ],
       ),

@@ -24,15 +24,15 @@ class DongpoSiteRepository {
       final sites = await table
           .fetchAll<LocationRecord>(mapper: LocationRecord.fromMap)
           .timeout(const Duration(seconds: 8));
-      if (sites.isEmpty) return _localCatalog();
+      if (sites.isEmpty) return fetchLocalCatalog();
       sites.sort((a, b) => a.id.compareTo(b.id));
       return DongpoCatalog(List.unmodifiable(sites));
     } catch (_) {
-      return _localCatalog();
+      return fetchLocalCatalog();
     }
   }
 
-  Future<DongpoCatalog> _localCatalog() async {
+  Future<DongpoCatalog> fetchLocalCatalog() async {
     final raw = await rootBundle.loadString('assets/data/dongpo_sites.json');
     final rows = jsonDecode(raw) as List;
     return DongpoCatalog(

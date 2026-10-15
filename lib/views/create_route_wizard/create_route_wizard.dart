@@ -4,6 +4,9 @@ import '../../components/draft_exit_guard.dart';
 import '../../navigation/app_navigation.dart';
 import '../../services/database_service.dart';
 import '../../services/route_draft_storage.dart';
+import '../../services/guest_session.dart';
+import '../../auth/login_page.dart';
+import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -71,6 +74,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Archive animation ──
   bool _archiving = false;
   bool _saved = false;
+  bool _leavingForLogin = false;
   RouteDraftStorage? _draft;
   bool get _dirty =>
       !_saved &&
@@ -97,8 +101,11 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   void _restoreDraft() {
     if (!kIsWeb) return;
     final user = DatabaseService.client.auth.currentUser;
-    if (user == null) return;
-    _draft = RouteDraftStorage(userId: user.id, draftId: 'new');
+    if (user == null && !GuestSession.isActive) return;
+    _draft = RouteDraftStorage(
+      userId: user?.id ?? GuestSession.draftUserId,
+      draftId: 'new',
+    );
     final data = _draft!.load();
     if (data == null) return;
     try {
@@ -297,6 +304,43 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   // ── Save (step 3) ──
 
   Future<void> _handleSave() async {
+    if (GuestSession.isActive &&
+        DatabaseService.client.auth.currentUser == null) {
+      final login = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('登录后保存行程'),
+          content: const Text('游客可以浏览和规划路线。登录后即可保存，当前规划会为你保留。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('继续编辑'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('去登录'),
+            ),
+          ],
+        ),
+      );
+      if (login != true || !mounted) return;
+      if (kIsWeb) {
+        _persistDraft();
+        setState(() => _leavingForLogin = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.go('/login?from=%2Froutes%2Fnew');
+        });
+        return;
+      }
+      final loggedIn = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (loginContext) => LoginPage(
+            onAuthenticated: () => Navigator.pop(loginContext, true),
+          ),
+        ),
+      );
+      if (loggedIn != true || !mounted) return;
+    }
     final saveAction = resolveRouteSaveAction(
       placesCount: _selectedLocations.length,
       previewStatus: _routePreviewStatus,
@@ -392,7 +436,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   Widget build(BuildContext context) {
     _persistDraft();
     return DraftExitGuard(
-      dirty: kIsWeb && _dirty && !_archiving,
+      dirty: kIsWeb && _dirty && !_archiving && !_leavingForLogin,
       onDiscard: () {
         _saved = true;
         _draft?.clear();

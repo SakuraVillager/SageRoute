@@ -50,7 +50,9 @@ class _Step2ThemeState extends State<Step2Theme> {
   }
 
   Future<List<TopicRecord>> _fetchTopics(String celebrityName) async {
-    return const TopicRepository().fetchTopicsByCelebrity(celebrityName);
+    return const TopicRepository().fetchPlanningTopicsByCelebrity(
+      celebrityName,
+    );
   }
 
   @override
