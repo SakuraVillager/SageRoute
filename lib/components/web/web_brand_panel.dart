@@ -4,13 +4,19 @@ import '../../theme/color_schemes.dart';
 
 /// Keep the brand copy in the illustration's light sky, above the landscape.
 class WebBrandPanel extends StatelessWidget {
-  const WebBrandPanel({super.key});
+  const WebBrandPanel({super.key, this.compactHeader = false});
+
+  final bool compactHeader;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final compact = constraints.maxWidth < 480 || constraints.maxHeight < 660;
-      final inset = compact ? 32.0 : 48.0;
+      final inset = compactHeader
+          ? 24.0
+          : compact
+          ? 32.0
+          : 48.0;
       return ClipRect(
         child: ColoredBox(
           color: AppColors.brandWash,
@@ -20,7 +26,9 @@ class WebBrandPanel extends StatelessWidget {
               Image.asset(
                 'assets/images/auth/landscape.png',
                 fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+                alignment: compactHeader
+                    ? const Alignment(0, -0.65)
+                    : Alignment.topCenter,
                 excludeFromSemantics: true,
               ),
               SingleChildScrollView(
@@ -49,16 +57,18 @@ class WebBrandPanel extends StatelessWidget {
                             height: 1.6,
                           ),
                         ),
-                        SizedBox(height: compact ? 16 : 36),
-                        Text(
-                          '山水之间\n与历史同行',
-                          style: TextStyle(
-                            fontSize: compact ? 34 : 42,
-                            height: 1.22,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.brandInk,
+                        if (!compactHeader) ...[
+                          SizedBox(height: compact ? 16 : 36),
+                          Text(
+                            '山水之间\n与历史同行',
+                            style: TextStyle(
+                              fontSize: compact ? 34 : 42,
+                              height: 1.22,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.brandInk,
+                            ),
                           ),
-                        ),
+                        ],
                         SizedBox(height: compact ? 12 : 16),
                         Text(
                           compact ? '让故事，成为你的旅程。' : '从一位人物出发，\n把故事串成你的旅程。',

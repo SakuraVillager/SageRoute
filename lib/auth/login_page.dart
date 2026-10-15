@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/auth_service.dart';
 import '../services/guest_session.dart';
 import '../components/guest_entry_button.dart';
+import '../components/web/web_brand_panel.dart';
 import '../services/credential_storage.dart';
 import '../theme/color_schemes.dart';
 import 'forgot_password_page.dart';
@@ -222,50 +223,67 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kIsWeb && MediaQuery.sizeOf(context).width >= 900
-          ? Colors.white
-          : _pageBg,
+      backgroundColor: kIsWeb ? Colors.white : _pageBg,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 40),
-              if (!kIsWeb || MediaQuery.sizeOf(context).width < 900) ...[
-                _buildBrandSection(),
-                const SizedBox(height: 48),
-              ],
-              _buildWelcomeSection(),
-              const SizedBox(height: 32),
-              AutofillGroup(
+              if (kIsWeb && MediaQuery.sizeOf(context).width < 900)
+                SizedBox(
+                  height: (MediaQuery.sizeOf(context).width * .72).clamp(
+                    280.0,
+                    420.0,
+                  ),
+                  child: const WebBrandPanel(compactHeader: true),
+                ),
+              Padding(
+                key: const ValueKey('login-form'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
+                ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildEmailField(),
-                    const SizedBox(height: 16),
-                    _buildPasswordField(),
+                    const SizedBox(height: kIsWeb ? 8 : 40),
+                    if (!kIsWeb) ...[
+                      _buildBrandSection(),
+                      const SizedBox(height: 48),
+                    ],
+                    _buildWelcomeSection(),
+                    const SizedBox(height: 32),
+                    AutofillGroup(
+                      child: Column(
+                        children: [
+                          _buildEmailField(),
+                          const SizedBox(height: 16),
+                          _buildPasswordField(),
+                        ],
+                      ),
+                    ),
+
+                    if (_errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      _buildErrorText(),
+                    ],
+                    const SizedBox(height: 8),
+                    _buildRememberAndForgotRow(),
+                    const SizedBox(height: 24),
+                    _buildLoginButton(),
+                    const SizedBox(height: 12),
+                    if (!_loading && widget.onAuthenticated == null)
+                      const GuestEntryButton(),
+                    const Text(
+                      '免注册浏览与规划，保存行程需登录',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: _mutedColor),
+                    ),
+                    const SizedBox(height: 40),
+                    _buildSignUpPrompt(),
                   ],
                 ),
               ),
-
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                _buildErrorText(),
-              ],
-              const SizedBox(height: 8),
-              _buildRememberAndForgotRow(),
-              const SizedBox(height: 24),
-              _buildLoginButton(),
-              const SizedBox(height: 12),
-              if (!_loading && widget.onAuthenticated == null)
-                const GuestEntryButton(),
-              const Text(
-                '免注册浏览与规划，保存行程需登录',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: _mutedColor),
-              ),
-              const SizedBox(height: 40),
-              _buildSignUpPrompt(),
             ],
           ),
         ),

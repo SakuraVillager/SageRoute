@@ -2,7 +2,7 @@ part of 'create_route_wizard.dart';
 
 extension _WebPlanningLayout on _CreateRouteWizardState {
   void _continueWebPlan() {
-    if (_title.isEmpty || _startDay == null || _endDay == null) {
+    if (_title.isEmpty || _startDate == null || _endDate == null) {
       _handlePlanDetailsDone();
       return;
     }
@@ -44,11 +44,9 @@ extension _WebPlanningLayout on _CreateRouteWizardState {
                         ),
                       ],
                     ),
-                    // Keep the existing month and date rules; only change presentation.
                     _buildCalendarPanel(
-                      onSelect: (day) {
-                        _selectDay(day);
-                        _persistDraft();
+                      onSelect: (date) {
+                        _selectDate(date);
                         refresh(() {});
                       },
                     ),
@@ -56,7 +54,7 @@ extension _WebPlanningLayout on _CreateRouteWizardState {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _startDay != null && _endDay != null
+                        onPressed: _startDate != null && _endDate != null
                             ? () => Navigator.pop(dialogContext)
                             : null,
                         child: const Text('确定日期'),

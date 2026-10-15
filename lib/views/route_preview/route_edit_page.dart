@@ -256,107 +256,141 @@ class _RouteEditPageState extends State<RouteEditPage> {
       },
       child: Scaffold(
         backgroundColor: AppColors.sageCard,
-        body: SizedBox.expand(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: Step3Map(
-                  key: ValueKey(_mapVersion),
-                  figure: _figure,
-                  selectedPlaces: _places,
-                  onLocationsChanged: (places) {
-                    setState(() {
-                      _places = List<RoutePlace>.from(places);
-                      _dirty = true;
-                    });
-                    _persistDraft();
-                  },
-                  onPreviewStatusChanged: (_) {},
-                  onTransportTypesChanged: (types) {
-                    setState(() {
-                      _transportTypes = types;
-                      _dirty = true;
-                    });
-                    _persistDraft();
-                  },
-                  initialSegmentTransports: [
-                    for (var i = 0; i < _places.length - 1; i++)
-                      _transportTypes[Step3Map.segmentKey(
-                            _places[i],
-                            _places[i + 1],
-                          )] ??
-                          TransportType.driving,
-                  ],
-                  onSaveRequested: _handleSave,
-                ),
-              ),
-              if (_remoteChanged)
-                Positioned(
-                  top: MediaQuery.paddingOf(context).top + 52,
-                  left: 16,
-                  right: 16,
-                  child: PointerInterceptor(
-                    child: Material(
-                      elevation: 3,
-                      borderRadius: BorderRadius.circular(12),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            final reserveToolbar = kIsWeb && constraints.maxWidth >= 760;
+            final toolbarHeight = MediaQuery.paddingOf(context).top + 56;
+            return SizedBox.expand(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    top: reserveToolbar ? toolbarHeight : 0,
+                    child: Step3Map(
+                      key: ValueKey(_mapVersion),
+                      figure: _figure,
+                      selectedPlaces: _places,
+                      onLocationsChanged: (places) {
+                        setState(() {
+                          _places = List<RoutePlace>.from(places);
+                          _dirty = true;
+                        });
+                        _persistDraft();
+                      },
+                      onPreviewStatusChanged: (_) {},
+                      onTransportTypesChanged: (types) {
+                        setState(() {
+                          _transportTypes = types;
+                          _dirty = true;
+                        });
+                        _persistDraft();
+                      },
+                      initialSegmentTransports: [
+                        for (var i = 0; i < _places.length - 1; i++)
+                          _transportTypes[Step3Map.segmentKey(
+                                _places[i],
+                                _places[i + 1],
+                              )] ??
+                              TransportType.driving,
+                      ],
+                      onSaveRequested: _handleSave,
+                    ),
+                  ),
+                  if (_remoteChanged)
+                    Positioned(
+                      top:
+                          MediaQuery.paddingOf(context).top +
+                          (reserveToolbar ? 64 : 52),
+                      left: 16,
+                      right: 16,
+                      child: PointerInterceptor(
+                        child: Material(
+                          elevation: 3,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  child: Text('同行者已更新行程。保存前请载入最新版本。'),
+                                ),
+                                TextButton(
+                                  onPressed: _reloadLatest,
+                                  child: const Text('载入最新'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (reserveToolbar)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: toolbarHeight,
+                      child: const DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: AppColors.sageCard,
+                          border: Border(
+                            bottom: BorderSide(color: AppColors.sageBorder),
+                          ),
+                        ),
+                      ),
+                    ),
+                  SafeArea(
+                    key: const ValueKey('route-edit-toolbar'),
+                    child: PointerInterceptor(
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: EdgeInsets.fromLTRB(
+                          8,
+                          reserveToolbar ? 8 : 4,
+                          8,
+                          reserveToolbar ? 8 : 0,
+                        ),
                         child: Row(
                           children: [
-                            const Expanded(child: Text('同行者已更新行程。保存前请载入最新版本。')),
-                            TextButton(
-                              onPressed: _reloadLatest,
-                              child: const Text('载入最新'),
+                            WebBackButton(
+                              onPressed: _leave,
+                              mobileChild: _CircleIconButton(
+                                icon: Icons.arrow_back,
+                                tooltip: '返回',
+                                onTap: _leave,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text(
+                                '编辑路线',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.sageText,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                ),
-              SafeArea(
-                child: PointerInterceptor(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                    child: Row(
-                      children: [
-                        WebBackButton(
-                          onPressed: _leave,
-                          mobileChild: _CircleIconButton(
-                            icon: Icons.arrow_back,
-                            tooltip: '返回',
-                            onTap: _leave,
+                  if (_saving)
+                    Positioned.fill(
+                      child: PointerInterceptor(
+                        child: Container(
+                          color: const Color(0xCCF0F0F2),
+                          child: const Center(
+                            child: CircularProgressIndicator(),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        const Expanded(
-                          child: Text(
-                            '编辑路线',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.sageText,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
+                ],
               ),
-              if (_saving)
-                Positioned.fill(
-                  child: PointerInterceptor(
-                    child: Container(
-                      color: const Color(0xCCF0F0F2),
-                      child: const Center(child: CircularProgressIndicator()),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

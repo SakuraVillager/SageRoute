@@ -40,6 +40,11 @@ import 'package:sageroute/main.dart' show MainScreen;
 import 'package:sageroute/views/home_page.dart';
 import 'package:sageroute/views/route_invitation_page.dart';
 import 'package:sageroute/views/discovery/discovery_page.dart';
+import 'package:sageroute/services/guest_session.dart';
+import 'package:sageroute/data/user_route_repository.dart';
+import 'package:sageroute/views/route_preview/route_preview_page.dart';
+import 'package:sageroute/views/route_preview/route_edit_page.dart';
+import 'package:sageroute/views/create_route_wizard/steps/step3_map.dart';
 
 void main() {
   setUpAll(() async {
@@ -324,6 +329,7 @@ void main() {
         router.routeInformationProvider.value.uri.queryParameters['from'],
         '/articles/42',
       );
+      await tester.ensureVisible(find.text('忘记密码？'));
       await tester.tap(find.text('忘记密码？'));
       await tester.pumpAndSettle();
       expect(
@@ -452,6 +458,12 @@ void main() {
       const MaterialApp(home: WebAuthLayout(child: LoginPage())),
     );
     await tester.pumpAndSettle();
+    expect(find.byType(WebBrandPanel), findsOneWidget);
+    expect(find.text('Sage — Route'), findsOneWidget);
+    expect(
+      tester.getRect(find.byType(WebBrandPanel)).bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(TextField).first).top),
+    );
     await tester.enterText(find.byType(TextField).first, 'layout@example.com');
     tester.view.physicalSize = const Size(1366, 900);
     await tester.pumpAndSettle();
@@ -461,6 +473,12 @@ void main() {
       tester.getRect(find.byType(WebBrandPanel)).right,
       lessThan(tester.getRect(find.byType(TextField).first).left),
     );
+    tester.view.physicalSize = const Size(320, 568);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byType(TextField).last);
+    await tester.pumpAndSettle();
+    expect(find.text('layout@example.com'), findsOneWidget);
+    expect(find.text('Sage — Route'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -488,6 +506,36 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'mobile welcome uses the same supplied artwork with readable separate actions',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(390, 844);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WebWelcomePage(onStart: () {}, onLogin: () {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final artwork = tester.widget<Image>(find.byType(Image));
+      expect(artwork.image, isA<AssetImage>());
+      expect(
+        (artwork.image as AssetImage).assetName,
+        'assets/images/auth/landscape.png',
+      );
+      final copy = tester.getRect(find.text('山水之间\n与历史同行'));
+      final action = tester.getRect(find.text('让故事成为旅程'));
+      expect(copy.bottom, lessThan(action.top));
+      tester.view.physicalSize = const Size(320, 568);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('开启旅程  →'));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('planner stays inside the browser shell and dates stay compact', (
     tester,
@@ -517,19 +565,145 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('web-date-field')));
     await tester.pumpAndSettle();
+    final now = DateTime.now();
+    expect(find.text('${now.year}年 ${now.month}月'), findsOneWidget);
     final rect = tester.getRect(find.byKey(const ValueKey('web-date-popover')));
     expect(rect.width, 320);
-    expect(rect.height, lessThan(430));
+    expect(rect.height, lessThan(480));
     await tester.tap(find.text('3'));
     await tester.pump();
     await tester.tap(find.text('5'));
     await tester.pump();
     await tester.tap(find.text('确定日期'));
     await tester.pumpAndSettle();
-    expect(find.text('2026.06.03 - 2026.06.05'), findsOneWidget);
+    final month = '${now.year}.${now.month.toString().padLeft(2, '0')}';
+    expect(find.text('$month.03 - $month.05'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('browser dates cross the year and survive restoring the draft', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1366, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await GuestSession.enter();
+    addTearDown(GuestSession.leave);
+    await tester.pumpWidget(const MaterialApp(home: CreateRouteWizard()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('web-date-field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('calendar-choose-month')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('calendar-year-field')),
+      '2028',
+    );
+    await tester.tap(find.byKey(const ValueKey('calendar-month-12')));
+    await tester.tap(find.text('确定年月'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('calendar-day-2028-12-31')));
+    await tester.tap(find.byTooltip('下个月'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('calendar-day-2029-1-2')));
+    await tester.tap(find.text('确定日期'));
+    await tester.pumpAndSettle();
+    expect(find.text('2028.12.31 - 2029.01.02'), findsOneWidget);
+    expect(find.text('3天2晚'), findsOneWidget);
+    const draft = RouteDraftStorage(
+      userId: GuestSession.draftUserId,
+      draftId: 'new',
+    );
+    expect(draft.load()?['startDate'], startsWith('2028-12-31'));
+    expect(draft.load()?['endDate'], startsWith('2029-01-02'));
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(const MaterialApp(home: CreateRouteWizard()));
+    await tester.pumpAndSettle();
+    expect(find.text('2028.12.31 - 2029.01.02'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('web-date-field')));
+    await tester.pumpAndSettle();
+    expect(find.text('2028年 12月'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('old fixed-month drafts preserve their original dates', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1366, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    await GuestSession.enter();
+    addTearDown(GuestSession.leave);
+    const draft = RouteDraftStorage(
+      userId: GuestSession.draftUserId,
+      draftId: 'new',
+    );
+    draft.save({'title': '旧行程', 'startDay': 28, 'endDay': 30});
+    await tester.pumpWidget(const MaterialApp(home: CreateRouteWizard()));
+    await tester.pumpAndSettle();
+    expect(find.text('2026.06.28 - 2026.06.30'), findsOneWidget);
+    expect(find.text('3天2晚'), findsOneWidget);
+    expect(draft.load()?['startDate'], startsWith('2026-06-28'));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+    'route preview and editing reserve toolbar space above the desktop itinerary',
+    (tester) async {
+      final registry = _TestHtmlViewRegistry(tester);
+      ui_web.debugOverridePlatformViewRegistry(registry);
+      addTearDown(() => ui_web.debugOverridePlatformViewRegistry(null));
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      const route = SavedRoute(
+        id: 'test-route',
+        title: '跟着东坡游西湖',
+        dateRange: '',
+        duration: '一天',
+        distance: '2km',
+        waypoints: [
+          RouteWaypoint(name: '苏堤', latitude: 30.25, longitude: 120.14),
+          RouteWaypoint(name: '虎跑泉', latitude: 30.21, longitude: 120.13),
+        ],
+      );
+      for (final width in [1024.0, 1440.0]) {
+        tester.view.physicalSize = Size(width, 900);
+        for (final edit in [false, true]) {
+          await tester.pumpWidget(
+            MaterialApp(
+              key: ValueKey('$width-$edit'),
+              home: WebWorkspace(
+                selectedIndex: 2,
+                onSelected: (_) {},
+                child: edit
+                    ? const RouteEditPage(route: route)
+                    : RoutePreviewPage(
+                        routeId: route.id,
+                        initialRoute: route,
+                        repository: const _PreviewRouteRepository(route),
+                      ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          final toolbar = tester.getRect(
+            find.byKey(
+              ValueKey(edit ? 'route-edit-toolbar' : 'route-preview-toolbar'),
+            ),
+          );
+          final itinerary = tester.getRect(find.byType(Step3Map));
+          expect(toolbar.bottom, lessThanOrEqualTo(itinerary.top));
+          expect(tester.takeException(), isNull);
+          await tester.pumpWidget(const SizedBox.shrink());
+        }
+      }
+    },
+  );
   testWidgets(
     'narrow desktop profile keeps achievements and preferences visible',
     (tester) async {
@@ -548,6 +722,13 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+class _PreviewRouteRepository extends UserRouteRepository {
+  const _PreviewRouteRepository(this.route);
+  final SavedRoute route;
+  @override
+  Future<SavedRoute?> fetchRouteById(String routeId) async => route;
 }
 
 /// Flutter's widget binding mocks platform channels; this fixture creates real

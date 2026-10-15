@@ -189,83 +189,115 @@ class _RoutePreviewPageState extends State<RoutePreviewPage> {
       );
     }
     final route = _route!;
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Step3Map(
-              key: ValueKey('${route.id}-${route.revision}'),
-              mode: Step3Mode.preview,
-              selectedPlaces: route.waypoints
-                  .map((waypoint) => waypoint.toRoutePlace())
-                  .toList(growable: false),
-              onLocationsChanged: (_) {},
-              onPreviewStatusChanged: (_) {},
-              onSaveRequested: () async {},
-              onStartNavigation: _onStartNavigation,
-              initialSegmentTransports: route.waypoints
-                  .take(
-                    route.waypoints.length > 1 ? route.waypoints.length - 1 : 0,
-                  )
-                  .map(
-                    (waypoint) =>
-                        waypoint.transportToNext ?? TransportType.driving,
-                  )
-                  .toList(growable: false),
-            ),
-          ),
-          SafeArea(
-            child: PointerInterceptor(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-                child: Row(
-                  children: [
-                    WebBackButton(
-                      onPressed: () => finishAppPage(context),
-                      mobileChild: _CircleIconButton(
-                        icon: Icons.arrow_back,
-                        tooltip: '返回',
-                        onTap: () => finishAppPage(context),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        route.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.sageText,
-                          shadows: [Shadow(color: Colors.white, blurRadius: 6)],
-                        ),
-                      ),
-                    ),
-                    if (route.ownerId != null) ...[
-                      _CircleIconButton(
-                        icon: Icons.people_outline,
-                        tooltip: '分享与协作 · ${route.accessRole.label}',
-                        onTap: () async {
-                          await showRouteSharing(context, route);
-                          if (mounted) await _load(quiet: true);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    if (route.canEdit)
-                      _CircleIconButton(
-                        icon: Icons.edit_outlined,
-                        tooltip: '编辑路线',
-                        onTap: _openEdit,
-                      ),
-                  ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final reserveToolbar = kIsWeb && constraints.maxWidth >= 760;
+        final toolbarHeight = MediaQuery.paddingOf(context).top + 56;
+        return SizedBox.expand(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                top: reserveToolbar ? toolbarHeight : 0,
+                child: Step3Map(
+                  key: ValueKey('${route.id}-${route.revision}'),
+                  mode: Step3Mode.preview,
+                  selectedPlaces: route.waypoints
+                      .map((waypoint) => waypoint.toRoutePlace())
+                      .toList(growable: false),
+                  onLocationsChanged: (_) {},
+                  onPreviewStatusChanged: (_) {},
+                  onSaveRequested: () async {},
+                  onStartNavigation: _onStartNavigation,
+                  initialSegmentTransports: route.waypoints
+                      .take(
+                        route.waypoints.length > 1
+                            ? route.waypoints.length - 1
+                            : 0,
+                      )
+                      .map(
+                        (waypoint) =>
+                            waypoint.transportToNext ?? TransportType.driving,
+                      )
+                      .toList(growable: false),
                 ),
               ),
-            ),
+              if (reserveToolbar)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: toolbarHeight,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.sageCard,
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.sageBorder),
+                      ),
+                    ),
+                  ),
+                ),
+              SafeArea(
+                key: const ValueKey('route-preview-toolbar'),
+                child: PointerInterceptor(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      8,
+                      reserveToolbar ? 8 : 4,
+                      8,
+                      reserveToolbar ? 8 : 0,
+                    ),
+                    child: Row(
+                      children: [
+                        WebBackButton(
+                          onPressed: () => finishAppPage(context),
+                          mobileChild: _CircleIconButton(
+                            icon: Icons.arrow_back,
+                            tooltip: '返回',
+                            onTap: () => finishAppPage(context),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            route.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.sageText,
+                              shadows: [
+                                Shadow(color: Colors.white, blurRadius: 6),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (route.ownerId != null) ...[
+                          _CircleIconButton(
+                            icon: Icons.people_outline,
+                            tooltip: '分享与协作 · ${route.accessRole.label}',
+                            onTap: () async {
+                              await showRouteSharing(context, route);
+                              if (mounted) await _load(quiet: true);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        if (route.canEdit)
+                          _CircleIconButton(
+                            icon: Icons.edit_outlined,
+                            tooltip: '编辑路线',
+                            onTap: _openEdit,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

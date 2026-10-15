@@ -34,7 +34,6 @@ import '../services/credential_storage.dart';
 import '../theme.dart';
 import '../theme/web_theme.dart';
 import '../views/article_detail_page.dart';
-import '../views/landing_page.dart';
 import '../views/figure_detail_page.dart';
 import '../views/location_detail_page.dart';
 import '../views/create_route_wizard/create_route_wizard.dart';
@@ -167,16 +166,9 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
             if (context.mounted) context.go(path);
           }
 
-          return LayoutBuilder(
-            builder: (_, constraints) => constraints.maxWidth >= 900
-                ? WebWelcomePage(
-                    onStart: () => begin('/register'),
-                    onLogin: () => begin('/login'),
-                  )
-                : LandingPage(
-                    onStartJourney: () => begin('/register'),
-                    onLogin: () => begin('/login'),
-                  ),
+          return WebWelcomePage(
+            onStart: () => begin('/register'),
+            onLogin: () => begin('/login'),
           );
         },
       ),

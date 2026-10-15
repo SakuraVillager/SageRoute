@@ -1,4 +1,5 @@
 import '../../components/web/web_back_button.dart';
+import '../../components/route_date_range_picker.dart';
 import 'package:flutter/foundation.dart';
 import '../../components/adaptive_content.dart';
 import '../../components/draft_exit_guard.dart';
@@ -40,7 +41,6 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   static const _textSub = AppColors.sageAccent;
   static const _accent = AppColors.sageAccent;
   static const _lineColor = AppColors.sageBorder;
-  static const _calendarRangeBg = Color(0x2996615A);
 
   // ── Step titles ──
   static const _stepTitles = ['行程规划', '选择人物', '路线规划'];
@@ -60,8 +60,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   String _dateRange = '';
   String _duration = '';
   String _distance = '';
-  int? _startDay;
-  int? _endDay;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   // ── Wizard state (steps 2–3) ──
   String? _selectedFigureId;
@@ -80,7 +80,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
   bool get _dirty =>
       !_saved &&
       (_title.isNotEmpty ||
-          _startDay != null ||
+          _startDate != null ||
           _selectedFigure != null ||
           _selectedLocations.isNotEmpty);
 
@@ -89,8 +89,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     _draft?.save({
       'step': _currentStep,
       'title': _titleController.text,
-      'startDay': _startDay,
-      'endDay': _endDay,
+      'startDate': _startDate?.toIso8601String(),
+      'endDate': _endDate?.toIso8601String(),
       'figure': _selectedFigure?.toMap(),
       'places': _selectedLocations.map((p) => p.toJson()).toList(),
       'transports': _segmentTransportTypes.map(
@@ -112,8 +112,23 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     try {
       _titleController.text = data['title'] as String? ?? '';
       _title = _titleController.text.trim();
-      _startDay = data['startDay'] as int?;
-      _endDay = data['endDay'] as int?;
+      DateTime? restoreDate(String key, String legacyKey) {
+        final value = data[key];
+        if (value is String) return DateUtils.dateOnly(DateTime.parse(value));
+        // Older drafts stored day numbers for the fixed June 2026 calendar.
+        final legacy = data[legacyKey];
+        if (legacy is int && legacy >= 1 && legacy <= 30) {
+          return DateTime(2026, 6, legacy);
+        }
+        return null;
+      }
+
+      _startDate = restoreDate('startDate', 'startDay');
+      _endDate = restoreDate('endDate', 'endDay');
+      if (_startDate == null ||
+          (_endDate != null && _endDate!.isBefore(_startDate!))) {
+        _endDate = null;
+      }
       if (data['figure'] is Map) {
         _selectedFigure = CelebrityProfile.fromMap(
           Map<String, dynamic>.from(data['figure'] as Map),
@@ -137,8 +152,8 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       _draft!.clear();
       _titleController.clear();
       _title = '';
-      _startDay = null;
-      _endDay = null;
+      _startDate = null;
+      _endDate = null;
       _selectedFigure = null;
       _selectedFigureId = null;
       _selectedLocations = [];
@@ -200,7 +215,7 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
       _titleFocusNode.requestFocus();
       return;
     }
-    if (_startDay == null || _endDay == null) {
+    if (_startDate == null || _endDate == null) {
       _showSnack('请选择完整日期区间');
       return;
     }
@@ -219,35 +234,47 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
 
   // ── Calendar ──
 
-  void _selectDay(int day) {
+  void _selectDate(DateTime date) {
     setState(() {
-      if (_startDay == null || _endDay != null) {
-        _startDay = day;
-        _endDay = null;
-      } else if (day >= _startDay!) {
-        _endDay = day;
+      if (_startDate == null || _endDate != null) {
+        _startDate = date;
+        _endDate = null;
+      } else if (!date.isBefore(_startDate!)) {
+        _endDate = date;
       } else {
-        _startDay = day;
+        _startDate = date;
       }
       _syncDateToTicket();
     });
+    _persistDraft();
   }
 
   void _syncDateToTicket() {
-    final start = _startDay;
-    if (start == null) return;
-
-    String formatDay(int day) => '2026.06.${day.toString().padLeft(2, '0')}';
-    final end = _endDay;
+    final start = _startDate;
+    if (start == null) {
+      _dateRange = '';
+      _duration = '';
+      _distance = '';
+      return;
+    }
+    String formatDate(DateTime date) =>
+        '${date.year.toString().padLeft(4, '0')}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
+    final end = _endDate;
     if (end == null) {
-      _dateRange = '${formatDay(start)} - 待选择';
+      _dateRange = '${formatDate(start)} - 待选择';
       _duration = '1天0晚';
       _distance = '2.50 KM';
       return;
     }
-
-    final days = end - start + 1;
-    _dateRange = '${formatDay(start)} - ${formatDay(end)}';
+    // Count calendar days independently of local daylight-saving transitions.
+    final days =
+        DateTime.utc(
+          end.year,
+          end.month,
+          end.day,
+        ).difference(DateTime.utc(start.year, start.month, start.day)).inDays +
+        1;
+    _dateRange = '${formatDate(start)} - ${formatDate(end)}';
     _duration = '$days天${math.max(0, days - 1)}晚';
     _distance = '${(days * 3.1 + 2.5).toStringAsFixed(2)} KM';
   }
@@ -736,44 +763,14 @@ class _CreateRouteWizardState extends State<CreateRouteWizard> {
     );
   }
 
-  Widget _buildCalendarPanel({ValueChanged<int>? onSelect}) {
-    return _PanelFrame(
-      compact: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '2026年 6月',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: _textMain,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const _WeekHeader(),
-          const SizedBox(height: 8),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 30,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisExtent: kIsWeb ? 34 : null,
-              mainAxisSpacing: 6,
-            ),
-            itemBuilder: (context, index) => _DayCell(
-              day: index + 1,
-              startDay: _startDay,
-              endDay: _endDay,
-              onTap: () => (onSelect ?? _selectDay)(index + 1),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildCalendarPanel({ValueChanged<DateTime>? onSelect}) => _PanelFrame(
+    compact: true,
+    child: RouteDateRangePicker(
+      startDate: _startDate,
+      endDate: _endDate,
+      onSelect: onSelect ?? _selectDate,
+    ),
+  );
 
   // ── Bottom action button (steps 2–3) ──
 
