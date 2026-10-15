@@ -842,9 +842,6 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
       },
       child: Container(
         key: const Key('web-featured-surface'),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.sageBorder)),
-        ),
         child: Stack(
           children: [
             Positioned.fill(
@@ -866,22 +863,20 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
               left: 0,
               right: 0,
               child: IgnorePointer(
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: _reduced
-                        ? Duration.zero
-                        : const Duration(milliseconds: 600),
-                    child: CustomPaint(
-                      key: ValueKey(_background),
-                      size: const Size(60, 30),
-                      painter: _FeaturedArchPainter(_background),
-                    ),
+                child: AnimatedSwitcher(
+                  duration: _reduced
+                      ? Duration.zero
+                      : const Duration(milliseconds: 600),
+                  child: CustomPaint(
+                    key: ValueKey(_background),
+                    size: const Size(double.infinity, 44),
+                    painter: const _FeaturedArchPainter(),
                   ),
                 ),
               ),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(widget.inset, 24, widget.inset, 12),
+              padding: EdgeInsets.fromLTRB(widget.inset, 24, widget.inset, 92),
               child: Column(
                 children: [
                   LayoutBuilder(
@@ -893,6 +888,9 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
                           ? 32.0
                           : 40.0;
                       final scale = MediaQuery.textScalerOf(context);
+                      final controlSpace = narrow && scale.scale(13) > 19.5
+                          ? 136.0
+                          : 92.0;
                       // At large accessibility sizes grow the hero instead of clipping its text.
                       final textHeight =
                           scale.scale(fontSize) * 2 * 1.25 +
@@ -910,207 +908,254 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
                       return SizedBox(
                         key: const Key('web-featured-frame'),
                         height: height,
-                        child: NotificationListener<ScrollNotification>(
-                          onNotification: (notification) {
-                            if (notification is ScrollStartNotification) {
-                              _progress.stop();
-                            } else if (notification is ScrollEndNotification) {
-                              _progress.reset();
-                              _syncPlayback();
-                            }
-                            return false;
-                          },
-                          child: PageView.builder(
-                            controller: _pages,
-                            physics: widget.articles.length == 1
-                                ? const NeverScrollableScrollPhysics()
-                                : null,
-                            onPageChanged: (page) {
-                              setState(() {
-                                _physicalPage = page;
-                                _index = page % widget.articles.length;
-                                _loadTheme();
-                              });
-                              _progress.reset();
-                            },
-                            itemBuilder: (context, page) {
-                              final index = page % widget.articles.length;
-                              final media = widget.articles[index];
-                              return Semantics(
-                                label: '打开精选文章 ${media.article.title}',
-                                button: true,
-                                child: InkWell(
-                                  key: Key('web-featured-${media.article.id}'),
-                                  onTap: () => _open(media.article),
-                                  child: Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      _ArticleImage(
-                                        article: media.article,
-                                        imageUrl: media.urlFor(
-                                          ArticleImageRole.featured,
-                                        ),
-                                        altText: media.altTextFor(
-                                          ArticleImageRole.featured,
-                                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            NotificationListener<ScrollNotification>(
+                              onNotification: (notification) {
+                                if (notification is ScrollStartNotification) {
+                                  _progress.stop();
+                                } else if (notification
+                                    is ScrollEndNotification) {
+                                  _progress.reset();
+                                  _syncPlayback();
+                                }
+                                return false;
+                              },
+                              child: PageView.builder(
+                                controller: _pages,
+                                physics: widget.articles.length == 1
+                                    ? const NeverScrollableScrollPhysics()
+                                    : null,
+                                onPageChanged: (page) {
+                                  setState(() {
+                                    _physicalPage = page;
+                                    _index = page % widget.articles.length;
+                                    _loadTheme();
+                                  });
+                                  _progress.reset();
+                                },
+                                itemBuilder: (context, page) {
+                                  final index = page % widget.articles.length;
+                                  final media = widget.articles[index];
+                                  return Semantics(
+                                    label: '打开精选文章 ${media.article.title}',
+                                    button: true,
+                                    child: InkWell(
+                                      key: Key(
+                                        'web-featured-${media.article.id}',
                                       ),
-                                      const DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                            colors: [
-                                              Color(0x102D1D1B),
-                                              Color(0xED2D1D1B),
-                                            ],
-                                            stops: [.2, 1],
+                                      onTap: () => _open(media.article),
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          _ArticleImage(
+                                            article: media.article,
+                                            imageUrl: media.urlFor(
+                                              ArticleImageRole.featured,
+                                            ),
+                                            altText: media.altTextFor(
+                                              ArticleImageRole.featured,
+                                            ),
                                           ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        left: narrow ? 24 : 40,
-                                        right: narrow ? 24 : 40,
-                                        bottom: 32,
-                                        child: Align(
-                                          alignment: Alignment.bottomLeft,
-                                          child: SizedBox(
-                                            width:
-                                                narrow || scale.scale(16) > 24
-                                                ? constraints.maxWidth
-                                                : constraints.maxWidth * .6,
-                                            child: TweenAnimationBuilder<double>(
-                                              key: ValueKey(
-                                                'featured-text-$index-${_index == index}',
-                                              ),
-                                              tween: Tween(
-                                                begin: _reduced ? 1 : 0,
-                                                end: 1,
-                                              ),
-                                              duration: _reduced
-                                                  ? Duration.zero
-                                                  : const Duration(
-                                                      milliseconds: 300,
-                                                    ),
-                                              builder:
-                                                  (
-                                                    context,
-                                                    value,
-                                                    child,
-                                                  ) => Opacity(
-                                                    opacity: value,
-                                                    child: Transform.translate(
-                                                      offset: Offset(
-                                                        0,
-                                                        (1 - value) * 12,
-                                                      ),
-                                                      child: child,
-                                                    ),
-                                                  ),
-                                              child: Row(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  SizedBox(
-                                                    key: Key(
-                                                      'web-featured-poster-${media.article.id}',
-                                                    ),
-                                                    width: narrow ? 48 : 96,
-                                                    height: narrow ? 70 : 140,
-                                                    child: ClipRect(
-                                                      child: _ArticleImage(
-                                                        article: media.article,
-                                                        imageUrl: media.urlFor(
-                                                          ArticleImageRole
-                                                              .poster,
-                                                        ),
-                                                        altText: media
-                                                            .altTextFor(
-                                                              ArticleImageRole
-                                                                  .poster,
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  SizedBox(
-                                                    width: narrow ? 16 : 24,
-                                                  ),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        Text(
-                                                          '${media.article.topic} · 精选',
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 13,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 12,
-                                                        ),
-                                                        Text(
-                                                          media.article.title,
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: TextStyle(
-                                                            fontSize: fontSize,
-                                                            height: 1.25,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 14,
-                                                        ),
-                                                        Text(
-                                                          media.article.summary,
-                                                          maxLines: 2,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontSize: 16,
-                                                                height: 1.5,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 20,
-                                                        ),
-                                                        const Text(
-                                                          '阅读全文 →',
-                                                          style: TextStyle(
-                                                            fontSize: 16,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
+                                          const DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Color(0x102D1D1B),
+                                                  Color(0xED2D1D1B),
                                                 ],
+                                                stops: [.2, 1],
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          Positioned(
+                                            left: narrow ? 24 : 40,
+                                            right: narrow ? 24 : 40,
+                                            bottom: widget.articles.length > 1
+                                                ? controlSpace
+                                                : 32,
+                                            child: Align(
+                                              alignment: Alignment.bottomLeft,
+                                              child: SizedBox(
+                                                width:
+                                                    narrow ||
+                                                        scale.scale(16) > 24
+                                                    ? constraints.maxWidth
+                                                    : constraints.maxWidth * .6,
+                                                child: TweenAnimationBuilder<double>(
+                                                  key: ValueKey(
+                                                    'featured-text-$index-${_index == index}',
+                                                  ),
+                                                  tween: Tween(
+                                                    begin: _reduced ? 1 : 0,
+                                                    end: 1,
+                                                  ),
+                                                  duration: _reduced
+                                                      ? Duration.zero
+                                                      : const Duration(
+                                                          milliseconds: 300,
+                                                        ),
+                                                  builder:
+                                                      (
+                                                        context,
+                                                        value,
+                                                        child,
+                                                      ) => Opacity(
+                                                        opacity: value,
+                                                        child:
+                                                            Transform.translate(
+                                                              offset: Offset(
+                                                                0,
+                                                                (1 - value) *
+                                                                    12,
+                                                              ),
+                                                              child: child,
+                                                            ),
+                                                      ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.end,
+                                                    children: [
+                                                      SizedBox(
+                                                        key: Key(
+                                                          'web-featured-poster-${media.article.id}',
+                                                        ),
+                                                        width: narrow ? 48 : 96,
+                                                        height: narrow
+                                                            ? 70
+                                                            : 140,
+                                                        child: ClipRect(
+                                                          child: _ArticleImage(
+                                                            article:
+                                                                media.article,
+                                                            imageUrl: media
+                                                                .urlFor(
+                                                                  ArticleImageRole
+                                                                      .poster,
+                                                                ),
+                                                            altText: media
+                                                                .altTextFor(
+                                                                  ArticleImageRole
+                                                                      .poster,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                        width: narrow ? 16 : 24,
+                                                      ),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Text(
+                                                              '${media.article.topic} · 精选',
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        13,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 12,
+                                                            ),
+                                                            Text(
+                                                              media
+                                                                  .article
+                                                                  .title,
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style: TextStyle(
+                                                                fontSize:
+                                                                    fontSize,
+                                                                height: 1.25,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 14,
+                                                            ),
+                                                            Text(
+                                                              media
+                                                                  .article
+                                                                  .summary,
+                                                              maxLines: 2,
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                              style:
+                                                                  const TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    height: 1.5,
+                                                                    color: Colors
+                                                                        .white,
+                                                                  ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 20,
+                                                            ),
+                                                            const Text(
+                                                              '阅读全文 →',
+                                                              style: TextStyle(
+                                                                fontSize: 16,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            if (widget.articles.length > 1)
+                              Positioned(
+                                left: narrow ? 12 : 28,
+                                right: narrow ? 12 : 28,
+                                bottom: 8,
+                                child: _FeaturedControls(
+                                  index: _index,
+                                  count: widget.articles.length,
+                                  paused: _paused,
+                                  reduced: _reduced,
+                                  onPrevious: () => _move(-1),
+                                  onNext: () => _move(1),
+                                  onTogglePause: _reduced
+                                      ? null
+                                      : () => _change(() => _paused = !_paused),
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                          ],
                         ),
                       );
                     },
@@ -1121,71 +1166,10 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
                       builder: (_, _) => LinearProgressIndicator(
                         key: const Key('web-featured-progress'),
                         value: _progress.value,
-                        minHeight: 3,
+                        minHeight: 6,
                         color: AppColors.brandInk,
                         backgroundColor: Colors.white.withValues(alpha: .5),
                         borderRadius: BorderRadius.zero,
-                      ),
-                    ),
-                  if (widget.articles.length > 1)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final position = Semantics(
-                            liveRegion: false,
-                            child: Text(
-                              '${(_index + 1).toString().padLeft(2, '0')} / ${widget.articles.length.toString().padLeft(2, '0')}',
-                              key: const Key('web-featured-position'),
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: AppColors.brandInk,
-                              ),
-                            ),
-                          );
-                          final controls = Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: _paused ? '继续自动播放' : '暂停自动播放',
-                                onPressed: _reduced
-                                    ? null
-                                    : () => _change(() => _paused = !_paused),
-                                icon: Icon(
-                                  _paused || _reduced
-                                      ? Icons.play_arrow
-                                      : Icons.pause,
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: '上一篇精选',
-                                onPressed: () => _move(-1),
-                                icon: const Icon(Icons.arrow_back),
-                              ),
-                              IconButton(
-                                tooltip: '下一篇精选',
-                                onPressed: () => _move(1),
-                                icon: const Icon(Icons.arrow_forward),
-                              ),
-                            ],
-                          );
-                          if (constraints.maxWidth < 480) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Wrap(
-                                  alignment: WrapAlignment.spaceBetween,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  spacing: 8,
-                                  children: [position, controls],
-                                ),
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [position, const Spacer(), controls],
-                          );
-                        },
                       ),
                     ),
                 ],
@@ -1198,39 +1182,121 @@ class _WebFeaturedCarouselState extends State<_WebFeaturedCarousel>
   );
 }
 
-/// The paired quarter-circle motif used beneath the reference masthead.
+class _FeaturedControls extends StatelessWidget {
+  const _FeaturedControls({
+    required this.index,
+    required this.count,
+    required this.paused,
+    required this.reduced,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onTogglePause,
+  });
+
+  final int index;
+  final int count;
+  final bool paused;
+  final bool reduced;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback? onTogglePause;
+
+  @override
+  Widget build(BuildContext context) {
+    final buttonStyle = IconButton.styleFrom(
+      foregroundColor: Colors.white,
+      disabledForegroundColor: Colors.white70,
+      backgroundColor: Colors.black.withValues(alpha: .14),
+      hoverColor: Colors.white.withValues(alpha: .24),
+      highlightColor: Colors.white.withValues(alpha: .3),
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(38, 38),
+      maximumSize: const Size(38, 38),
+      shape: const CircleBorder(side: BorderSide(color: Colors.white70)),
+    );
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 16,
+      runSpacing: 8,
+      children: [
+        Semantics(
+          liveRegion: false,
+          child: Text(
+            '${(index + 1).toString().padLeft(2, '0')} / ${count.toString().padLeft(2, '0')}',
+            key: const Key('web-featured-position'),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              tooltip: paused ? '继续自动播放' : '暂停自动播放',
+              onPressed: onTogglePause,
+              style: buttonStyle,
+              icon: Icon(paused || reduced ? Icons.play_arrow : Icons.pause),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: '上一篇精选',
+              onPressed: onPrevious,
+              style: buttonStyle,
+              icon: const Icon(Icons.arrow_back),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: '下一篇精选',
+              onPressed: onNext,
+              style: buttonStyle,
+              icon: const Icon(Icons.arrow_forward),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Two quarter circles join the white directory to the featured surface.
 class _FeaturedArchPainter extends CustomPainter {
-  const _FeaturedArchPainter(this.color);
-  final Color color;
+  const _FeaturedArchPainter();
 
   @override
   void paint(Canvas canvas, Size size) {
+    final center = size.width / 2;
+    final radius = size.height;
     final path = Path()
       ..moveTo(0, 0)
+      ..lineTo(center - radius, 0)
       ..cubicTo(
-        size.width * .276,
+        center - radius * .448,
         0,
-        size.width / 2,
-        size.height * .448,
-        size.width / 2,
-        size.height,
+        center,
+        radius * .448,
+        center,
+        radius,
       )
       ..cubicTo(
-        size.width / 2,
-        size.height * .448,
-        size.width * .724,
+        center,
+        radius * .448,
+        center + radius * .448,
         0,
-        size.width,
+        center + radius,
         0,
       )
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
       ..close();
-    canvas.drawPath(
-      path,
-      Paint()..color = Color.lerp(color, AppColors.brandInk, .12)!,
-    );
+    canvas.drawPath(path, Paint()..color = AppColors.white);
   }
 
   @override
-  bool shouldRepaint(_FeaturedArchPainter oldDelegate) =>
-      oldDelegate.color != color;
+  bool shouldRepaint(_FeaturedArchPainter oldDelegate) => false;
 }

@@ -282,6 +282,17 @@ void main() {
       expect(progress.top, closeTo(frame.bottom, .1));
       expect(progress.left, closeTo(frame.left, .1));
       expect(progress.width, closeTo(frame.width, .1));
+      expect(progress.height, 6);
+      for (final control in [
+        find.byKey(const Key('web-featured-position')),
+        find.byTooltip('上一篇精选'),
+        find.byTooltip('下一篇精选'),
+        find.byTooltip('暂停自动播放'),
+      ]) {
+        final bounds = tester.getRect(control);
+        expect(frame.contains(bounds.topLeft), isTrue);
+        expect(frame.contains(bounds.bottomRight), isTrue);
+      }
       final surface = tester.getRect(
         find.byKey(const Key('web-featured-surface')),
       );
@@ -413,6 +424,28 @@ void main() {
       expect(find.text('02 / 08'), findsOneWidget);
     },
   );
+
+  testWidgets('image controls change slides without opening an article', (
+    tester,
+  ) async {
+    await _size(tester, const Size(1440, 900));
+    var opened = 0;
+    await tester.pumpWidget(
+      _Harness(reduced: false, onArticle: (_) async => opened++),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.tap(find.byTooltip('暂停自动播放'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('继续自动播放'), findsOneWidget);
+    await tester.tap(find.byTooltip('下一篇精选'));
+    await tester.pumpAndSettle();
+    expect(find.text('02 / 08'), findsOneWidget);
+    await tester.tap(find.byTooltip('上一篇精选'));
+    await tester.pumpAndSettle();
+    expect(find.text('01 / 08'), findsOneWidget);
+    expect(opened, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('autoplay pauses on hover and resumes after leaving', (
     tester,
