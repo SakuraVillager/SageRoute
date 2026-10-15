@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../data/social_gateway.dart';
+import '../../components/web/web_back_button.dart';
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import 'package:flutter/foundation.dart';
 import '../../services/route_draft_storage.dart';
@@ -319,10 +320,13 @@ class _RouteEditPageState extends State<RouteEditPage> {
                     padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
                     child: Row(
                       children: [
-                        _CircleIconButton(
-                          icon: Icons.arrow_back,
-                          tooltip: '返回',
-                          onTap: _leave,
+                        WebBackButton(
+                          onPressed: _leave,
+                          mobileChild: _CircleIconButton(
+                            icon: Icons.arrow_back,
+                            tooltip: '返回',
+                            onTap: _leave,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         const Expanded(

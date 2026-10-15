@@ -1,3 +1,4 @@
+import '../components/web/web_back_button.dart';
 import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
@@ -15,9 +16,12 @@ class ArticleDetailPage extends StatelessWidget {
     backgroundColor: AppColors.white,
     appBar: AppBar(
       backgroundColor: AppColors.white,
-      leading: IconButton(
+      leading: WebBackButton(
         onPressed: () => finishAppPage(context),
-        icon: const Icon(Icons.arrow_back),
+        mobileChild: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
       ),
     ),
     body: SafeArea(

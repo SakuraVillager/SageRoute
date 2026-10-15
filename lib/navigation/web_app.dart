@@ -1,3 +1,4 @@
+import '../components/web/web_back_button.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart' show SemanticsHandle;
@@ -488,9 +489,12 @@ class _UnavailablePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      leading: IconButton(
+      leading: WebBackButton(
         onPressed: () => finishAppPage(context),
-        icon: const Icon(Icons.arrow_back),
+        mobileChild: IconButton(
+          onPressed: () => finishAppPage(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
       ),
     ),
     body: Center(

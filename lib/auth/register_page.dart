@@ -1,3 +1,4 @@
+import '../components/web/web_back_button.dart';
 import 'package:flutter/foundation.dart';
 import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
@@ -238,16 +239,19 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget _buildBackButton() {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Material(
-        color: AppColors.sageBg,
-        shape: const CircleBorder(side: BorderSide(color: _borderColor)),
-        child: InkWell(
-          onTap: () => finishAppPage(context),
-          customBorder: const CircleBorder(),
-          child: const SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(Icons.arrow_back, size: 18, color: _textColor),
+      child: WebBackButton(
+        onPressed: () => finishAppPage(context),
+        mobileChild: Material(
+          color: AppColors.sageBg,
+          shape: const CircleBorder(side: BorderSide(color: _borderColor)),
+          child: InkWell(
+            onTap: () => finishAppPage(context),
+            customBorder: const CircleBorder(),
+            child: const SizedBox(
+              width: 40,
+              height: 40,
+              child: Icon(Icons.arrow_back, size: 18, color: _textColor),
+            ),
           ),
         ),
       ),

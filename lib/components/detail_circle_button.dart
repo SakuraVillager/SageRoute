@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/color_schemes.dart';
+import 'web/web_back_button.dart';
 
 class DetailCircleButton extends StatelessWidget {
   const DetailCircleButton({
@@ -21,7 +22,7 @@ class DetailCircleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final button = GestureDetector(
       onTap: onTap,
       child: Container(
         width: 40,
@@ -34,5 +35,8 @@ class DetailCircleButton extends StatelessWidget {
         child: Icon(icon, size: 18, color: _foreground),
       ),
     );
+    return icon == Icons.arrow_back
+        ? WebBackButton(onPressed: onTap, mobileChild: button)
+        : button;
   }
 }

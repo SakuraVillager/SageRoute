@@ -1,0 +1,5 @@
+Reference: C:\Users\importme\xwechat_files\wxid_9vkc2ceeqrms12_ca53\msg\file\2026-10\东坡杭行调研报告(1).docx
+SHA256: 91f9e464199d7b08030ae03208006ef8bd224d4323c4a9075329156fc3b3af55
+Reference 40 pages, 4 sections. Use portrait body section 2 for standalone appendix. Page 21.59 x 27.94 cm; top/bottom 2.54 cm; left 2.7993 cm; right 2.6 cm; header/footer 1.5 cm. Retain body-section header/footer background, frame, logo and page numbers. Remove source report body, unrelated images/tables and extra sections. Chinese hierarchy 一、 and （一）. Body justify, first-line 2 characters, line spacing 1.5. User override Songti, body 10.5pt, tables 9.2pt; source headings 16pt and 14pt. Source table grid and light blue headers. Preserve all source package parts except document.xml, styles.xml, metadata. Source evidence reference-report.pdf and reference-render. No input forms carried over.
+
+QA adjustment: top text margin 4.45 cm to keep all text below source logo. Original reference retained byte-for-byte. Package patch preserves all parts except document.xml, styles.xml and core properties.

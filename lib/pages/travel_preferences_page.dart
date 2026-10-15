@@ -1,3 +1,4 @@
+import '../components/web/web_back_button.dart';
 import '../navigation/app_navigation.dart';
 import 'package:flutter/material.dart';
 
@@ -76,9 +77,12 @@ class _TravelPreferencesPageState extends State<TravelPreferencesPage> {
     return Scaffold(
       backgroundColor: AppColors.sageBg,
       appBar: AppBar(
-        leading: IconButton(
+        leading: WebBackButton(
           onPressed: () => finishAppPage(context),
-          icon: const Icon(Icons.arrow_back),
+          mobileChild: IconButton(
+            onPressed: () => finishAppPage(context),
+            icon: const Icon(Icons.arrow_back),
+          ),
         ),
         backgroundColor: AppColors.sageBg,
         foregroundColor: AppColors.sageText,
