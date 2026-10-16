@@ -31,6 +31,7 @@ import '../services/browser_session.dart';
 import '../services/auth_service.dart';
 import '../services/guest_session.dart';
 import '../services/credential_storage.dart';
+import '../services/web_startup.dart';
 import '../theme.dart';
 import '../theme/web_theme.dart';
 import '../views/article_detail_page.dart';
@@ -64,6 +65,7 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
   StreamSubscription<dynamic>? _auth;
   Object? _error;
   bool _hasSeenOnboarding = false;
+  bool _startupReported = false;
   final _rootMapObserver = MapOverlayObserver();
   final _shellMapObserver = MapOverlayObserver();
   late final SemanticsHandle _semantics;
@@ -80,33 +82,35 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
         ).toString();
     GoRouter.optionURLReflectsImperativeAPIs = true;
     _semantics = WidgetsBinding.instance.ensureSemantics();
-    widget.initialization.then(
-      (_) async {
-        final preferences = await SharedPreferences.getInstance();
-        await preferences.remove(CredentialStorage.passwordKey);
-        if (!mounted) return;
-        _hasSeenOnboarding = preferences.getBool('hasSeenOnboarding') ?? false;
-        await GuestSession.restore();
-        final restoredUser = DatabaseService.client.auth.currentUser;
-        if (restoredUser != null) {
-          await GuestSession.completeSignIn(restoredUser.id);
-        }
-        if (!mounted) return;
-        _router = _createRouter();
-        _auth = DatabaseService.client.auth.onAuthStateChange.listen((
-          state,
-        ) async {
-          if (state.session != null) {
-            await GuestSession.completeSignIn(state.session!.user.id);
-          }
-          if (mounted) _authRefresh.value++;
-        }, onError: (Object _) {});
-        GuestSession.active.addListener(_refreshGuest);
-        setState(() {});
-      },
-      onError: (Object error) {
-        if (mounted) setState(() => _error = error);
-      },
+    unawaited(
+      widget.initialization
+          .then<void>((_) async {
+            final preferences = await SharedPreferences.getInstance();
+            await preferences.remove(CredentialStorage.passwordKey);
+            if (!mounted) return;
+            _hasSeenOnboarding =
+                preferences.getBool('hasSeenOnboarding') ?? false;
+            await GuestSession.restore();
+            final restoredUser = DatabaseService.client.auth.currentUser;
+            if (restoredUser != null) {
+              await GuestSession.completeSignIn(restoredUser.id);
+            }
+            if (!mounted) return;
+            _router = _createRouter();
+            _auth = DatabaseService.client.auth.onAuthStateChange.listen((
+              state,
+            ) async {
+              if (state.session != null) {
+                await GuestSession.completeSignIn(state.session!.user.id);
+              }
+              if (mounted) _authRefresh.value++;
+            }, onError: (Object _) {});
+            GuestSession.active.addListener(_refreshGuest);
+            setState(() {});
+          })
+          .catchError((Object error) {
+            if (mounted) setState(() => _error = error);
+          }),
     );
   }
 
@@ -416,8 +420,20 @@ class _WebSageRouteAppState extends State<WebSageRouteApp> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_startupReported && (_router != null || _error != null)) {
+      _startupReported = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (_error != null) {
+          failWebStartup();
+        } else {
+          completeWebStartup();
+        }
+      });
+    }
     if (_router == null) {
       return MaterialApp(
+        title: 'SageRoute',
         theme: browserTheme(AppTheme.lightTheme),
         home: Scaffold(
           body: Center(

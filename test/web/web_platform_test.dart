@@ -2,6 +2,7 @@
 library;
 
 import 'dart:js_interop';
+import 'dart:async';
 import 'dart:convert';
 import 'package:sageroute/components/web/web_brand_panel.dart';
 import 'package:sageroute/components/web/web_auth_layout.dart';
@@ -75,6 +76,83 @@ void main() {
     );
   });
   tearDownAll(() => Supabase.instance.dispose());
+
+  testWidgets(
+    'startup keeps its title and signals readiness after initialization',
+    (tester) async {
+      final previous = globalContext.getProperty<JSAny?>('sageStartup'.toJS);
+      var ready = 0;
+      var failed = 0;
+      globalContext.setProperty(
+        'sageStartup'.toJS,
+        {
+          'ready': (() {
+            ready++;
+          }).toJS,
+          'fail': (() {
+            failed++;
+          }).toJS,
+        }.jsify(),
+      );
+      addTearDown(
+        () => globalContext.setProperty('sageStartup'.toJS, previous),
+      );
+      final initialization = Completer<Object?>();
+      await tester.pumpWidget(
+        WebSageRouteApp(
+          initialization: initialization.future,
+          initialLocation: '/welcome',
+        ),
+      );
+      expect(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).title,
+        'SageRoute',
+      );
+      expect(ready, 0);
+      initialization.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(WebWelcomePage), findsOneWidget);
+      expect(ready, 1);
+      expect(failed, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'failed initialization reports failure without completing startup',
+    (tester) async {
+      final previous = globalContext.getProperty<JSAny?>('sageStartup'.toJS);
+      var ready = 0;
+      var failed = 0;
+      globalContext.setProperty(
+        'sageStartup'.toJS,
+        {
+          'ready': (() {
+            ready++;
+          }).toJS,
+          'fail': (() {
+            failed++;
+          }).toJS,
+        }.jsify(),
+      );
+      addTearDown(
+        () => globalContext.setProperty('sageStartup'.toJS, previous),
+      );
+      final initialization = Completer<Object?>();
+      await tester.pumpWidget(
+        WebSageRouteApp(initialization: initialization.future),
+      );
+      initialization.completeError(StateError('offline'));
+      await tester.pumpAndSettle();
+      expect(ready, 0);
+      expect(failed, 1);
+      expect(
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).title,
+        'SageRoute',
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('public invitations retain their path without forcing a login', (
     tester,

@@ -7,7 +7,7 @@ root = Path('build/web')
 assert root.is_dir(), 'Build Web first'
 for forbidden in ('assets/dart_define.json', 'assets/assets/env.env', 'dart_define.web.json'):
     assert not (root / forbidden).exists(), f'Local configuration was bundled: {forbidden}'
-for required in ('index.html', 'main.dart.js', 'sage_maps.js', 'canvaskit/canvaskit.wasm', 'assets/FontManifest.json'):
+for required in ('index.html', 'main.dart.js', 'sage_maps.js', 'sage_startup.js', 'canvaskit/canvaskit.wasm', 'assets/FontManifest.json'):
     assert (root / required).is_file(), f'Missing static resource: {required}'
 fonts = json.loads((root / 'assets/FontManifest.json').read_text())
 assert any(font['family'] == 'Roboto' for font in fonts), 'Default font would require an external download'

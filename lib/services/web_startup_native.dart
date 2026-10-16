@@ -1,0 +1,3 @@
+void completeWebStartup() {}
+
+void failWebStartup() {}
